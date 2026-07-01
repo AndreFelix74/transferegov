@@ -35,7 +35,7 @@ def _download_archive(table: dict, archive_path: Path):
                 progress_bar.update(len(chunk))
 
 
-def _extract_archive(csv_filename: str, archive_path: Path):
+def _extract_archive(archive_path: Path):
     archive_name = archive_path.name
     with zipfile.ZipFile(archive_path, "r") as archive:
         for member in archive.infolist():
@@ -47,38 +47,33 @@ def _extract_archive(csv_filename: str, archive_path: Path):
                 while chunk := source.read(65536):
                     target.write(chunk)
                     progress_bar.update(len(chunk))
-    if not (RAW_DIR / csv_filename).exists():
-        raise FileNotFoundError(f"{csv_filename} missing after extraction")
 
 
-def _zip_needs_update(table: dict) -> bool:
-    csv_path = RAW_DIR / (table["file"] + '.zip')
-    return _remote_mtime(table) > _local_mtime(csv_path)
+def _zip_needs_update(zip_file: dict) -> bool:
+    zip_path = RAW_DIR / archive_name_for(zip_file)
+    return _remote_mtime(zip_file) > _local_mtime(zip_path)
 
 
 def extract(log: logging.Logger):
     log.info("=== EXTRACT ===")
     RAW_DIR.mkdir(parents=True, exist_ok=True)
 
-    tables_to_update = [table for table in TABLES if _zip_needs_update(table)]
-    if not tables_to_update:
-        log.info("Extract concluído.")
-        return
+    zips_to_update = [zip_file for zip_file in TABLES if _zip_needs_update(zip_file)]
 
     log.info("=== EXTRACT DOWNLOAD ===")
     with ThreadPoolExecutor(max_workers=2) as executor:
         download_futures = {
             executor.submit(
-                _download_archive, table, RAW_DIR / archive_name_for(table),
-            ): table
-            for table in tables_to_update
+                _download_archive, zip_file, RAW_DIR / archive_name_for(zip_file),
+            ): zip_file
+            for zip_file in zips_to_update
         }
         for future in as_completed(download_futures):
             future.result()
 
     log.info("=== EXTRACT UNZIP ===")
 
-    for table in tables_to_update:
-        _extract_archive(table["file"], RAW_DIR / archive_name_for(table))
+    for zip_path in sorted(RAW_DIR.glob("*.zip")):
+        _extract_archive(zip_path)
 
     log.info("Extract concluído.")

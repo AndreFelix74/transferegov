@@ -65,11 +65,11 @@ TABLES = [
     },
     {"file": "siconv_proposta.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids"},
     {"file": "siconv_desembolso.csv", "filter_column": "NR_CONVENIO", "filter_set": "agreement_numbers"},
-    {"file": "siconv_itens_licitacao.csv", "filter_column": "ID_LICITACAO", "filter_set": "bidding_ids", "nome_remoto": "siconv_itens_licitacao.zip"},
+    {"file": "siconv_itens_licitacao.csv", "filter_column": "ID_LICITACAO", "filter_set": "bidding_ids", "remote_file": "siconv_itens_licitacao.zip"},
     {"file": "siconv_contrato.csv", "filter_column": "ID_LICITACAO", "filter_set": "bidding_ids"},
     {"file": "siconv_pagamento.csv", "filter_column": "NR_CONVENIO", "filter_set": "agreement_numbers", "extract_column": "NR_MOV_FIN", "extract_set": "movement_numbers"},
     {"file": "siconv_obtv_convenente.csv", "filter_column": "NR_MOV_FIN", "filter_set": "movement_numbers"},
-    {"file": "siconv_plano_aplicacao_detalhado.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids", "nome_remoto": "siconv_plano_aplicacao.csv.zip"},
+    {"file": "siconv_plano_aplicacao_detalhado.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids", "remote_file": "siconv_plano_aplicacao.csv.zip"},
     {"file": "siconv_historico_situacao.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids"},
     {"file": "siconv_cronograma_desembolso.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids"},
     {"file": "siconv_emenda.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids"},
@@ -109,7 +109,7 @@ def table_name_from_csv(csv_filename: str) -> str:
 
 
 def archive_name_for(table: dict) -> str:
-    return table.get("nome_remoto", f"{table['file']}.zip")
+    return table.get("remote_file", f"{table['file']}.zip")
 
 
 def archive_url_for(table: dict) -> str:
