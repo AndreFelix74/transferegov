@@ -80,17 +80,17 @@ def normalize(dataframe: pd.DataFrame) -> pd.DataFrame:
                 DATE_RE, r"\3-\2-\1", regex=True,
             )
         elif is_financial_column(col):
-            normalized[col] = normalized[col].map(_normalize_financial_value)
+            normalized[col] = _normalize_financial_series(normalized[col])
     return normalized
 
 
-def _normalize_financial_value(value: str) -> str:
-    if value is None or (isinstance(value, float) and pd.isna(value)):
-        return value
-    text = str(value).strip()
-    if not text or "," not in text:
-        return text
-    return text.replace(".", "").replace(",", ".")
+def _normalize_financial_series(series: pd.Series) -> pd.Series:
+    stripped = series.str.strip()
+    has_comma = stripped.str.contains(",", na=False)
+    transformed = stripped.str.replace(".", "", regex=False).str.replace(
+        ",", ".", regex=False,
+    )
+    return stripped.where(~has_comma, transformed)
 
 
 def write_staging_csv(dataframe: pd.DataFrame, staging_dir: Path, filename: str):
