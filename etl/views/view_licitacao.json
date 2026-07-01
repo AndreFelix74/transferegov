@@ -1,0 +1,12 @@
+{
+  "title": "Execucao - Licitacao",
+  "group": "execucao",
+  "output_table": "view_licitacao",
+  "base_table": "itens_licitacao",
+  "column_order": ["proposta_enriquecida", "convenio", "licitacao", "itens_licitacao"],
+  "joins": [
+    "itens_licitacao.ID_LICITACAO = licitacao.ID_LICITACAO",
+    "licitacao.NR_CONVENIO = convenio.NR_CONVENIO",
+    "convenio.ID_PROPOSTA = proposta_enriquecida.ID_PROPOSTA"
+  ]
+}

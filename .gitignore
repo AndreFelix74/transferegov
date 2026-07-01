@@ -1,0 +1,15 @@
+raw/
+staging/
+logs/
+modelo_dados_siconv/
+db/
+*__pycache__*
+saida/
+*.spyproject*
+*.zip
+.netlify/
+.surgeignore
+motor_coleta/
+motor_analise/
+documentos-analise/
+schemas/
