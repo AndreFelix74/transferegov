@@ -19,6 +19,7 @@ from etl.config import (
 from etl.cs_codigo import extrair_cs
 from etl.enrichment import enrich_proposta_com_programa
 from etl.links import link_proposta
+from etl.proposta import padronizar_nr_proposta
 from etl.views import build_view
 
 VIEW_SOURCE_TABLES = {
@@ -134,8 +135,13 @@ def transform(log: logging.Logger):
 
         normalized_df = normalize(table_df)
         table_name = short_table_name_from_file(filename)
-        if table_name == "proposta" and "ID_PROPOSTA" in normalized_df.columns:
-            normalized_df["LINK_PROPOSTA"] = normalized_df["ID_PROPOSTA"].map(link_proposta)
+        if table_name == "proposta":
+            if "NR_PROPOSTA" in normalized_df.columns:
+                normalized_df["NR_PROPOSTA"] = normalized_df["NR_PROPOSTA"].map(
+                    padronizar_nr_proposta,
+                )
+            if "ID_PROPOSTA" in normalized_df.columns:
+                normalized_df["LINK_PROPOSTA"] = normalized_df["ID_PROPOSTA"].map(link_proposta)
         if table_name == "plano_aplicacao_detalhado" and "DESCRICAO_ITEM" in normalized_df.columns:
             normalized_df["CS_CODIGO"] = normalized_df["DESCRICAO_ITEM"].map(extrair_cs)
         write_staging_csv(normalized_df, STAGING_DIR, filename)
