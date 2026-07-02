@@ -16,6 +16,7 @@ from etl.config import (
     is_financial_column,
     short_table_name_from_file,
 )
+from etl.cs_codigo import extrair_cs
 from etl.enrichment import enrich_proposta_com_programa
 from etl.views import build_view
 
@@ -131,9 +132,11 @@ def transform(log: logging.Logger):
         log.info(f"    → {len(table_df)} registros")
 
         normalized_df = normalize(table_df)
+        table_name = short_table_name_from_file(filename)
+        if table_name == "plano_aplicacao_detalhado" and "DESCRICAO_ITEM" in normalized_df.columns:
+            normalized_df["CS_CODIGO"] = normalized_df["DESCRICAO_ITEM"].map(extrair_cs)
         write_staging_csv(normalized_df, STAGING_DIR, filename)
 
-        table_name = short_table_name_from_file(filename)
         if table_name in VIEW_SOURCE_TABLES:
             dataframes_by_table[table_name] = normalized_df
 
