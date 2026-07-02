@@ -168,7 +168,7 @@ def load(log: logging.Logger):
             len(table_df.columns),
         )
         _upload_dataframe(service, sheet_name, table_df)
-        time.sleep(5)
+        time.sleep(3)
 
     sheets = _upload_meta_carga(service, sheets, log)
 
