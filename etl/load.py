@@ -1,8 +1,11 @@
 import json
 import logging
 import time
+from datetime import datetime
+from email.utils import parsedate_to_datetime
 
 import pandas as pd
+import requests
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -10,7 +13,10 @@ from etl.config import (
     CSV_ENCODING,
     GOOGLE_CREDENTIALS_FILE,
     GOOGLE_SPREADSHEET_ID,
+    META_SHEET_NAME,
     STAGING_DIR,
+    TABLES,
+    archive_url_for,
     sheet_name_from_csv,
     staging_csv_files,
 )
@@ -103,6 +109,42 @@ def _upload_dataframe(service, sheet_name: str, dataframe: pd.DataFrame):
         _upload_values(service, sheet_name, f"A{row_number}", batch)
 
 
+def _remote_carga_date() -> str:
+    latest = 0.0
+    for table in TABLES:
+        try:
+            response = requests.head(
+                archive_url_for(table), timeout=30, allow_redirects=True,
+            )
+            response.raise_for_status()
+            mtime = parsedate_to_datetime(response.headers["Last-Modified"]).timestamp()
+            latest = max(latest, mtime)
+        except requests.RequestException:
+            continue
+    if not latest:
+        return "—"
+    return datetime.fromtimestamp(latest).strftime("%d/%m/%Y")
+
+
+def _upload_meta_carga(service, sheets: dict[str, int], log: logging.Logger):
+    convenio_path = STAGING_DIR / "siconv_convenio.csv"
+    total_convenios = 0
+    if convenio_path.exists():
+        convenio_df = pd.read_csv(convenio_path, sep=";", encoding=CSV_ENCODING, dtype=str)
+        total_convenios = len(convenio_df)
+
+    meta_df = pd.DataFrame([{
+        "executado_em": datetime.now().isoformat(timespec="seconds"),
+        "data_carga_siconv": _remote_carga_date(),
+        "total_convenios": str(total_convenios),
+    }])
+    log.info(f"  Aba '{META_SHEET_NAME}': {total_convenios} convênios ...")
+    sheets = _ensure_sheet(service, sheets, META_SHEET_NAME)
+    _resize_sheet(service, sheets[META_SHEET_NAME], 2, len(meta_df.columns))
+    _upload_dataframe(service, META_SHEET_NAME, meta_df)
+    return sheets
+
+
 def load(log: logging.Logger):
     """Carrega os CSVs de ./staging em abas da planilha Google Sheets."""
     log.info("=== LOAD ===")
@@ -127,5 +169,7 @@ def load(log: logging.Logger):
         )
         _upload_dataframe(service, sheet_name, table_df)
         time.sleep(5)
+
+    sheets = _upload_meta_carga(service, sheets, log)
 
     log.info(f"Load concluído. Planilha: https://docs.google.com/spreadsheets/d/{GOOGLE_SPREADSHEET_ID}")

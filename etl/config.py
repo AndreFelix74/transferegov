@@ -11,6 +11,7 @@ DB_FILE = DB_DIR / "siconv.db"
 
 GOOGLE_SPREADSHEET_ID = "1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc"
 GOOGLE_CREDENTIALS_FILE = BASE_DIR / "scraper-whatsappweb-1e84668a304b.json"
+META_SHEET_NAME = "meta_carga"
 
 REPOSITORY_URL = "https://repositorio.dados.gov.br/seges/detru/"
 
