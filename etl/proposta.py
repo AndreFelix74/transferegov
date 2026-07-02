@@ -11,4 +11,4 @@ def padronizar_nr_proposta(nr_proposta: str) -> str | None:
     ano = ano.strip()
     if not numero.isdigit():
         return text
-    return f"{int(numero):09d}/{ano}"
+    return f"{str(numero).zfill(6)}/{ano}"
