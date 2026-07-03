@@ -2,9 +2,7 @@
   "title": "Pactuacao - Plano de Aplicacao Detalhado",
   "group": "pactuacao",
   "output_table": "view_plano_aplicacao_detalhado",
-  "base_table": "plano_aplicacao_detalhado",
-  "column_order": ["proposta_enriquecida", "plano_aplicacao_detalhado"],
   "joins": [
-    "plano_aplicacao_detalhado.ID_PROPOSTA = proposta_enriquecida.ID_PROPOSTA"
+    "proposta_enriquecida.ID_PROPOSTA = plano_aplicacao_detalhado.ID_PROPOSTA"
   ]
 }

@@ -2,10 +2,8 @@
   "title": "Execucao - Pagamento",
   "group": "execucao",
   "output_table": "view_pagamento",
-  "base_table": "pagamento",
-  "column_order": ["proposta_enriquecida", "convenio", "pagamento"],
   "joins": [
-    "pagamento.NR_CONVENIO = convenio.NR_CONVENIO",
-    "convenio.ID_PROPOSTA = proposta_enriquecida.ID_PROPOSTA"
+    "proposta_enriquecida.ID_PROPOSTA = convenio.ID_PROPOSTA",
+    "convenio.NR_CONVENIO = pagamento.NR_CONVENIO"
   ]
 }

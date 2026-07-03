@@ -2,9 +2,7 @@
   "title": "Pactuacao - Cronograma de Desembolso",
   "group": "pactuacao",
   "output_table": "view_cronograma_desembolso",
-  "base_table": "cronograma_desembolso",
-  "column_order": ["proposta_enriquecida", "cronograma_desembolso"],
   "joins": [
-    "cronograma_desembolso.ID_PROPOSTA = proposta_enriquecida.ID_PROPOSTA"
+    "proposta_enriquecida.ID_PROPOSTA = cronograma_desembolso.ID_PROPOSTA"
   ]
 }

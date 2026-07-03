@@ -190,7 +190,7 @@ def transform(log: logging.Logger):
 
         log.info(
             f"    → {len(view_df)} registros gravados em {output_file} "
-            f"(cardinalidade ok, base={definition['base_table']})",
+            f"(cardinalidade ok)",
         )
 
     log.info("Views concluídas.")
