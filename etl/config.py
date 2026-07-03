@@ -20,7 +20,7 @@ CHUNK_SIZE = 1_000_000
 
 DATE_COLUMN_PREFIXES = ("DATA_", "DT_")
 NON_DATE_DAY_FIELDS = ("DIA", "MES", "ANO")
-FINANCIAL_COLUMN_PREFIXES = ("VL_", "VALOR_", "QTD_", "PRECO_")
+DECIMAL_COLUMN_PREFIXES = ("VL_", "VALOR_", "QTD_", "PRECO_", "QUANTIDADE")
 DATE_RE = r"^(\d{2})/(\d{2})/(\d{4})$"
 
 
@@ -30,8 +30,8 @@ def is_date_column(column: str) -> bool:
     return column.startswith(DATE_COLUMN_PREFIXES) or column.startswith("DIA_")
 
 
-def is_financial_column(column: str) -> bool:
-    return column.startswith(FINANCIAL_COLUMN_PREFIXES)
+def is_decimal_column(column: str) -> bool:
+    return column.startswith(DECIMAL_COLUMN_PREFIXES)
 
 
 # Ordem define a cadeia de filtros. extract_column/extract_set populam IDs para as próximas tabelas.

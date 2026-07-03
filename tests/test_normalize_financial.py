@@ -37,7 +37,7 @@ def test_sample_values_match_legacy():
 
 
 def test_real_csv_financial_columns_match_legacy():
-    from etl.config import RAW_DIR, is_financial_column
+    from etl.config import RAW_DIR, is_decimal_column
 
     mismatches = []
 
@@ -46,7 +46,7 @@ def test_real_csv_financial_columns_match_legacy():
         table_df.columns = table_df.columns.str.strip()
 
         for col in table_df.columns:
-            if not is_financial_column(col):
+            if not is_decimal_column(col):
                 continue
 
             legacy = table_df[col].map(_normalize_financial_value_legacy)

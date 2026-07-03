@@ -13,7 +13,7 @@ from etl.config import (
     STAGING_DIR,
     TABLES,
     is_date_column,
-    is_financial_column,
+    is_decimal_column,
     short_table_name_from_file,
 )
 from etl.cs_codigo import extrair_cs
@@ -83,7 +83,7 @@ def normalize(dataframe: pd.DataFrame) -> pd.DataFrame:
             normalized[col] = normalized[col].str.replace(
                 DATE_RE, r"\3-\2-\1", regex=True,
             )
-        elif is_financial_column(col):
+        elif is_decimal_column(col):
             normalized[col] = _normalize_financial_series(normalized[col])
     return normalized
 
