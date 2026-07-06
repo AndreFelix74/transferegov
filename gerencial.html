@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script src="common.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.1/apexcharts.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
@@ -104,27 +105,13 @@
 <footer class="rodape-central">Fonte: view_convenio (Google Sheets) · pcs-mds-prestacao-contas</footer>
 
 <script>
-const SHEET_ID = "1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc";
-const GID = "307493429"; // aba view_convenio
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
-
-const BRAND_PALETTE = ["#e45946", "#69438c", "#ff9c00", "#317c5d", "#355e7a", "#a42627", "#0c6642"];
 const baseFont = { fontFamily: "IBM Plex Sans, system-ui, sans-serif" };
-const brl = v => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const parseNum = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
-const parseISODate = v => { if (!v) return null; const d = new Date(v); return isNaN(d) ? null : d; };
 
 // categoria_tipo calculada a partir dos dados reais, sem lista de anos hardcoded
 function getCategoriaTipo(row) {
   if ((row.MODALIDADE || "").trim().toUpperCase() === "TERMO DE FOMENTO") return "Fomento";
   const ano = (row.ANO_PROP || "").trim();
   return ano ? `Edital ${ano}` : "Sem ano informado";
-}
-
-function setStatus(message, kind) {
-  const el = document.querySelector("#status-banner");
-  el.textContent = message;
-  el.className = "status-banner" + (kind ? " " + kind : "");
 }
 
 Papa.parse(CSV_URL, {
@@ -138,15 +125,15 @@ Papa.parse(CSV_URL, {
       if (rows.length === 0) throw new Error("Nenhuma linha com NR_CONVENIO preenchido.");
       rows.forEach(r => { r.categoria_tipo = getCategoriaTipo(r); });
       buildDashboard(rows);
-      setStatus(`Carregado: ${rows.length} convênios formalizados.`, "ok");
+      setStatusBanner("#status-banner", `Carregado: ${rows.length} convênios formalizados.`, "ok");
     } catch (err) {
       console.error(err);
-      setStatus("Erro ao processar view_convenio: " + err.message, "error");
+      setStatusBanner("#status-banner", "Erro ao processar view_convenio: " + err.message, "error");
     }
   },
   error: err => {
     console.error(err);
-    setStatus("Não foi possível carregar a planilha. Verifique se o compartilhamento está como \"qualquer pessoa com o link\".", "error");
+    setStatusBanner("#status-banner", "Não foi possível carregar a planilha. Verifique se o compartilhamento está como \"qualquer pessoa com o link\".", "error");
   },
 });
 
@@ -191,8 +178,8 @@ function buildDashboard(rows) {
     legend: { show: false },
     dataLabels: { style: { fontSize: "12px", fontWeight: 700 } },
     stroke: { width: 2, colors: ["#fffeff"] },
-    tooltip: { y: { formatter: brl } },
-    plotOptions: { pie: { donut: { size: "62%", labels: { show: true, total: { show: true, label: "Total", fontSize: "11px", formatter: () => brl(categorias.reduce((s, c) => s + recurso[c], 0)) } } } } },
+    tooltip: { y: { formatter: formatBRL } },
+    plotOptions: { pie: { donut: { size: "62%", labels: { show: true, total: { show: true, label: "Total", fontSize: "11px", formatter: () => formatBRL(categorias.reduce((s, c) => s + recurso[c], 0)) } } } } },
   }).render();
 
   const legendHTML = `<div class="legend">${categorias.map(c => `<span class="legend-item"><span class="legend-dot" style="background:${COR[c]}"></span>${c}</span>`).join("")}</div>`;
@@ -202,7 +189,7 @@ function buildDashboard(rows) {
   document.querySelector("#avg-list").innerHTML = categorias.map((c, i) => `
     <li>
       <span class="cat"><span class="dot" style="background:${COR[c]}"></span>${c}</span>
-      <span class="val">${brl(avgPactuacao[i])}</span>
+      <span class="val">${formatBRL(avgPactuacao[i])}</span>
     </li>`).join("");
 
   // ---- Situacao: labels dinamicos a partir de SIT_CONVENIO real ----
@@ -246,7 +233,7 @@ function buildDashboard(rows) {
     plotOptions: { bar: { borderRadius: 4, columnWidth: "60%" } },
     xaxis: { categories: categorias, labels: { style: { fontSize: "12px" } } },
     yaxis: { labels: { formatter: v => "R$ " + (v / 1_000_000).toFixed(1) + "M", style: { fontSize: "11px" } } },
-    tooltip: { y: { formatter: brl } },
+    tooltip: { y: { formatter: formatBRL } },
     legend: { position: "top", fontSize: "12px" },
     grid: { borderColor: "#eee" },
   }).render();
@@ -266,8 +253,8 @@ function buildDashboard(rows) {
 
     // media do % de vigencia decorrida entre os convenios da categoria
     const pcts = subset.map(r => {
-      const ini = parseISODate(r.DIA_INIC_VIGENC_CONV);
-      const fim = parseISODate(r.DIA_FIM_VIGENC_CONV);
+      const ini = parseDate(r.DIA_INIC_VIGENC_CONV);
+      const fim = parseDate(r.DIA_FIM_VIGENC_CONV);
       if (!ini || !fim || fim <= ini) return null;
       const decorrido = (hoje - ini) / (fim - ini);
       return Math.max(0, Math.min(100, decorrido * 100));

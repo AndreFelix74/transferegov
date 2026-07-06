@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 
+<script src="common.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.1/apexcharts.min.js"></script>
 
@@ -118,10 +119,6 @@
    CONFIGURAÇÃO — ajuste aqui caso os cabeçalhos da view_convenio
    no Google Sheets usem nomes diferentes dos campos brutos do SICONV.
    ===================================================================== */
-const SHEET_ID = "1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc";
-const GID = "307493429";
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
-
 const COLUNAS = {
   idProposta: "ID_PROPOSTA",
   proponente: "NM_PROPONENTE",
@@ -136,35 +133,10 @@ const COLUNAS = {
 
 const URL_DETALHE_PROPOSTA = "https://siconv.gov.br/siconv/rest/proposta/DetalharProposta.do?idProposta=";
 
-const CORES = {
-  laranja: "#e45946",
-  roxo: "#69438c",
-  amarelo: "#ff9c00",
-  verde: "#317c5d",
-};
-
-const CICLO_CORES = [CORES.roxo, CORES.verde, CORES.amarelo, CORES.laranja, "#8a7a9b", "#5f9c82"];
-
 let linhas = [];
 let ordenacao = { campo: "diasRestantes", direcao: "asc" };
 
-/* --------------------- utilitários de data/número --------------------- */
-function paraNumero(valorBruto) {
-  if (valorBruto === undefined || valorBruto === null) return null;
-  const limpo = String(valorBruto).trim();
-  if (limpo === "") return null;
-  const numero = Number(limpo.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(numero) ? numero : null;
-}
-
-function paraData(valorBruto) {
-  if (!valorBruto) return null;
-  const texto = String(valorBruto).trim();
-  // formato esperado: ISO YYYY-MM-DD
-  const data = new Date(texto + "T00:00:00");
-  return Number.isNaN(data.getTime()) ? null : data;
-}
-
+/* --------------------- utilitários de data --------------------- */
 function diasEntre(dataA, dataB) {
   const MS_POR_DIA = 1000 * 60 * 60 * 24;
   return Math.round((dataA.getTime() - dataB.getTime()) / MS_POR_DIA);
@@ -172,19 +144,19 @@ function diasEntre(dataA, dataB) {
 
 function faixaUrgencia(diasRestantes) {
   if (diasRestantes === null) return { chave: "indefinido", rotulo: "sem prazo", cor: "var(--tinta-suave)" };
-  if (diasRestantes < 30) return { chave: "urgente", rotulo: "urgente", cor: CORES.laranja };
-  if (diasRestantes < 90) return { chave: "alerta", rotulo: "alerta", cor: CORES.amarelo };
-  return { chave: "normal", rotulo: "normal", cor: CORES.verde };
+  if (diasRestantes < 30) return { chave: "urgente", rotulo: "urgente", cor: BRAND_COLORS.laranja };
+  if (diasRestantes < 90) return { chave: "alerta", rotulo: "alerta", cor: BRAND_COLORS.amarelo };
+  return { chave: "normal", rotulo: "normal", cor: BRAND_COLORS.verde };
 }
 
 /* --------------------- transformação da linha crua --------------------- */
 function transformarLinha(bruta) {
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
 
-  const dataInicio = paraData(bruta[COLUNAS.dataInicioVigencia]);
-  const dataFim = paraData(bruta[COLUNAS.dataFimVigencia]);
-  const valorEmpenhado = paraNumero(bruta[COLUNAS.valorEmpenhado]);
-  const valorGlobal = paraNumero(bruta[COLUNAS.valorGlobal]);
+  const dataInicio = parseDate(bruta[COLUNAS.dataInicioVigencia]);
+  const dataFim = parseDate(bruta[COLUNAS.dataFimVigencia]);
+  const valorEmpenhado = parseNum(bruta[COLUNAS.valorEmpenhado]);
+  const valorGlobal = parseNum(bruta[COLUNAS.valorGlobal]);
 
   const diasRestantes = dataFim ? diasEntre(dataFim, hoje) : null;
 
@@ -196,7 +168,7 @@ function transformarLinha(bruta) {
   }
 
   let percentualExecucao = null;
-  if (valorEmpenhado !== null && valorGlobal) {
+  if (valorGlobal > 0) {
     percentualExecucao = Math.min(100, Math.max(0, (valorEmpenhado / valorGlobal) * 100));
   }
 
@@ -214,11 +186,6 @@ function transformarLinha(bruta) {
 }
 
 /* --------------------- carregamento --------------------- */
-function definirStatus(texto, comErro) {
-  const el = document.getElementById("status-atualizacao");
-  el.innerHTML = `<span class="ponto${comErro ? " erro" : ""}"></span><span>${texto}</span>`;
-}
-
 function carregarDados() {
   Papa.parse(CSV_URL, {
     download: true,
@@ -226,17 +193,17 @@ function carregarDados() {
     skipEmptyLines: true,
     complete: (resultado) => {
       if (!resultado.data || !resultado.data.length) {
-        definirStatus("planilha retornou sem linhas", true);
+        setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
         return;
       }
       linhas = resultado.data.map(transformarLinha);
       const agora = new Date().toLocaleString("pt-BR");
-      definirStatus(`atualizado às ${agora}`, false);
+      setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
       renderizarTudo();
     },
     error: (erro) => {
       console.error(erro);
-      definirStatus("falha ao carregar a planilha", true);
+      setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
       document.getElementById("corpo-tabela").innerHTML =
         `<tr><td colspan="6" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
     },
@@ -250,7 +217,7 @@ function renderizarGraficoVigencia() {
 
   const categorias = ["Urgente (< 30 dias)", "Alerta (30–90 dias)", "Normal (> 90 dias)"];
   const valores = [contagem.urgente, contagem.alerta, contagem.normal];
-  const cores = [CORES.laranja, CORES.amarelo, CORES.verde];
+  const cores = [BRAND_COLORS.laranja, BRAND_COLORS.amarelo, BRAND_COLORS.verde];
 
   const opcoes = {
     chart: { type: "bar", height: 180, toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
@@ -277,7 +244,7 @@ function renderizarGraficoSituacao() {
   const entradas = Object.entries(contagemPorSituacao).sort((a, b) => b[1] - a[1]);
   const categorias = entradas.map(([situacao]) => situacao);
   const valores = entradas.map(([, total]) => total);
-  const cores = categorias.map((_, i) => CICLO_CORES[i % CICLO_CORES.length]);
+  const cores = categorias.map((_, i) => CHART_CYCLE_COLORS[i % CHART_CYCLE_COLORS.length]);
 
   const opcoes = {
     chart: { type: "bar", height: Math.max(180, categorias.length * 34), toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
@@ -360,8 +327,8 @@ function renderizarTabela() {
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
           </a>
         </td>
-        <td>${formatarBarraPercentual(l.percentualVigencia, CORES.roxo)}</td>
-        <td>${formatarBarraPercentual(l.percentualExecucao, CORES.verde)}</td>
+        <td>${formatarBarraPercentual(l.percentualVigencia, BRAND_COLORS.roxo)}</td>
+        <td>${formatarBarraPercentual(l.percentualExecucao, BRAND_COLORS.verde)}</td>
         <td><span class="badge-situacao">${l.situacao}</span></td>
         <td>${formatarCarimbo(l)}</td>
       </tr>
