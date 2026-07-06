@@ -477,15 +477,17 @@ function buildDashboard(rows) {
     const desembolsado = subset.reduce((s, r) => s + parseNum(r.VL_DESEMBOLSADO_CONV), 0);
     const execucaoPct = pactuado ? Math.min(100, (desembolsado / pactuado) * 100) : 0;
 
-    // media do % de vigencia decorrida entre os convenios da categoria
-    const pcts = subset.map(r => {
+    const { somaDias, somaPrazo } = subset.reduce((acc, r) => {
       const ini = parseDate(r.DIA_INIC_VIGENC_CONV);
       const fim = parseDate(r.DIA_FIM_VIGENC_CONV);
-      if (!ini || !fim || fim <= ini) return null;
-      const decorrido = (hoje - ini) / (fim - ini);
-      return Math.max(0, Math.min(100, decorrido * 100));
-    }).filter(v => v !== null);
-    const vigenciaPct = pcts.length ? pcts.reduce((s, v) => s + v, 0) / pcts.length : 0;
+      if (!ini || !fim || fim <= ini) return acc;
+      const prazoTotalDias = (fim - ini) / 86400000;
+      const diasCorridos = Math.min(prazoTotalDias, Math.max(0, (hoje - ini) / 86400000));
+      acc.somaDias += diasCorridos;
+      acc.somaPrazo += prazoTotalDias;
+      return acc;
+    }, { somaDias: 0, somaPrazo: 0 });
+    const vigenciaPct = somaPrazo ? Math.min(100, (somaDias / somaPrazo) * 100) : 0;
 
     vigenciaExecucao[c] = { execucaoPct, vigenciaPct };
   });
@@ -497,7 +499,7 @@ function buildDashboard(rows) {
       { name: "% Vigência decorrida", data: categorias.map(c => Math.round(vigenciaExecucao[c].vigenciaPct)) },
     ],
     colors: ["#0c6642", "#69438c"],
-    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "32%" } },
+    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "60%" } },
     xaxis: { categories: categorias, max: 100, labels: { formatter: v => v + "%", style: { fontSize: "11px" } } },
     yaxis: { labels: { style: { fontSize: "12px", fontWeight: 600 } } },
     dataLabels: { formatter: v => v + "%", style: { fontSize: "11px", fontWeight: 700, colors: ["#fff"] } },
