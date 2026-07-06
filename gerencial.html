@@ -37,6 +37,14 @@
     min-height:300px;
   }
 
+  /* Período: exibe 1 rótulo a cada 3 meses; categorias completas preservam o tooltip */
+  #chart-periodo .apexcharts-xaxis-texts-g text{
+    opacity:0;
+  }
+  #chart-periodo .apexcharts-xaxis-texts-g text:nth-child(3n+1){
+    opacity:1;
+  }
+
   .chart-placeholder{
     display:flex;
     flex-direction:column;
@@ -97,7 +105,7 @@
   <!-- Coluna Tipo -->
   <div class="col-tipo">
     <div class="card">
-      <div class="card-title"><h3>Tipo<span>Distribuição por categoria</span></h3></div>
+      <div class="card-title"><h3>Tipo</h3></div>
       <div class="stat-block">
         <h4>Qtd. de Instrumentos</h4>
         <div id="chart-qtd" style="min-height:190px"></div>
@@ -117,7 +125,7 @@
   <div class="col-graficos">
     <div class="card">
       <div class="card-title">
-        <h3>Situação<span>Instrumentos por status e categoria</span></h3>
+        <h3>Situação</h3>
         <div class="agg-toggle">Agregar tudo</div>
       </div>
       <div id="chart-situacao"></div>
@@ -136,14 +144,14 @@
   <div>
     <div class="card">
       <div class="card-title">
-        <h3>Período<span>Vigência dos instrumentos (Jan/24 – Dez/26)</span></h3>
+        <h3>Período</h3>
       </div>
       <div id="chart-periodo"></div>
     </div>
 
     <div class="card">
       <div class="card-title">
-        <h3>% Vigência × Execução (R$)<span>Ritmo financeiro vs. tempo decorrido</span></h3>
+        <h3>% Vigência × Execução (R$)</h3>
         <div class="agg-toggle">Agregar tudo</div>
       </div>
       <div id="chart-vigencia" style="min-height:300px"></div>
@@ -388,14 +396,77 @@ function buildDashboard(rows) {
     grid: { borderColor: "#eee" },
   }).render();
 
-  // ---- Periodo: placeholder, decisao de formato ainda em aberto ----
-  document.querySelector("#chart-periodo").innerHTML = `
-    <div class="chart-placeholder">
-      <div class="chart-placeholder-legenda" aria-hidden="true"></div>
-      <div class="chart-placeholder-conteudo">
-        <p>Aguardando definição do formato (barra empilhada vs. rangeBar).</p>
-      </div>
-    </div>`;
+  // ---- Periodo: evolucao da fase (Execucao / Prestacao de Contas) mes a mes ----
+  const MESES_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const inicioEixo = new Date(2024, 0, 1);
+  const fimEixo = new Date(2026, 11, 1);
+  const mesesEixo = [];
+  for (let d = new Date(inicioEixo); d <= fimEixo; d.setMonth(d.getMonth() + 1)) {
+    mesesEixo.push(new Date(d));
+  }
+  const labelMes = (data) => `${MESES_PT[data.getMonth()]}/${String(data.getFullYear()).slice(2)}`;
+  const categoriasPeriodo = mesesEixo.map(labelMes);
+
+  const execucaoPorMes = new Array(mesesEixo.length).fill(0);
+  const prestacaoPorMes = new Array(mesesEixo.length).fill(0);
+
+  rows.forEach((r) => {
+    const ini = parseDate(r.DIA_INIC_VIGENC_CONV);
+    const fim = parseDate(r.DIA_FIM_VIGENC_CONV);
+    if (!ini || !fim) return;
+
+    let limite = parseDate(r.DIA_LIMITE_PREST_CONTAS);
+    if (!limite || limite <= fim) {
+      limite = new Date(fim);
+      limite.setDate(limite.getDate() + 60);
+    }
+
+    mesesEixo.forEach((mes, i) => {
+      if (mes >= ini && mes < fim) execucaoPorMes[i]++;
+      else if (mes >= fim && mes < limite) prestacaoPorMes[i]++;
+    });
+  });
+
+  new ApexCharts(document.querySelector("#chart-periodo"), {
+    chart: {
+      type: "area",
+      height: 300,
+      stacked: true,
+      toolbar: { show: false },
+      events: {
+        mounted: sincronizarAlturasPainel,
+        updated: sincronizarAlturasPainel,
+      },
+      ...baseFont,
+    },
+    series: [
+      { name: "Execução", data: execucaoPorMes },
+      { name: "Prestação de Contas", data: prestacaoPorMes },
+    ],
+    colors: [BRAND_COLORS.verde, BRAND_COLORS.laranja],
+    stroke: { curve: "smooth", width: 2 },
+    fill: { type: "gradient", gradient: { opacityFrom: 0.55, opacityTo: 0.15 } },
+    xaxis: {
+      categories: categoriasPeriodo,
+      tickPlacement: "on",
+      labels: {
+        style: { fontSize: "11px" },
+        rotate: -45,
+        rotateAlways: true,
+        hideOverlappingLabels: false,
+      },
+    },
+    tooltip: {
+      x: { formatter: (_valor, { dataPointIndex }) => categoriasPeriodo[dataPointIndex] ?? "" },
+    },
+    yaxis: {
+      labels: { style: { fontSize: "11px" } },
+      title: { text: "Nº de convênios", style: { fontSize: "11px" } },
+    },
+    legend: { position: "top", fontSize: "12px" },
+    grid: { borderColor: "#eee" },
+    dataLabels: { enabled: false },
+  }).render();
 
   // ---- % Vigencia x Execucao ----
   const hoje = new Date();
