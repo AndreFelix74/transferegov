@@ -133,7 +133,7 @@
 
     <div class="card">
       <div class="card-title">
-        <h3>Execução Orçamentária (R$)<span>Pactuado · Desembolsado · Executado</span></h3>
+        <h3>Execução Orçamentária (R$)</h3>
         <div class="agg-toggle">Agregar tudo</div>
       </div>
       <div id="chart-execucao" style="min-height:300px"></div>
@@ -210,6 +210,16 @@ function getCategoriaTipo(row) {
   if ((row.MODALIDADE || "").trim().toUpperCase() === "TERMO DE FOMENTO") return "Fomento";
   const ano = (row.ANO_PROP || "").trim();
   return ano ? `Edital ${ano}` : "Sem ano informado";
+}
+
+function agruparSituacao(situacao) {
+  const texto = (situacao || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (texto.includes("prest")) return "Em prestação de contas";
+  return "Em execução";
 }
 
 Papa.parse(CSV_URL, {
@@ -332,12 +342,14 @@ function buildDashboard(rows) {
       <span class="val">${formatBRLCompact(avgPactuacao[i])}</span>
     </li>`).join("");
 
-  // ---- Situacao: labels dinamicos a partir de SIT_CONVENIO real ----
-  const situacaoLabels = [...new Set(rows.map(r => (r.SIT_CONVENIO || "Não informado").trim()))];
+  // ---- Situacao: em execucao vs. prestacao de contas ----
+  const situacaoLabels = ["Em execução", "Em prestação de contas"];
   const situacaoData = {};
   categorias.forEach(c => {
     const subset = byCategoria(c);
-    situacaoData[c] = situacaoLabels.map(sit => subset.filter(r => (r.SIT_CONVENIO || "Não informado").trim() === sit).length);
+    situacaoData[c] = situacaoLabels.map((fase) =>
+      subset.filter((r) => agruparSituacao(r.SIT_CONVENIO) === fase).length
+    );
   });
 
   new ApexCharts(document.querySelector("#chart-situacao"), {
@@ -354,7 +366,7 @@ function buildDashboard(rows) {
     series: categorias.map(c => ({ name: c, data: situacaoData[c] })),
     colors: paletteArr,
     plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
-    xaxis: { categories: situacaoLabels, labels: { style: { fontSize: "10px" }, trim: true, rotate: -25 } },
+    xaxis: { categories: situacaoLabels, labels: { style: { fontSize: "11px" } } },
     yaxis: { labels: { style: { fontSize: "11px" } } },
     legend: { position: "top", fontSize: "12px" },
     grid: { borderColor: "#eee" },
@@ -390,7 +402,8 @@ function buildDashboard(rows) {
     colors: ["#355e7a", "#317c5d", "#ff9c00"],
     plotOptions: { bar: { borderRadius: 4, columnWidth: "60%" } },
     xaxis: { categories: categorias, labels: { style: { fontSize: "12px" } } },
-    yaxis: { labels: { formatter: formatBRLCompact, style: { fontSize: "11px" } } },
+    yaxis: { labels: { formatter: (v) => formatBRLCompact(v), style: { fontSize: "11px" } } },
+    dataLabels: { enabled: false },
     tooltip: { y: { formatter: formatBRL } },
     legend: { position: "top", fontSize: "12px" },
     grid: { borderColor: "#eee" },
