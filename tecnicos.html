@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Operacional — Técnicos | Cozinha Solidária</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<script src="common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  header.topo.topo--toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  main{
+    display:grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    padding: 20px clamp(16px,4vw,40px) 40px;
+    align-items:start;
+  }
+  @media (max-width: 900px){ main{ grid-template-columns: 1fr; } }
+
+  .coluna-lateral{ display:flex; flex-direction:column; gap:20px; }
+
+  .tabela-tecnicos{ width:100%; border-collapse:collapse; font-size:13px; }
+  .tabela-tecnicos th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--tinta-suave); font-weight:600; padding:8px 10px;
+    border-bottom:1px solid var(--linha);
+  }
+  .tabela-tecnicos td{ padding:9px 10px; border-bottom:1px solid var(--linha); }
+  .tabela-tecnicos tbody tr{ cursor:pointer; }
+  .tabela-tecnicos tbody tr:hover{ background:#fbf9f6; }
+  .tabela-tecnicos tbody tr.selecionada{ background:#f0ebe4; }
+  .tabela-tecnicos td.num{ font-family:"IBM Plex Mono"; text-align:right; }
+  .tabela-tecnicos td.num.zero{ color:var(--tinta-suave); }
+
+  .lista-item{
+    padding:10px 0; border-top:1px solid var(--linha); font-size:13px;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .lista-item:first-child{ border-top:none; }
+  .lista-item .linha1{ display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
+  .lista-item .tecnico-tag{
+    font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--roxo);
+  }
+  .lista-item .dias-tag{
+    font-family:"IBM Plex Mono"; font-size:11px; font-weight:600; color:var(--laranja);
+    white-space:nowrap;
+  }
+  .lista-item .detalhe{ font-size:12px; color:var(--tinta-suave); }
+  .lista-item a.link-transferegov{
+    font-family:"IBM Plex Mono"; font-size:11.5px; color:var(--roxo);
+    text-decoration:none; border-bottom:1px dotted var(--roxo);
+  }
+  .lista-item a.link-transferegov:hover{ color:var(--laranja); border-color:var(--laranja); }
+
+  .aviso-mock{
+    font-size:11px; color:var(--tinta-suave); background:var(--papel);
+    border:1px dashed var(--linha); border-radius:6px; padding:6px 10px; margin-top:8px;
+  }
+
+  .filtro-ativo{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:#f0ebe4; border-radius:6px; padding:6px 10px; margin-bottom:10px; font-size:12px;
+  }
+  .filtro-ativo button{
+    border:none; background:none; color:var(--roxo); font-weight:600; cursor:pointer; font-size:12px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topo topo--toolbar">
+  <div class="topo-principal">
+    <a class="voltar-inicio" href="index.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Página inicial
+    </a>
+    <div class="titulo">
+      <h1>Painel Operacional — Técnicos</h1>
+      <span class="subtitulo">Programa Cozinha Solidária · MDS</span>
+    </div>
+  </div>
+  <div class="status-atualizacao" id="status-atualizacao">
+    <span class="ponto"></span>
+    <span>carregando dados…</span>
+  </div>
+</header>
+
+<div class="status-banner" id="aviso-topo" style="max-width:none;margin:16px clamp(16px,4vw,40px) 0;">
+  Atribuição técnico↔convênio carregada de planilha manual (não persistida na pipeline). Alertas e movimentações são dados de exemplo — regra de negócio ainda em definição.
+</div>
+
+<main>
+  <!-- ===================== COLUNA LATERAL ===================== -->
+  <aside class="coluna-lateral">
+
+    <section class="cartao">
+      <h2>Parcerias por técnico</h2>
+      <table class="tabela-tecnicos">
+        <thead>
+          <tr><th>Nome</th><th style="text-align:right">Execução</th><th style="text-align:right">PC</th></tr>
+        </thead>
+        <tbody id="corpo-tecnicos"><tr><td colspan="3" class="carregando">Carregando…</td></tr></tbody>
+      </table>
+    </section>
+
+    <section class="cartao">
+      <h2>Movimentações nas parcerias em execução</h2>
+      <div class="kpi-linha">
+        <div class="kpi">
+          <div class="valor mono" id="kpi-movimentacoes">—</div>
+          <div class="rotulo">parcerias movimentadas (7 dias)</div>
+        </div>
+        <div class="kpi">
+          <div class="valor mono" id="kpi-pc180-total">—</div>
+          <div class="rotulo">instrumentos em PC há mais de 180 dias</div>
+        </div>
+      </div>
+      <div class="aviso-mock">Movimentações: dado de exemplo — histórico de situação ainda não está na view_convenio.</div>
+    </section>
+
+    <section class="cartao">
+      <h2>Qualidade da atribuição</h2>
+      <div class="kpi-linha">
+        <div class="kpi">
+          <div class="valor mono" id="kpi-nao-localizados">—</div>
+          <div class="rotulo">convênios do JSON não encontrados na planilha</div>
+        </div>
+      </div>
+    </section>
+
+  </aside>
+
+  <!-- ===================== COLUNA PRINCIPAL ===================== -->
+  <section style="display:flex; flex-direction:column; gap:20px;">
+
+    <div class="cartao-tabela">
+      <div class="cabecalho-tabela">
+        <h2>Técnico · Alertas · PC+180</h2>
+        <span class="ordenar-por">clique em um técnico para filtrar as listas abaixo</span>
+      </div>
+      <div class="container-tabela">
+        <table class="parcerias" style="min-width:0;">
+          <thead>
+            <tr><th>Técnico</th><th>Alertas</th><th>PC+180</th></tr>
+          </thead>
+          <tbody id="corpo-resumo"><tr><td colspan="3" class="carregando">Carregando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <h2>Alertas (últimos 7 dias)</h2>
+      <div id="filtro-alertas"></div>
+      <div id="lista-alertas"></div>
+      <div class="aviso-mock">Dados de exemplo — critério de alerta ainda em definição com o Artur.</div>
+    </div>
+
+    <div class="cartao">
+      <h2>PC+180</h2>
+      <div id="filtro-pc180"></div>
+      <div id="lista-pc180"></div>
+      <div class="aviso-mock">Aproximação: dias desde o fim da vigência, usado como proxy porque a view_convenio não traz a data de entrada em Prestação de Contas.</div>
+    </div>
+
+  </section>
+</main>
+
+<script>
+/* =====================================================================
+   Atribuição técnico ↔ convênio — planilha manual do Artur.
+   Fonte não persistida na pipeline; embutido aqui como protótipo.
+   ===================================================================== */
+const CONVENIOS_POR_TECNICO = {
+  "JULIANO": ["7AABOV","7AABMA","7AABKH","986416","7AAAOV","990384","7AACKE"],
+  "ANA CRISTINA": ["7AACEJ","987912","7AACKF","7AABZC"],
+  "KELLY": ["7AABZR","966114","7AABXZ","7AAAEH","991094","968954","968494","968491"],
+  "HÉLIO": ["7AABPI","968475","7AACAX","969155","968699","968973","968471","968473","968713"],
+  "THAIS": ["7AABVO","980432","991003","998593","7AABVN"],
+  "ANNE": ["7AACEO","968639","979587","999932","969164"],
+  "MIRIAM": ["968960","969168","968936","7AABPQ","969331","969344","969154","965466","969130"],
+  "ALECIO": ["7AABZB","7AABYM","968768","966061","965754"],
+  "LUIZA": ["961714","961719","961708"],
+};
+
+const TECNICO_POR_CONVENIO = {};
+Object.entries(CONVENIOS_POR_TECNICO).forEach(([tecnico, lista]) => {
+  lista.forEach((nr) => { TECNICO_POR_CONVENIO[nr.trim()] = tecnico; });
+});
+
+/* Mock de alertas — estrutura ilustrativa, sem regra de negócio real ainda */
+const MOCK_ALERTAS = [
+  { convenio: "968473", mensagem: 'Situação alterada para "Prestação de Contas em Análise"', diasAtras: 2 },
+  { convenio: "7AABPI", mensagem: "Novo documento anexado pelo convenente", diasAtras: 5 },
+  { convenio: "966114", mensagem: "Prazo de vigência vence em 6 dias", diasAtras: 1 },
+  { convenio: "969168", mensagem: 'Situação alterada para "Prestação de Contas em Complementação"', diasAtras: 4 },
+  { convenio: "7AABZB", mensagem: "Novo parecer técnico anexado", diasAtras: 6 },
+];
+
+const COLUNAS = {
+  idProposta: "ID_PROPOSTA",
+  proponente: "NM_PROPONENTE",
+  numeroTransfereGov: "NR_CONVENIO",
+  situacao: "SIT_CONVENIO",
+  dataFimVigencia: "DIA_FIM_VIGENC_CONV",
+};
+
+const URL_DETALHE_PROPOSTA = "https://siconv.gov.br/siconv/rest/proposta/DetalharProposta.do?idProposta=";
+
+let linhas = [];
+let tecnicoSelecionado = null;
+
+function estaEmExecucao(situacao) {
+  return (situacao || "").trim() === "Em execução";
+}
+function estaEmPC(situacao) {
+  const s = (situacao || "");
+  return s.includes("Prestação de Contas") && !s.includes("Aprovada");
+}
+
+function transformarLinha(bruta) {
+  const nr = (bruta[COLUNAS.numeroTransfereGov] || "").trim();
+  return {
+    idProposta: bruta[COLUNAS.idProposta] || "",
+    proponente: bruta[COLUNAS.proponente] || "(sem nome cadastrado)",
+    numeroTransfereGov: nr,
+    situacao: bruta[COLUNAS.situacao] || "",
+    dataFimVigencia: parseDate(bruta[COLUNAS.dataFimVigencia]),
+    tecnico: TECNICO_POR_CONVENIO[nr] || null,
+  };
+}
+
+function carregarDados() {
+  Papa.parse(CSV_URL, {
+    download: true, header: true, skipEmptyLines: true,
+    complete: (resultado) => {
+      if (!resultado.data || !resultado.data.length) {
+        setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
+        return;
+      }
+      linhas = resultado.data.map(transformarLinha);
+      setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
+      renderizarTudo();
+    },
+    error: (erro) => {
+      console.error(erro);
+      setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
+    },
+  });
+}
+
+function calcularPC180() {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  return linhas
+    .filter((l) => estaEmPC(l.situacao) && l.dataFimVigencia)
+    .map((l) => ({ ...l, diasEmPC: Math.round((hoje - l.dataFimVigencia) / 86400000) }))
+    .filter((l) => l.diasEmPC > 180)
+    .sort((a, b) => b.diasEmPC - a.diasEmPC);
+}
+
+function renderizarResumoPorTecnico(listaPC180) {
+  const nomes = Object.keys(CONVENIOS_POR_TECNICO).sort();
+  const corpo = document.getElementById("corpo-resumo");
+  corpo.innerHTML = nomes.map((tecnico) => {
+    const qtdAlertas = MOCK_ALERTAS.filter((a) => TECNICO_POR_CONVENIO[a.convenio] === tecnico).length;
+    const qtdPC180 = listaPC180.filter((l) => l.tecnico === tecnico).length;
+    return `
+      <tr data-tecnico="${tecnico}">
+        <td>${tecnico}</td>
+        <td>${qtdAlertas || '<span style="color:var(--tinta-suave)">—</span>'}</td>
+        <td>${qtdPC180 || '<span style="color:var(--tinta-suave)">—</span>'}</td>
+      </tr>`;
+  }).join("");
+
+  document.querySelectorAll("#corpo-resumo tr").forEach((tr) => {
+    tr.addEventListener("click", () => {
+      const tecnico = tr.dataset.tecnico;
+      tecnicoSelecionado = tecnicoSelecionado === tecnico ? null : tecnico;
+      renderizarTudo();
+    });
+  });
+}
+
+function renderizarBarraLateral(listaPC180) {
+  const nomes = Object.keys(CONVENIOS_POR_TECNICO).sort();
+  document.getElementById("corpo-tecnicos").innerHTML = nomes.map((tecnico) => {
+    const doTecnico = linhas.filter((l) => l.tecnico === tecnico);
+    const emExecucao = doTecnico.filter((l) => estaEmExecucao(l.situacao)).length;
+    const emPC = doTecnico.filter((l) => estaEmPC(l.situacao)).length;
+    return `<tr><td>${tecnico}</td><td class="num${emExecucao?'':' zero'}">${emExecucao}</td><td class="num${emPC?'':' zero'}">${emPC}</td></tr>`;
+  }).join("");
+
+  document.getElementById("kpi-movimentacoes").textContent = MOCK_ALERTAS.length;
+  document.getElementById("kpi-pc180-total").textContent = listaPC180.length;
+
+  const totalConveniosJSON = Object.values(CONVENIOS_POR_TECNICO).flat().length;
+  const encontrados = Object.keys(TECNICO_POR_CONVENIO).filter((nr) =>
+    linhas.some((l) => l.numeroTransfereGov === nr)
+  ).length;
+  document.getElementById("kpi-nao-localizados").textContent = totalConveniosJSON - encontrados;
+}
+
+function renderizarFiltro(elId, ativo) {
+  const el = document.getElementById(elId);
+  if (!ativo) { el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <div class="filtro-ativo">
+      <span>Filtrando por: <strong>${ativo}</strong></span>
+      <button type="button" onclick="tecnicoSelecionado=null; renderizarTudo();">limpar</button>
+    </div>`;
+}
+
+function renderizarAlertas() {
+  renderizarFiltro("filtro-alertas", tecnicoSelecionado);
+  const lista = MOCK_ALERTAS.filter((a) => !tecnicoSelecionado || TECNICO_POR_CONVENIO[a.convenio] === tecnicoSelecionado);
+  const container = document.getElementById("lista-alertas");
+  container.innerHTML = lista.length ? lista.map((a) => {
+    const tecnico = TECNICO_POR_CONVENIO[a.convenio] || "não atribuído";
+    return `
+      <div class="lista-item">
+        <div class="linha1">
+          <span class="tecnico-tag">${tecnico}</span>
+          <span class="dias-tag">${a.diasAtras}d atrás</span>
+        </div>
+        <div class="detalhe">
+          <a class="link-transferegov" href="${URL_DETALHE_PROPOSTA}${a.convenio}" target="_blank" rel="noopener">${a.convenio}</a>
+          — ${a.mensagem}
+        </div>
+      </div>`;
+  }).join("") : `<div class="vazio">Nenhum alerta para esse técnico.</div>`;
+}
+
+function renderizarPC180(listaPC180) {
+  renderizarFiltro("filtro-pc180", tecnicoSelecionado);
+  const lista = listaPC180.filter((l) => !tecnicoSelecionado || l.tecnico === tecnicoSelecionado);
+  const container = document.getElementById("lista-pc180");
+  container.innerHTML = lista.length ? lista.map((l) => `
+    <div class="lista-item">
+      <div class="linha1">
+        <span class="tecnico-tag">${l.tecnico || "não atribuído"}</span>
+        <span class="dias-tag">${l.diasEmPC}d em PC (aprox.)</span>
+      </div>
+      <div class="detalhe">
+        <a class="link-transferegov" href="${URL_DETALHE_PROPOSTA}${l.idProposta}" target="_blank" rel="noopener">${l.numeroTransfereGov}</a>
+        — ${l.proponente} · ${l.situacao}
+      </div>
+    </div>`).join("") : `<div class="vazio">Nenhum instrumento em PC+180 para esse técnico.</div>`;
+}
+
+function renderizarTudo() {
+  const listaPC180 = calcularPC180();
+  renderizarBarraLateral(listaPC180);
+  renderizarResumoPorTecnico(listaPC180);
+  renderizarAlertas();
+  renderizarPC180(listaPC180);
+
+  document.querySelectorAll("#corpo-resumo tr").forEach((tr) => {
+    tr.classList.toggle("selecionada", tr.dataset.tecnico === tecnicoSelecionado);
+  });
+}
+
+carregarDados();
+</script>
+
+</body>
+</html>
