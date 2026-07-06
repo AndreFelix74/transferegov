@@ -16,19 +16,55 @@
 
 <style>
   /* ---------- layout ---------- */
+  :root {
+    --altura-topo: 72px;
+    --main-pad-top: 20px;
+    --main-pad-bottom: 40px;
+  }
+
+  header.topo.topo--toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
   main{
     display:grid;
     grid-template-columns: 320px 1fr;
     gap: 20px;
-    padding: 20px clamp(16px,4vw,40px) 40px;
+    padding: var(--main-pad-top) clamp(16px,4vw,40px) var(--main-pad-bottom);
     align-items:start;
   }
   @media (max-width: 900px){
     main{ grid-template-columns: 1fr; }
   }
 
-  .coluna-lateral{ display:flex; flex-direction:column; gap:20px; position:sticky; top:20px; }
+  .coluna-lateral{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    position:sticky;
+    top: calc(var(--altura-topo) + var(--main-pad-top));
+  }
   @media (max-width: 900px){ .coluna-lateral{ position:static; } }
+
+  .cartao-tabela{
+    display:flex;
+    flex-direction:column;
+    max-height: calc(100dvh - var(--altura-topo) - var(--main-pad-top) - var(--main-pad-bottom));
+  }
+
+  .container-tabela{
+    flex:1 1 auto;
+    min-height:0;
+    overflow:auto;
+  }
+
+  table.parcerias thead th{
+    position:sticky;
+    top:0;
+    z-index:2;
+  }
 </style>
 </head>
 <body>
@@ -55,20 +91,6 @@
         <div class="item"><span class="quadrado" style="background:var(--laranja)"></span>Urgente — faltam menos de 30 dias</div>
         <div class="item"><span class="quadrado" style="background:var(--amarelo)"></span>Alerta — faltam entre 30 e 90 dias</div>
         <div class="item"><span class="quadrado" style="background:var(--verde)"></span>Normal — faltam mais de 90 dias</div>
-      </div>
-    </section>
-
-    <section class="cartao">
-      <h2>Resumo</h2>
-      <div class="kpi-linha">
-        <div class="kpi">
-          <div class="valor mono" id="kpi-total">—</div>
-          <div class="rotulo">parcerias</div>
-        </div>
-        <div class="kpi">
-          <div class="valor mono" id="kpi-execucao-media">—</div>
-          <div class="rotulo">% execução média</div>
-        </div>
       </div>
     </section>
 
@@ -221,13 +243,26 @@ function renderizarGraficoVigencia() {
 
   const opcoes = {
     chart: { type: "bar", height: 180, toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
-    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "55%", distributed: true } },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        borderRadius: 4,
+        barHeight: "55%",
+        distributed: true,
+        dataLabels: { position: "top", hideOverflowingLabels: false },
+      },
+    },
     series: [{ data: valores }],
     xaxis: { categories: categorias, labels: { style: { fontSize: "11px" } } },
     colors: cores,
-    dataLabels: { enabled: true, style: { fontSize: "12px", fontWeight: 600 } },
+    dataLabels: {
+      enabled: true,
+      textAnchor: "start",
+      offsetX: 4,
+      style: { fontSize: "12px", fontWeight: 600, colors: ["#2b2530"] },
+    },
     legend: { show: false },
-    grid: { borderColor: "#e4dfd8" },
+    grid: { borderColor: "#e4dfd8", padding: { right: 24 } },
   };
 
   document.getElementById("grafico-vigencia").innerHTML = "";
@@ -248,27 +283,30 @@ function renderizarGraficoSituacao() {
 
   const opcoes = {
     chart: { type: "bar", height: Math.max(180, categorias.length * 34), toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
-    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "60%", distributed: true } },
+    plotOptions: {
+      bar: {
+        horizontal: true,
+        borderRadius: 4,
+        barHeight: "60%",
+        distributed: true,
+        dataLabels: { position: "top", hideOverflowingLabels: false },
+      },
+    },
     series: [{ data: valores }],
-    xaxis: { categories: categorias, labels: { style: { fontSize: "10.5px" } } },
+    xaxis: { categories: categorias, labels: { style: { fontSize: "10.5px" }, maxWidth: 140 } },
     colors: cores,
-    dataLabels: { enabled: true, style: { fontSize: "11px", fontWeight: 600 } },
+    dataLabels: {
+      enabled: true,
+      textAnchor: "start",
+      offsetX: 4,
+      style: { fontSize: "11px", fontWeight: 600, colors: ["#2b2530"] },
+    },
     legend: { show: false },
-    grid: { borderColor: "#e4dfd8" },
+    grid: { borderColor: "#e4dfd8", padding: { right: 24 } },
   };
 
   document.getElementById("grafico-situacao").innerHTML = "";
   new ApexCharts(document.getElementById("grafico-situacao"), opcoes).render();
-}
-
-/* --------------------- KPIs --------------------- */
-function renderizarKpis() {
-  document.getElementById("kpi-total").textContent = linhas.length;
-  const comExecucao = linhas.filter((l) => l.percentualExecucao !== null);
-  const media = comExecucao.length
-    ? comExecucao.reduce((soma, l) => soma + l.percentualExecucao, 0) / comExecucao.length
-    : null;
-  document.getElementById("kpi-execucao-media").textContent = media !== null ? `${media.toFixed(0)}%` : "—";
 }
 
 /* --------------------- tabela --------------------- */
@@ -342,7 +380,6 @@ function renderizarTabela() {
 function renderizarTudo() {
   renderizarGraficoVigencia();
   renderizarGraficoSituacao();
-  renderizarKpis();
   renderizarTabela();
 }
 

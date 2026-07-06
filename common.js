@@ -56,6 +56,11 @@ function formatBRL(value) {
   });
 }
 
+function formatBRLCompact(value) {
+  const n = (value || 0) / 1_000_000;
+  return `${n.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
+}
+
 function setStatusBanner(selector, message, kind) {
   const el = document.querySelector(selector);
   el.textContent = message;

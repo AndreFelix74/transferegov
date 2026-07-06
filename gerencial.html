@@ -13,6 +13,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   /* ---------- layout do dashboard ---------- */
+  header.topo.topo--toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
   main{
     padding:24px clamp(16px,4vw,40px) 48px;
     display:grid;
@@ -25,19 +31,65 @@
   }
 
   .card + .card{margin-top:20px;}
+
+  #chart-situacao,
+  #chart-periodo{
+    min-height:300px;
+  }
+
+  .chart-placeholder{
+    display:flex;
+    flex-direction:column;
+    min-height:300px;
+  }
+
+  .chart-placeholder-legenda{
+    flex:none;
+  }
+
+  .chart-placeholder-conteudo{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 20px;
+  }
+
+  .chart-placeholder-conteudo p{
+    margin:0;
+    color:var(--tinta-suave);
+    font-size:13px;
+    text-align:center;
+  }
+
+  .col-tipo > .card{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .col-tipo .card-title{
+    flex:none;
+  }
+
+  .col-tipo .stat-block{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    min-height:0;
+  }
 </style>
 </head>
 <body>
 
-<header class="topo">
-  <span class="eyebrow">MDS · Programa Cozinha Solidária</span>
-  <h1>Painel Gerencial — Parcerias</h1>
-  <p>Visão consolidada dos instrumentos de transferência (convênios) por edital e fase de execução.</p>
-  <div class="filters">
-    <div class="chip active" data-filter="todos">Todos</div>
-    <div class="chip" data-filter="Edital 2024">Edital 2024</div>
-    <div class="chip" data-filter="Edital 2026">Edital 2026</div>
-    <div class="chip" data-filter="Fomento">Fomento</div>
+<header class="topo topo--toolbar">
+  <div class="titulo">
+    <h1>Painel Gerencial — Parcerias</h1>
+    <span class="subtitulo">Programa Cozinha Solidária · MDS</span>
+  </div>
+  <div class="status-atualizacao" id="status-atualizacao">
+    <span class="ponto"></span>
+    <span>carregando dados…</span>
   </div>
 </header>
 
@@ -50,26 +102,25 @@
         <h4>Qtd. de Instrumentos</h4>
         <div id="chart-qtd" style="min-height:190px"></div>
       </div>
-      <div class="stat-block" style="padding-bottom:0;">
+      <div class="stat-block">
         <h4>Recurso Pactuado (R$)</h4>
         <div id="chart-recurso" style="min-height:190px"></div>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><h3>Valor médio de pactuação</h3></div>
-      <ul class="avg-list" id="avg-list"></ul>
+      <div class="stat-block" style="padding-bottom:0;">
+        <h4>Valor médio de pactuação</h4>
+        <ul class="avg-list" id="avg-list"></ul>
+      </div>
     </div>
   </div>
 
   <!-- Coluna 2 -->
-  <div>
+  <div class="col-graficos">
     <div class="card">
       <div class="card-title">
         <h3>Situação<span>Instrumentos por status e categoria</span></h3>
         <div class="agg-toggle">Agregar tudo</div>
       </div>
-      <div id="chart-situacao" style="min-height:280px"></div>
+      <div id="chart-situacao"></div>
     </div>
 
     <div class="card">
@@ -87,7 +138,7 @@
       <div class="card-title">
         <h3>Período<span>Vigência dos instrumentos (Jan/24 – Dez/26)</span></h3>
       </div>
-      <div id="chart-periodo" style="min-height:280px"></div>
+      <div id="chart-periodo"></div>
     </div>
 
     <div class="card">
@@ -100,12 +151,51 @@
   </div>
 </main>
 
-<div id="status-banner" class="status-banner">Carregando dados de <strong>view_convenio</strong>…</div>
-
 <footer class="rodape-central">Fonte: view_convenio (Google Sheets) · pcs-mds-prestacao-contas</footer>
 
 <script>
 const baseFont = { fontFamily: "IBM Plex Sans, system-ui, sans-serif" };
+
+function igualarAlturaGraficoPar(origem, destino) {
+  const origemEl = document.querySelector(origem);
+  const destinoEl = document.querySelector(destino);
+  if (!origemEl || !destinoEl) return;
+
+  const alturaTotal = origemEl.offsetHeight;
+  if (!alturaTotal) return;
+
+  destinoEl.style.minHeight = `${alturaTotal}px`;
+
+  const legenda = origemEl.querySelector(".apexcharts-legend");
+  const legendaAltura = legenda?.offsetHeight || 0;
+  const placeholder = destinoEl.querySelector(".chart-placeholder");
+  const placeholderLegenda = destinoEl.querySelector(".chart-placeholder-legenda");
+  const placeholderConteudo = destinoEl.querySelector(".chart-placeholder-conteudo");
+
+  if (placeholder) placeholder.style.minHeight = `${alturaTotal}px`;
+  if (placeholderLegenda) placeholderLegenda.style.height = `${legendaAltura}px`;
+  if (placeholderConteudo) placeholderConteudo.style.minHeight = `${Math.max(0, alturaTotal - legendaAltura)}px`;
+}
+
+function igualarAlturaColunaTipo() {
+  const cardTipo = document.querySelector(".col-tipo > .card");
+  const colGraficos = document.querySelector(".col-graficos");
+  if (!cardTipo || !colGraficos) return;
+
+  if (window.matchMedia("(max-width: 1100px)").matches) {
+    cardTipo.style.removeProperty("min-height");
+    return;
+  }
+
+  const altura = colGraficos.offsetHeight;
+  if (!altura) return;
+  cardTipo.style.minHeight = `${altura}px`;
+}
+
+function sincronizarAlturasPainel() {
+  igualarAlturaGraficoPar("#chart-situacao", "#chart-periodo");
+  igualarAlturaColunaTipo();
+}
 
 // categoria_tipo calculada a partir dos dados reais, sem lista de anos hardcoded
 function getCategoriaTipo(row) {
@@ -125,17 +215,20 @@ Papa.parse(CSV_URL, {
       if (rows.length === 0) throw new Error("Nenhuma linha com NR_CONVENIO preenchido.");
       rows.forEach(r => { r.categoria_tipo = getCategoriaTipo(r); });
       buildDashboard(rows);
-      setStatusBanner("#status-banner", `Carregado: ${rows.length} convênios formalizados.`, "ok");
+      const agora = new Date().toLocaleString("pt-BR");
+      setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
     } catch (err) {
       console.error(err);
-      setStatusBanner("#status-banner", "Erro ao processar view_convenio: " + err.message, "error");
+      setStatusDot("#status-atualizacao", "erro ao processar view_convenio", true);
     }
   },
   error: err => {
     console.error(err);
-    setStatusBanner("#status-banner", "Não foi possível carregar a planilha. Verifique se o compartilhamento está como \"qualquer pessoa com o link\".", "error");
+    setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
   },
 });
+
+window.addEventListener("resize", sincronizarAlturasPainel);
 
 function buildDashboard(rows) {
   // categorias dinamicas, Editais em ordem alfabetica/numerica, Fomento sempre por ultimo
@@ -165,9 +258,28 @@ function buildDashboard(rows) {
     labels: categorias,
     colors: paletteArr,
     legend: { show: false },
-    dataLabels: { style: { fontSize: "12px", fontWeight: 700 } },
+    dataLabels: {
+      formatter: (val) => Math.round(val) + "%",
+      style: { fontSize: "12px", fontWeight: 700 },
+      minAngleToShowLabel: 15,
+    },
     stroke: { width: 2, colors: ["#fffeff"] },
-    plotOptions: { pie: { donut: { size: "62%", labels: { show: true, total: { show: true, label: "Total", fontSize: "11px", formatter: () => categorias.reduce((s, c) => s + qtd[c], 0) } } } } },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: "62%",
+          labels: {
+            show: true,
+            total: {
+              show: true,
+              label: "Total",
+              fontSize: "11px",
+              formatter: () => categorias.reduce((s, c) => s + qtd[c], 0),
+            },
+          },
+        },
+      },
+    },
   }).render();
 
   new ApexCharts(document.querySelector("#chart-recurso"), {
@@ -176,10 +288,30 @@ function buildDashboard(rows) {
     labels: categorias,
     colors: paletteArr,
     legend: { show: false },
-    dataLabels: { style: { fontSize: "12px", fontWeight: 700 } },
+    dataLabels: {
+      formatter: (val) => Math.round(val) + "%",
+      style: { fontSize: "12px", fontWeight: 700 },
+      minAngleToShowLabel: 15,
+    },
     stroke: { width: 2, colors: ["#fffeff"] },
-    tooltip: { y: { formatter: formatBRL } },
-    plotOptions: { pie: { donut: { size: "62%", labels: { show: true, total: { show: true, label: "Total", fontSize: "11px", formatter: () => formatBRL(categorias.reduce((s, c) => s + recurso[c], 0)) } } } } },
+    tooltip: { y: { formatter: formatBRLCompact } },
+    plotOptions: {
+      pie: {
+        donut: {
+          size: "62%",
+          labels: {
+            show: true,
+            value: { formatter: (val) => formatBRLCompact(val) },
+            total: {
+              show: true,
+              label: "Total",
+              fontSize: "11px",
+              formatter: () => formatBRLCompact(categorias.reduce((s, c) => s + recurso[c], 0)),
+            },
+          },
+        },
+      },
+    },
   }).render();
 
   const legendHTML = `<div class="legend">${categorias.map(c => `<span class="legend-item"><span class="legend-dot" style="background:${COR[c]}"></span>${c}</span>`).join("")}</div>`;
@@ -189,7 +321,7 @@ function buildDashboard(rows) {
   document.querySelector("#avg-list").innerHTML = categorias.map((c, i) => `
     <li>
       <span class="cat"><span class="dot" style="background:${COR[c]}"></span>${c}</span>
-      <span class="val">${formatBRL(avgPactuacao[i])}</span>
+      <span class="val">${formatBRLCompact(avgPactuacao[i])}</span>
     </li>`).join("");
 
   // ---- Situacao: labels dinamicos a partir de SIT_CONVENIO real ----
@@ -201,7 +333,16 @@ function buildDashboard(rows) {
   });
 
   new ApexCharts(document.querySelector("#chart-situacao"), {
-    chart: { type: "bar", height: 300, toolbar: { show: false }, ...baseFont },
+    chart: {
+      type: "bar",
+      height: 300,
+      toolbar: { show: false },
+      events: {
+        mounted: sincronizarAlturasPainel,
+        updated: sincronizarAlturasPainel,
+      },
+      ...baseFont,
+    },
     series: categorias.map(c => ({ name: c, data: situacaoData[c] })),
     colors: paletteArr,
     plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
@@ -223,7 +364,16 @@ function buildDashboard(rows) {
   });
 
   new ApexCharts(document.querySelector("#chart-execucao"), {
-    chart: { type: "bar", height: 300, toolbar: { show: false }, ...baseFont },
+    chart: {
+      type: "bar",
+      height: 300,
+      toolbar: { show: false },
+      events: {
+        mounted: sincronizarAlturasPainel,
+        updated: sincronizarAlturasPainel,
+      },
+      ...baseFont,
+    },
     series: [
       { name: "Pactuado", data: categorias.map(c => execucao[c].pactuado) },
       { name: "Desembolsado", data: categorias.map(c => execucao[c].desembolsado) },
@@ -232,15 +382,20 @@ function buildDashboard(rows) {
     colors: ["#355e7a", "#317c5d", "#ff9c00"],
     plotOptions: { bar: { borderRadius: 4, columnWidth: "60%" } },
     xaxis: { categories: categorias, labels: { style: { fontSize: "12px" } } },
-    yaxis: { labels: { formatter: v => "R$ " + (v / 1_000_000).toFixed(1) + "M", style: { fontSize: "11px" } } },
+    yaxis: { labels: { formatter: formatBRLCompact, style: { fontSize: "11px" } } },
     tooltip: { y: { formatter: formatBRL } },
     legend: { position: "top", fontSize: "12px" },
     grid: { borderColor: "#eee" },
   }).render();
 
   // ---- Periodo: placeholder, decisao de formato ainda em aberto ----
-  document.querySelector("#chart-periodo").innerHTML =
-    '<p style="color:var(--tinta-suave); font-size:13px; padding:40px 0; text-align:center;">Aguardando definição do formato (barra empilhada vs. rangeBar).</p>';
+  document.querySelector("#chart-periodo").innerHTML = `
+    <div class="chart-placeholder">
+      <div class="chart-placeholder-legenda" aria-hidden="true"></div>
+      <div class="chart-placeholder-conteudo">
+        <p>Aguardando definição do formato (barra empilhada vs. rangeBar).</p>
+      </div>
+    </div>`;
 
   // ---- % Vigencia x Execucao ----
   const hoje = new Date();
@@ -279,12 +434,7 @@ function buildDashboard(rows) {
     grid: { borderColor: "#eee" },
   }).render();
 
-  // chips: remove filtros para categorias que nao existem nos dados reais;
-  // logica de recorte por clique fica para a proxima rodada
-  document.querySelectorAll(".chip").forEach(chip => {
-    const filtro = chip.dataset.filter;
-    if (filtro !== "todos" && !categorias.includes(filtro)) chip.remove();
-  });
+  requestAnimationFrame(sincronizarAlturasPainel);
 }
 </script>
 </body>
