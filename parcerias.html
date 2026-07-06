@@ -65,6 +65,31 @@
     top:0;
     z-index:2;
   }
+
+  .cartao-subtitulo{
+    margin:-8px 0 14px;
+    font-size:12px;
+    color:var(--tinta-suave);
+  }
+
+  .filtros-tabela{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .filtro-select{
+    font-family:"IBM Plex Sans";
+    font-size:13px;
+    color:var(--tinta);
+    background:var(--papel);
+    border:1px solid var(--linha);
+    border-radius:7px;
+    padding:7px 28px 7px 10px;
+    max-width:220px;
+    cursor:pointer;
+  }
 </style>
 </head>
 <body>
@@ -91,17 +116,14 @@
   <aside class="coluna-lateral">
 
     <section class="cartao">
-      <h2>Prazo final de vigência</h2>
+      <h2>Em execução</h2>
+      <p class="cartao-subtitulo">Prazo final de vigência</p>
       <div id="grafico-vigencia" style="min-height:180px;"></div>
-      <div class="legenda-faixas">
-        <div class="item"><span class="quadrado" style="background:var(--laranja)"></span>Urgente — faltam menos de 30 dias</div>
-        <div class="item"><span class="quadrado" style="background:var(--amarelo)"></span>Alerta — faltam entre 30 e 90 dias</div>
-        <div class="item"><span class="quadrado" style="background:var(--verde)"></span>Normal — faltam mais de 90 dias</div>
-      </div>
     </section>
 
     <section class="cartao">
-      <h2>Situação detalhada</h2>
+      <h2>Em Prestação de contas</h2>
+      <p class="cartao-subtitulo">fase</p>
       <div id="grafico-situacao" style="min-height:220px;"></div>
     </section>
 
@@ -111,9 +133,14 @@
   <section class="cartao-tabela">
     <div class="cabecalho-tabela">
       <h2>Parcerias em acompanhamento</h2>
-      <div class="campo-busca">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
-        <input type="text" id="busca" placeholder="Buscar proponente…">
+      <div class="filtros-tabela">
+        <select id="filtro-modalidade" class="filtro-select" aria-label="Filtrar por modalidade">
+          <option value="">Todas as modalidades</option>
+        </select>
+        <div class="campo-busca">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
+          <input type="text" id="busca" placeholder="Buscar proponente…">
+        </div>
       </div>
     </div>
 
@@ -170,11 +197,22 @@ function diasEntre(dataA, dataB) {
   return Math.round((dataA.getTime() - dataB.getTime()) / MS_POR_DIA);
 }
 
-function faixaUrgencia(diasRestantes) {
+function faixaUrgenciaExecucao(diasRestantes) {
   if (diasRestantes === null) return { chave: "indefinido", rotulo: "sem prazo", cor: "var(--tinta-suave)" };
-  if (diasRestantes < 30) return { chave: "urgente", rotulo: "urgente", cor: BRAND_COLORS.laranja };
-  if (diasRestantes < 90) return { chave: "alerta", rotulo: "alerta", cor: BRAND_COLORS.amarelo };
-  return { chave: "normal", rotulo: "normal", cor: BRAND_COLORS.verde };
+  if (diasRestantes < 30) return { chave: "urgente", rotulo: "< 30 dias", cor: BRAND_COLORS.laranja };
+  if (diasRestantes < 90) return { chave: "alerta", rotulo: "30–90 dias", cor: BRAND_COLORS.amarelo };
+  return { chave: "normal", rotulo: "> 90 dias", cor: BRAND_COLORS.verde };
+}
+
+function faixaUrgenciaPrestacao(dias) {
+  if (dias === null) return { chave: "indefinido", rotulo: "", cor: "var(--tinta-suave)" };
+  if (dias > 180) return { chave: "urgente", rotulo: "", cor: BRAND_COLORS.laranja };
+  if (dias >= 91) return { chave: "alerta", rotulo: "", cor: BRAND_COLORS.amarelo };
+  return { chave: "normal", rotulo: "", cor: BRAND_COLORS.verde };
+}
+
+function estaEmExecucao(situacao) {
+  return (situacao || "").trim() === "Em execução";
 }
 
 /* --------------------- transformação da linha crua --------------------- */
@@ -185,8 +223,16 @@ function transformarLinha(bruta) {
   const dataFim = parseDate(bruta[COLUNAS.dataFimVigencia]);
   const valorEmpenhado = parseNum(bruta[COLUNAS.valorEmpenhado]);
   const valorGlobal = parseNum(bruta[COLUNAS.valorGlobal]);
+  const situacao = bruta[COLUNAS.situacao] || "Não informada";
+  const emExecucao = estaEmExecucao(situacao);
 
-  const diasRestantes = dataFim ? diasEntre(dataFim, hoje) : null;
+  const diasRestantes = dataFim
+    ? (emExecucao ? diasEntre(dataFim, hoje) : diasEntre(hoje, dataFim))
+    : null;
+  const diasExibicao = diasRestantes === null ? null : (emExecucao ? diasRestantes : Math.abs(diasRestantes));
+  const faixa = emExecucao
+    ? faixaUrgenciaExecucao(diasRestantes)
+    : faixaUrgenciaPrestacao(diasExibicao);
 
   let percentualVigencia = null;
   if (dataInicio && dataFim && dataFim > dataInicio) {
@@ -205,11 +251,11 @@ function transformarLinha(bruta) {
     proponente: bruta[COLUNAS.proponente] || "(sem nome cadastrado)",
     modalidade: bruta[COLUNAS.modalidade] || "—",
     numeroTransfereGov: bruta[COLUNAS.numeroTransfereGov] || "—",
-    situacao: bruta[COLUNAS.situacao] || "Não informada",
+    situacao,
     percentualVigencia,
     percentualExecucao,
-    diasRestantes,
-    faixa: faixaUrgencia(diasRestantes),
+    diasRestantes: diasExibicao,
+    faixa,
   };
 }
 
@@ -241,9 +287,11 @@ function carregarDados() {
 /* --------------------- gráfico: prazo final de vigência --------------------- */
 function renderizarGraficoVigencia() {
   const contagem = { urgente: 0, alerta: 0, normal: 0 };
-  linhas.forEach((l) => { if (contagem[l.faixa.chave] !== undefined) contagem[l.faixa.chave]++; });
+  linhas
+    .filter((l) => l.situacao === "Em execução")
+    .forEach((l) => { if (contagem[l.faixa.chave] !== undefined) contagem[l.faixa.chave]++; });
 
-  const categorias = ["Urgente (< 30 dias)", "Alerta (30–90 dias)", "Normal (> 90 dias)"];
+  const categorias = ["< 30 dias", "30–90 dias", "> 90 dias"];
   const valores = [contagem.urgente, contagem.alerta, contagem.normal];
   const cores = [BRAND_COLORS.laranja, BRAND_COLORS.amarelo, BRAND_COLORS.verde];
 
@@ -275,10 +323,13 @@ function renderizarGraficoVigencia() {
   new ApexCharts(document.getElementById("grafico-vigencia"), opcoes).render();
 }
 
-/* --------------------- gráfico: situação detalhada --------------------- */
+/* --------------------- gráfico: parcerias em prestação de contas --------------------- */
+const SITUACOES_EXCLUIDAS_GRAFICO = new Set(["Não informada", "Em execução", "Proposta/Plano de Trabalho Aprovado"]);
+
 function renderizarGraficoSituacao() {
   const contagemPorSituacao = {};
   linhas.forEach((l) => {
+    if (SITUACOES_EXCLUIDAS_GRAFICO.has(l.situacao)) return;
     contagemPorSituacao[l.situacao] = (contagemPorSituacao[l.situacao] || 0) + 1;
   });
 
@@ -328,14 +379,50 @@ function formatarBarraPercentual(valor, cor) {
 function formatarCarimbo(linha) {
   const { faixa, diasRestantes } = linha;
   if (diasRestantes === null) return `<span class="badge-situacao">sem data de vigência</span>`;
-  const texto = diasRestantes < 0 ? "vencido" : faixa.rotulo;
-  return `<span class="carimbo ${faixa.chave}">${texto}<span class="dias">${diasRestantes}d</span></span>`;
+  return `<span class="carimbo ${faixa.chave}"><span class="dias">${diasRestantes}d</span></span>`;
+}
+
+function temConvenio(l) {
+  const nr = (l.numeroTransfereGov || "").trim();
+  return nr && nr !== "—";
+}
+
+function linhasTabela() {
+  return linhas.filter(
+    (l) => temConvenio(l) && l.situacao !== "Proposta/Plano de Trabalho Aprovado"
+  );
+}
+
+function preencherFiltroModalidade() {
+  const select = document.getElementById("filtro-modalidade");
+  const atual = select.value;
+  const modalidades = [...new Set(
+    linhasTabela()
+      .map((l) => l.modalidade)
+      .filter((m) => m && m !== "—")
+  )].sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+  select.replaceChildren();
+  const optTodas = document.createElement("option");
+  optTodas.value = "";
+  optTodas.textContent = "Todas as modalidades";
+  select.appendChild(optTodas);
+  modalidades.forEach((m) => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    select.appendChild(opt);
+  });
+  if (modalidades.includes(atual)) select.value = atual;
 }
 
 function linhasFiltradas() {
   const termo = document.getElementById("busca").value.trim().toLowerCase();
-  if (!termo) return linhas;
-  return linhas.filter((l) => l.proponente.toLowerCase().includes(termo));
+  const modalidade = document.getElementById("filtro-modalidade").value;
+  let base = linhasTabela();
+  if (modalidade) base = base.filter((l) => l.modalidade === modalidade);
+  if (!termo) return base;
+  return base.filter((l) => l.proponente.toLowerCase().includes(termo));
 }
 
 function linhasOrdenadas(lista) {
@@ -380,10 +467,11 @@ function renderizarTabela() {
   }
 
   document.getElementById("rodape-contagem").textContent =
-    `${lista.length} de ${linhas.length} parceria(s) exibida(s)`;
+    `${lista.length} de ${linhasTabela().length} parceria(s) exibida(s)`;
 }
 
 function renderizarTudo() {
+  preencherFiltroModalidade();
   renderizarGraficoVigencia();
   renderizarGraficoSituacao();
   renderizarTabela();
@@ -391,6 +479,7 @@ function renderizarTudo() {
 
 /* --------------------- interações --------------------- */
 document.getElementById("busca").addEventListener("input", renderizarTabela);
+document.getElementById("filtro-modalidade").addEventListener("change", renderizarTabela);
 
 document.querySelectorAll("table.parcerias thead th").forEach((th) => {
   th.addEventListener("click", () => {
