@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Operacional — Parcerias | Cozinha Solidária</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.1/apexcharts.min.js"></script>
+
+<style>
+  :root{
+    --laranja:#e45946;
+    --roxo:#69438c;
+    --amarelo:#ff9c00;
+    --verde:#317c5d;
+    --branco:#fffeff;
+    --tinta: #2b2530;
+    --tinta-suave:#6b6470;
+    --papel:#f6f3ef;
+    --papel-carta:#ffffff;
+    --linha:#e4dfd8;
+    --sombra: 0 1px 2px rgba(43,37,48,.06), 0 8px 24px -12px rgba(43,37,48,.18);
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0; padding:0;
+    background:var(--papel);
+    color:var(--tinta);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; }
+
+  /* ---------- topo ---------- */
+  header.topo{
+    background: var(--tinta);
+    color: var(--branco);
+    padding: 22px clamp(16px,4vw,40px);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    border-bottom: 4px solid var(--laranja);
+  }
+  header.topo .titulo{
+    display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+  }
+  header.topo h1{
+    margin:0; font-size:20px; font-weight:600; letter-spacing:.2px;
+  }
+  header.topo .subtitulo{
+    font-size:13px; color:#c9c2d4; font-weight:400;
+  }
+  header.topo .status-atualizacao{
+    font-size:12px; color:#c9c2d4;
+    display:flex; align-items:center; gap:8px;
+  }
+  header.topo .ponto{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--verde);
+    box-shadow: 0 0 0 3px rgba(49,124,93,.25);
+  }
+  header.topo .ponto.erro{ background:var(--laranja); box-shadow:0 0 0 3px rgba(228,89,70,.25); }
+
+  /* ---------- layout ---------- */
+  main{
+    display:grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    padding: 20px clamp(16px,4vw,40px) 40px;
+    align-items:start;
+  }
+  @media (max-width: 900px){
+    main{ grid-template-columns: 1fr; }
+  }
+
+  .coluna-lateral{ display:flex; flex-direction:column; gap:20px; position:sticky; top:20px; }
+  @media (max-width: 900px){ .coluna-lateral{ position:static; } }
+
+  .cartao{
+    background: var(--papel-carta);
+    border:1px solid var(--linha);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
+    padding: 18px 18px 8px;
+  }
+  .cartao h2{
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight:600;
+    color: var(--tinta-suave);
+    margin: 0 0 14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .cartao h2::before{
+    content:"";
+    width:3px; height:14px;
+    background: var(--laranja);
+    border-radius:2px;
+    display:inline-block;
+  }
+
+  .legenda-faixas{
+    display:flex; flex-direction:column; gap:6px;
+    margin-top:10px; padding-top:10px;
+    border-top:1px dashed var(--linha);
+  }
+  .legenda-faixas .item{
+    display:flex; align-items:center; gap:8px;
+    font-size:12px; color:var(--tinta-suave);
+  }
+  .legenda-faixas .quadrado{ width:10px; height:10px; border-radius:2px; flex:none; }
+
+  /* ---------- KPI resumo ---------- */
+  .kpi-linha{
+    display:flex; gap:10px; margin-bottom:4px;
+  }
+  .kpi{
+    flex:1; text-align:center;
+    padding:10px 4px 12px;
+    border-radius:8px;
+    background: var(--papel);
+  }
+  .kpi .valor{ font-family:"IBM Plex Mono"; font-size:22px; font-weight:600; }
+  .kpi .rotulo{ font-size:10.5px; color:var(--tinta-suave); margin-top:2px; }
+
+  /* ---------- tabela ---------- */
+  .cartao-tabela{
+    background: var(--papel-carta);
+    border:1px solid var(--linha);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
+    overflow:hidden;
+  }
+  .cartao-tabela .cabecalho-tabela{
+    padding: 16px 20px 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap;
+    border-bottom:1px solid var(--linha);
+  }
+  .cabecalho-tabela h2{
+    margin:0; font-size:14px; font-weight:600;
+  }
+  .campo-busca{
+    display:flex; align-items:center; gap:8px;
+    background: var(--papel);
+    border:1px solid var(--linha);
+    border-radius:7px;
+    padding:6px 10px;
+  }
+  .campo-busca input{
+    border:none; background:transparent; outline:none;
+    font-family:"IBM Plex Sans"; font-size:13px; width:200px;
+    color:var(--tinta);
+  }
+  .campo-busca svg{ flex:none; opacity:.5; }
+
+  .ordenar-por{
+    font-size:11.5px; color:var(--tinta-suave);
+  }
+
+  .container-tabela{ overflow-x:auto; }
+  table.parcerias{
+    width:100%; border-collapse:collapse;
+    font-size:13px;
+    min-width: 920px;
+  }
+  table.parcerias thead th{
+    text-align:left;
+    font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--tinta-suave); font-weight:600;
+    padding:10px 14px;
+    background: var(--papel);
+    border-bottom:1px solid var(--linha);
+    white-space:nowrap;
+    cursor:pointer;
+    user-select:none;
+  }
+  table.parcerias thead th:hover{ color:var(--tinta); }
+  table.parcerias thead th .seta{ opacity:.4; margin-left:4px; font-size:10px; }
+  table.parcerias thead th.ativo .seta{ opacity:1; color: var(--laranja); }
+
+  table.parcerias tbody td{
+    padding:11px 14px;
+    border-bottom:1px solid var(--linha);
+    vertical-align:middle;
+  }
+  table.parcerias tbody tr:hover{ background: #fbf9f6; }
+  table.parcerias tbody tr:last-child td{ border-bottom:none; }
+
+  .celula-proponente{ display:flex; flex-direction:column; gap:2px; }
+  .celula-proponente .nome{ font-weight:500; }
+  .celula-proponente .modalidade{ font-size:11px; color:var(--tinta-suave); }
+
+  .link-transferegov{
+    display:inline-flex; align-items:center; gap:5px;
+    font-family:"IBM Plex Mono"; font-size:12px;
+    color: var(--roxo); text-decoration:none;
+    border-bottom:1px dotted var(--roxo);
+  }
+  .link-transferegov:hover{ color:var(--laranja); border-color:var(--laranja); }
+
+  .barra-percentual{
+    display:flex; align-items:center; gap:8px;
+  }
+  .barra-percentual .trilho{
+    flex:1; height:6px; border-radius:4px; background:var(--linha); overflow:hidden;
+  }
+  .barra-percentual .preenchimento{ height:100%; border-radius:4px; }
+  .barra-percentual .texto{ font-family:"IBM Plex Mono"; font-size:12px; width:38px; text-align:right; flex:none; }
+
+  .badge-situacao{
+    display:inline-block; font-size:11px; padding:3px 9px;
+    border-radius:20px; background: var(--papel);
+    color: var(--tinta-suave); border:1px solid var(--linha);
+    white-space:nowrap;
+  }
+
+  /* carimbo de urgência — referência ao carimbo de processo público */
+  .carimbo{
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono"; font-weight:600; font-size:10.5px;
+    letter-spacing:.04em;
+    padding: 3px 9px 4px;
+    border-radius: 4px;
+    border: 1.5px solid currentColor;
+    transform: rotate(-2deg);
+    white-space:nowrap;
+  }
+  .carimbo .dias{ margin-left:6px; font-weight:700; }
+  .carimbo.urgente{ color: var(--laranja); }
+  .carimbo.alerta{ color: var(--amarelo); }
+  .carimbo.normal{ color: var(--verde); }
+
+  .rodape{
+    padding: 14px 20px;
+    font-size:11.5px; color: var(--tinta-suave);
+    display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    border-top:1px solid var(--linha);
+  }
+
+  .vazio, .carregando, .erro{
+    padding:40px 20px; text-align:center; color:var(--tinta-suave); font-size:13px;
+  }
+  .erro{ color: var(--laranja); }
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="titulo">
+    <h1>Painel Operacional — Parcerias</h1>
+    <span class="subtitulo">Programa Cozinha Solidária · MDS</span>
+  </div>
+  <div class="status-atualizacao" id="status-atualizacao">
+    <span class="ponto"></span>
+    <span>carregando dados…</span>
+  </div>
+</header>
+
+<main>
+  <!-- ===================== COLUNA LATERAL ===================== -->
+  <aside class="coluna-lateral">
+
+    <section class="cartao">
+      <h2>Prazo final de vigência</h2>
+      <div id="grafico-vigencia" style="min-height:180px;"></div>
+      <div class="legenda-faixas">
+        <div class="item"><span class="quadrado" style="background:var(--laranja)"></span>Urgente — faltam menos de 30 dias</div>
+        <div class="item"><span class="quadrado" style="background:var(--amarelo)"></span>Alerta — faltam entre 30 e 90 dias</div>
+        <div class="item"><span class="quadrado" style="background:var(--verde)"></span>Normal — faltam mais de 90 dias</div>
+      </div>
+    </section>
+
+    <section class="cartao">
+      <h2>Resumo</h2>
+      <div class="kpi-linha">
+        <div class="kpi">
+          <div class="valor mono" id="kpi-total">—</div>
+          <div class="rotulo">parcerias</div>
+        </div>
+        <div class="kpi">
+          <div class="valor mono" id="kpi-execucao-media">—</div>
+          <div class="rotulo">% execução média</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cartao">
+      <h2>Situação detalhada</h2>
+      <div id="grafico-situacao" style="min-height:220px;"></div>
+    </section>
+
+  </aside>
+
+  <!-- ===================== TABELA PRINCIPAL ===================== -->
+  <section class="cartao-tabela">
+    <div class="cabecalho-tabela">
+      <h2>Parcerias em acompanhamento</h2>
+      <div class="campo-busca">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
+        <input type="text" id="busca" placeholder="Buscar proponente…">
+      </div>
+    </div>
+
+    <div class="container-tabela">
+      <table class="parcerias">
+        <thead>
+          <tr>
+            <th data-campo="proponente">Proponente <span class="seta">↕</span></th>
+            <th data-campo="numeroTransfereGov">Nº TransfereGov <span class="seta">↕</span></th>
+            <th data-campo="percentualVigencia">% Vigência <span class="seta">↕</span></th>
+            <th data-campo="percentualExecucao">% Execução <span class="seta">↕</span></th>
+            <th data-campo="situacao">Situação <span class="seta">↕</span></th>
+            <th data-campo="diasRestantes" class="ativo">Dias restantes <span class="seta">↓</span></th>
+          </tr>
+        </thead>
+        <tbody id="corpo-tabela">
+          <tr><td colspan="6" class="carregando">Carregando dados da planilha…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rodape">
+      <span id="rodape-contagem">—</span>
+      <span>Ordenado por dias restantes de execução · fonte: TransfereGov / SICONV</span>
+    </div>
+  </section>
+</main>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO — ajuste aqui caso os cabeçalhos da view_convenio
+   no Google Sheets usem nomes diferentes dos campos brutos do SICONV.
+   ===================================================================== */
+const SHEET_ID = "1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc";
+const GID = "307493429";
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
+
+const COLUNAS = {
+  idProposta: "ID_PROPOSTA",
+  proponente: "NM_PROPONENTE",
+  modalidade: "MODALIDADE",
+  numeroTransfereGov: "NR_CONVENIO",
+  situacao: "SIT_CONVENIO",
+  dataInicioVigencia: "DIA_INIC_VIGENC_CONV",
+  dataFimVigencia: "DIA_FIM_VIGENC_CONV",
+  valorEmpenhado: "VL_EMPENHADO_CONV",
+  valorGlobal: "VL_GLOBAL_CONV",
+};
+
+const URL_DETALHE_PROPOSTA = "https://siconv.gov.br/siconv/rest/proposta/DetalharProposta.do?idProposta=";
+
+const CORES = {
+  laranja: "#e45946",
+  roxo: "#69438c",
+  amarelo: "#ff9c00",
+  verde: "#317c5d",
+};
+
+const CICLO_CORES = [CORES.roxo, CORES.verde, CORES.amarelo, CORES.laranja, "#8a7a9b", "#5f9c82"];
+
+let linhas = [];
+let ordenacao = { campo: "diasRestantes", direcao: "asc" };
+
+/* --------------------- utilitários de data/número --------------------- */
+function paraNumero(valorBruto) {
+  if (valorBruto === undefined || valorBruto === null) return null;
+  const limpo = String(valorBruto).trim();
+  if (limpo === "") return null;
+  const numero = Number(limpo.replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function paraData(valorBruto) {
+  if (!valorBruto) return null;
+  const texto = String(valorBruto).trim();
+  // formato esperado: ISO YYYY-MM-DD
+  const data = new Date(texto + "T00:00:00");
+  return Number.isNaN(data.getTime()) ? null : data;
+}
+
+function diasEntre(dataA, dataB) {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24;
+  return Math.round((dataA.getTime() - dataB.getTime()) / MS_POR_DIA);
+}
+
+function faixaUrgencia(diasRestantes) {
+  if (diasRestantes === null) return { chave: "indefinido", rotulo: "sem prazo", cor: "var(--tinta-suave)" };
+  if (diasRestantes < 30) return { chave: "urgente", rotulo: "urgente", cor: CORES.laranja };
+  if (diasRestantes < 90) return { chave: "alerta", rotulo: "alerta", cor: CORES.amarelo };
+  return { chave: "normal", rotulo: "normal", cor: CORES.verde };
+}
+
+/* --------------------- transformação da linha crua --------------------- */
+function transformarLinha(bruta) {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+
+  const dataInicio = paraData(bruta[COLUNAS.dataInicioVigencia]);
+  const dataFim = paraData(bruta[COLUNAS.dataFimVigencia]);
+  const valorEmpenhado = paraNumero(bruta[COLUNAS.valorEmpenhado]);
+  const valorGlobal = paraNumero(bruta[COLUNAS.valorGlobal]);
+
+  const diasRestantes = dataFim ? diasEntre(dataFim, hoje) : null;
+
+  let percentualVigencia = null;
+  if (dataInicio && dataFim && dataFim > dataInicio) {
+    const duracaoTotal = diasEntre(dataFim, dataInicio);
+    const duracaoDecorrida = diasEntre(hoje, dataInicio);
+    percentualVigencia = Math.min(100, Math.max(0, (duracaoDecorrida / duracaoTotal) * 100));
+  }
+
+  let percentualExecucao = null;
+  if (valorEmpenhado !== null && valorGlobal) {
+    percentualExecucao = Math.min(100, Math.max(0, (valorEmpenhado / valorGlobal) * 100));
+  }
+
+  return {
+    idProposta: bruta[COLUNAS.idProposta] || "",
+    proponente: bruta[COLUNAS.proponente] || "(sem nome cadastrado)",
+    modalidade: bruta[COLUNAS.modalidade] || "—",
+    numeroTransfereGov: bruta[COLUNAS.numeroTransfereGov] || "—",
+    situacao: bruta[COLUNAS.situacao] || "Não informada",
+    percentualVigencia,
+    percentualExecucao,
+    diasRestantes,
+    faixa: faixaUrgencia(diasRestantes),
+  };
+}
+
+/* --------------------- carregamento --------------------- */
+function definirStatus(texto, comErro) {
+  const el = document.getElementById("status-atualizacao");
+  el.innerHTML = `<span class="ponto${comErro ? " erro" : ""}"></span><span>${texto}</span>`;
+}
+
+function carregarDados() {
+  Papa.parse(CSV_URL, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (resultado) => {
+      if (!resultado.data || !resultado.data.length) {
+        definirStatus("planilha retornou sem linhas", true);
+        return;
+      }
+      linhas = resultado.data.map(transformarLinha);
+      const agora = new Date().toLocaleString("pt-BR");
+      definirStatus(`atualizado às ${agora}`, false);
+      renderizarTudo();
+    },
+    error: (erro) => {
+      console.error(erro);
+      definirStatus("falha ao carregar a planilha", true);
+      document.getElementById("corpo-tabela").innerHTML =
+        `<tr><td colspan="6" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
+    },
+  });
+}
+
+/* --------------------- gráfico: prazo final de vigência --------------------- */
+function renderizarGraficoVigencia() {
+  const contagem = { urgente: 0, alerta: 0, normal: 0 };
+  linhas.forEach((l) => { if (contagem[l.faixa.chave] !== undefined) contagem[l.faixa.chave]++; });
+
+  const categorias = ["Urgente (< 30 dias)", "Alerta (30–90 dias)", "Normal (> 90 dias)"];
+  const valores = [contagem.urgente, contagem.alerta, contagem.normal];
+  const cores = [CORES.laranja, CORES.amarelo, CORES.verde];
+
+  const opcoes = {
+    chart: { type: "bar", height: 180, toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
+    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "55%", distributed: true } },
+    series: [{ data: valores }],
+    xaxis: { categories: categorias, labels: { style: { fontSize: "11px" } } },
+    colors: cores,
+    dataLabels: { enabled: true, style: { fontSize: "12px", fontWeight: 600 } },
+    legend: { show: false },
+    grid: { borderColor: "#e4dfd8" },
+  };
+
+  document.getElementById("grafico-vigencia").innerHTML = "";
+  new ApexCharts(document.getElementById("grafico-vigencia"), opcoes).render();
+}
+
+/* --------------------- gráfico: situação detalhada --------------------- */
+function renderizarGraficoSituacao() {
+  const contagemPorSituacao = {};
+  linhas.forEach((l) => {
+    contagemPorSituacao[l.situacao] = (contagemPorSituacao[l.situacao] || 0) + 1;
+  });
+
+  const entradas = Object.entries(contagemPorSituacao).sort((a, b) => b[1] - a[1]);
+  const categorias = entradas.map(([situacao]) => situacao);
+  const valores = entradas.map(([, total]) => total);
+  const cores = categorias.map((_, i) => CICLO_CORES[i % CICLO_CORES.length]);
+
+  const opcoes = {
+    chart: { type: "bar", height: Math.max(180, categorias.length * 34), toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
+    plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "60%", distributed: true } },
+    series: [{ data: valores }],
+    xaxis: { categories: categorias, labels: { style: { fontSize: "10.5px" } } },
+    colors: cores,
+    dataLabels: { enabled: true, style: { fontSize: "11px", fontWeight: 600 } },
+    legend: { show: false },
+    grid: { borderColor: "#e4dfd8" },
+  };
+
+  document.getElementById("grafico-situacao").innerHTML = "";
+  new ApexCharts(document.getElementById("grafico-situacao"), opcoes).render();
+}
+
+/* --------------------- KPIs --------------------- */
+function renderizarKpis() {
+  document.getElementById("kpi-total").textContent = linhas.length;
+  const comExecucao = linhas.filter((l) => l.percentualExecucao !== null);
+  const media = comExecucao.length
+    ? comExecucao.reduce((soma, l) => soma + l.percentualExecucao, 0) / comExecucao.length
+    : null;
+  document.getElementById("kpi-execucao-media").textContent = media !== null ? `${media.toFixed(0)}%` : "—";
+}
+
+/* --------------------- tabela --------------------- */
+function formatarBarraPercentual(valor, cor) {
+  if (valor === null) return `<span style="color:var(--tinta-suave)">—</span>`;
+  return `
+    <div class="barra-percentual">
+      <div class="trilho"><div class="preenchimento" style="width:${valor.toFixed(0)}%; background:${cor}"></div></div>
+      <span class="texto mono">${valor.toFixed(0)}%</span>
+    </div>`;
+}
+
+function formatarCarimbo(linha) {
+  const { faixa, diasRestantes } = linha;
+  if (diasRestantes === null) return `<span class="badge-situacao">sem data de vigência</span>`;
+  const texto = diasRestantes < 0 ? "vencido" : faixa.rotulo;
+  return `<span class="carimbo ${faixa.chave}">${texto}<span class="dias">${diasRestantes}d</span></span>`;
+}
+
+function linhasFiltradas() {
+  const termo = document.getElementById("busca").value.trim().toLowerCase();
+  if (!termo) return linhas;
+  return linhas.filter((l) => l.proponente.toLowerCase().includes(termo));
+}
+
+function linhasOrdenadas(lista) {
+  const { campo, direcao } = ordenacao;
+  const fator = direcao === "asc" ? 1 : -1;
+  return [...lista].sort((a, b) => {
+    let va = a[campo], vb = b[campo];
+    if (va === null || va === undefined) va = direcao === "asc" ? Infinity : -Infinity;
+    if (vb === null || vb === undefined) vb = direcao === "asc" ? Infinity : -Infinity;
+    if (typeof va === "string") return va.localeCompare(vb) * fator;
+    return (va - vb) * fator;
+  });
+}
+
+function renderizarTabela() {
+  const lista = linhasOrdenadas(linhasFiltradas());
+  const corpo = document.getElementById("corpo-tabela");
+
+  if (!lista.length) {
+    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Nenhuma parceria encontrada para essa busca.</td></tr>`;
+  } else {
+    corpo.innerHTML = lista.map((l) => `
+      <tr>
+        <td>
+          <div class="celula-proponente">
+            <span class="nome">${l.proponente}</span>
+            <span class="modalidade">${l.modalidade}</span>
+          </div>
+        </td>
+        <td>
+          <a class="link-transferegov" href="${URL_DETALHE_PROPOSTA}${l.idProposta}" target="_blank" rel="noopener">
+            ${l.numeroTransfereGov}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </a>
+        </td>
+        <td>${formatarBarraPercentual(l.percentualVigencia, CORES.roxo)}</td>
+        <td>${formatarBarraPercentual(l.percentualExecucao, CORES.verde)}</td>
+        <td><span class="badge-situacao">${l.situacao}</span></td>
+        <td>${formatarCarimbo(l)}</td>
+      </tr>
+    `).join("");
+  }
+
+  document.getElementById("rodape-contagem").textContent =
+    `${lista.length} de ${linhas.length} parceria(s) exibida(s)`;
+}
+
+function renderizarTudo() {
+  renderizarGraficoVigencia();
+  renderizarGraficoSituacao();
+  renderizarKpis();
+  renderizarTabela();
+}
+
+/* --------------------- interações --------------------- */
+document.getElementById("busca").addEventListener("input", renderizarTabela);
+
+document.querySelectorAll("table.parcerias thead th").forEach((th) => {
+  th.addEventListener("click", () => {
+    const campo = th.dataset.campo;
+    if (ordenacao.campo === campo) {
+      ordenacao.direcao = ordenacao.direcao === "asc" ? "desc" : "asc";
+    } else {
+      ordenacao = { campo, direcao: "asc" };
+    }
+    document.querySelectorAll("table.parcerias thead th").forEach((el) => {
+      el.classList.remove("ativo");
+      el.querySelector(".seta").textContent = "↕";
+    });
+    th.classList.add("ativo");
+    th.querySelector(".seta").textContent = ordenacao.direcao === "asc" ? "↑" : "↓";
+    renderizarTabela();
+  });
+});
+
+carregarDados();
+</script>
+
+</body>
+</html>

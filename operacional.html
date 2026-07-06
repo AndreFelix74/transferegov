@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cozinha Solidária — Consulta de Convênios</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --border: #dde3ec;
+      --text: #1a2332;
+      --muted: #5c6b7a;
+      --primary: #1351b4;
+      --primary-hover: #0c326f;
+      --accent: #168821;
+      --row-hover: #eef4fb;
+      --shadow: 0 1px 3px rgba(0,0,0,.08);
+      --radius: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 1rem 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    header p { font-size: .875rem; opacity: .85; margin-top: .25rem; }
+
+    main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* Loading */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 40vh;
+      gap: 1rem;
+      color: var(--muted);
+    }
+
+    #loading.hidden { display: none; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: #fde8e8;
+      border: 1px solid #f5c2c2;
+      color: #9b1c1c;
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin: 1rem 0;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      background: var(--surface);
+      padding: 1rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .toolbar label { font-size: .8125rem; color: var(--muted); font-weight: 500; }
+
+    .toolbar input[type="search"],
+    .toolbar select {
+      padding: .5rem .75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: .9375rem;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .toolbar input[type="search"] { flex: 1; min-width: 200px; }
+    .toolbar select { min-width: 220px; }
+
+    .result-count {
+      font-size: .875rem;
+      color: var(--muted);
+      margin-bottom: .75rem;
+    }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .875rem;
+    }
+
+    th, td {
+      padding: .625rem .75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: #f0f4f8;
+      font-weight: 600;
+      font-size: .8125rem;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tbody tr.clickable { cursor: pointer; transition: background .15s; }
+    tbody tr.clickable:hover { background: var(--row-hover); }
+
+    td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    .badge {
+      display: inline-block;
+      padding: .15rem .5rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 500;
+      background: #e8f0fe;
+      color: var(--primary);
+      white-space: nowrap;
+    }
+
+    /* Detail */
+    .detail-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 0 -1.5rem 1.5rem;
+      padding: .75rem 1.5rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .06);
+      flex-wrap: wrap;
+    }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .5rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: .875rem;
+      cursor: pointer;
+      color: var(--primary);
+      font-weight: 500;
+      transition: background .15s, border-color .15s;
+    }
+
+    .btn-back:hover { background: var(--row-hover); border-color: var(--primary); }
+
+    .detail-title h2 { font-size: 1.125rem; }
+    .detail-title p { font-size: .875rem; color: var(--muted); }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: .75rem 1rem;
+      background: #f0f4f8;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: .9375rem;
+    }
+
+    .section-body { padding: 1rem; }
+
+    .dl-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: .75rem 1.5rem;
+    }
+
+    .dl-item dt {
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      color: var(--muted);
+      margin-bottom: .15rem;
+    }
+
+    .dl-item dd { font-size: .9375rem; word-break: break-word; }
+
+    .dl-item.full { grid-column: 1 / -1; }
+
+    .empty-msg {
+      color: var(--muted);
+      font-size: .875rem;
+      font-style: italic;
+    }
+
+    .section-collapsible .section-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .5rem;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+    }
+
+    .section-collapsible .section-header:hover { background: #e8eef5; }
+
+    .section-collapsible.collapsed .section-body { display: none; }
+
+    .section-chevron {
+      flex-shrink: 0;
+      font-size: .75rem;
+      color: var(--muted);
+      transition: transform .15s;
+    }
+
+    .section-collapsible.collapsed .section-chevron { transform: rotate(-90deg); }
+
+    .expand-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 .35rem 0 0;
+      color: var(--primary);
+      font-size: .875rem;
+      line-height: 1;
+      vertical-align: middle;
+    }
+
+    tr.expandable-detail td {
+      background: #fafbfc;
+      padding: .5rem .75rem .75rem 2rem;
+    }
+
+    .nested-table {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .nested-table th { font-size: .75rem; }
+
+    tr.group-total td {
+      font-weight: 600;
+      background: #f0f4f8;
+      border-top: 2px solid var(--border);
+    }
+
+    tr.grand-total td {
+      font-weight: 700;
+      background: #e8f0fe;
+      border-top: 2px solid var(--primary);
+    }
+
+    .meta-info {
+      font-size: .8125rem;
+      color: var(--muted);
+      text-align: right;
+      margin-top: .5rem;
+    }
+
+    @media (max-width: 640px) {
+      main { padding: 1rem; }
+      .detail-header {
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      th, td { padding: .5rem; font-size: .8125rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cozinha Solidária — Consulta de Convênios</h1>
+    <p>MDS / TransfereGov · Google Sheets</p>
+  </header>
+
+  <main>
+    <div id="loading">
+      <div class="spinner"></div>
+      <p id="loading-status">Carregando planilha…</p>
+    </div>
+
+    <div id="error" class="error-box" style="display:none"></div>
+
+    <!-- Tela 1: Lista -->
+    <div id="screen-list" class="screen">
+      <div class="toolbar">
+        <div style="flex:1;min-width:200px">
+          <label for="search">Buscar</label><br>
+          <input type="search" id="search" placeholder="Proponente, nº convênio ou objeto…">
+        </div>
+        <div>
+          <label for="filter-sit">Situação</label><br>
+          <select id="filter-sit">
+            <option value="">Todas as situações</option>
+          </select>
+        </div>
+      </div>
+      <p class="result-count" id="result-count"></p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nº Convênio</th>
+              <th>Proponente</th>
+              <th>UF</th>
+              <th>Município</th>
+              <th>Situação</th>
+              <th class="num">Repasse</th>
+            </tr>
+          </thead>
+          <tbody id="list-body"></tbody>
+        </table>
+      </div>
+      <p class="meta-info" id="meta-carga"></p>
+    </div>
+
+    <!-- Tela 2: Detalhe -->
+    <div id="screen-detail" class="screen">
+      <div class="detail-header">
+        <button type="button" class="btn-back" id="btn-back">← Voltar</button>
+        <div class="detail-title">
+          <h2 id="detail-heading"></h2>
+          <p id="detail-subheading"></p>
+        </div>
+      </div>
+      <div id="detail-sections"></div>
+    </div>
+  </main>
+
+  <script>
+    const SPREADSHEET_ID = '1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc';
+
+    const SHEETS = [
+      'convenio', 'proposta', 'programa', 'programa_proposta',
+      'plano_aplicacao_detalhado', 'cronograma_desembolso', 'emenda',
+      'termo_aditivo', 'licitacao', 'itens_licitacao', 'contrato',
+      'pagamento', 'meta_carga',
+    ];
+
+    const DATA = {};
+    let allConvenios = [];
+
+    const fmtMoney = new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    function sheetUrl(name) {
+      return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let field = '';
+      let i = 0;
+      let inQuotes = false;
+
+      while (i < text.length) {
+        const ch = text[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (text[i + 1] === '"') {
+              field += '"';
+              i += 2;
+              continue;
+            }
+            inQuotes = false;
+            i++;
+            continue;
+          }
+          field += ch;
+          i++;
+          continue;
+        }
+        if (ch === '"') {
+          inQuotes = true;
+          i++;
+          continue;
+        }
+        if (ch === ',') {
+          row.push(field);
+          field = '';
+          i++;
+          continue;
+        }
+        if (ch === '\r') {
+          i++;
+          continue;
+        }
+        if (ch === '\n') {
+          row.push(field);
+          if (row.some(cell => cell !== '')) rows.push(row);
+          row = [];
+          field = '';
+          i++;
+          continue;
+        }
+        field += ch;
+        i++;
+      }
+
+      row.push(field);
+      if (row.some(cell => cell !== '')) rows.push(row);
+      if (!rows.length) return [];
+
+      const headers = rows[0];
+      return rows.slice(1).map(cells => {
+        const obj = {};
+        headers.forEach((header, idx) => {
+          obj[header] = cells[idx] ?? '';
+        });
+        return obj;
+      });
+    }
+
+    async function loadSheet(name) {
+      const resp = await fetch(sheetUrl(name));
+      if (!resp.ok) {
+        throw new Error(`Não foi possível carregar aba "${name}" (${resp.status})`);
+      }
+      const text = (await resp.text()).replace(/^\uFEFF/, '');
+      const rows = parseCsv(text);
+      if (name === 'meta_carga') {
+        const expected = ['executado_em', 'data_carga_siconv', 'total_convenios'];
+        if (!rows.length || !expected.every(col => col in rows[0])) return [];
+      }
+      return rows;
+    }
+
+    async function loadAllSheets(onProgress) {
+      let done = 0;
+      await Promise.all(SHEETS.map(async name => {
+        DATA[name] = await loadSheet(name);
+        done++;
+        if (onProgress) onProgress(name, done, SHEETS.length);
+      }));
+    }
+
+    function tableExists(name) {
+      return Array.isArray(DATA[name]) && DATA[name].length > 0;
+    }
+
+    function tableColumns(name) {
+      const rows = DATA[name];
+      if (!rows?.length) return [];
+      return Object.keys(rows[0]);
+    }
+
+    function hasColumn(table, col) {
+      return tableColumns(table).includes(col);
+    }
+
+    function findBy(table, col, val) {
+      return DATA[table]?.find(row => row[col] === val) || null;
+    }
+
+    function filterBy(table, col, val) {
+      return (DATA[table] || []).filter(row => row[col] === val);
+    }
+
+    function filterIn(table, col, values) {
+      if (!values.length) return [];
+      const allowed = new Set(values);
+      return (DATA[table] || []).filter(row => allowed.has(row[col]));
+    }
+
+    function formatMoney(val) {
+      if (val == null || val === '') return '—';
+      const n = parseFloat(String(val).replace(',', '.'));
+      return isNaN(n) ? val : fmtMoney.format(n);
+    }
+
+    function parseDateParts(str) {
+      if (!str) return null;
+      const m = String(str).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (!m) return null;
+      return { d: +m[1], mo: +m[2], y: +m[3], raw: str };
+    }
+
+    function formatDate(str) {
+      const p = parseDateParts(str);
+      if (!p) return str || '—';
+      return `${String(p.d).padStart(2,'0')}/${String(p.mo).padStart(2,'0')}/${p.y}`;
+    }
+
+    function dateSortKey(str) {
+      const p = parseDateParts(str);
+      if (!p) return 0;
+      return p.y * 10000 + p.mo * 100 + p.d;
+    }
+
+    function loadConvenios() {
+      const propostaById = new Map(DATA.proposta.map(p => [p.ID_PROPOSTA, p]));
+      const programaById = new Map(DATA.programa.map(p => [p.ID_PROGRAMA, p]));
+      const programaPropostaByProposta = new Map(
+        DATA.programa_proposta.map(pp => [pp.ID_PROPOSTA, pp.ID_PROGRAMA])
+      );
+
+      return DATA.convenio.map(c => {
+        const p = propostaById.get(c.ID_PROPOSTA) || {};
+        const idPrograma = programaPropostaByProposta.get(c.ID_PROPOSTA);
+        const pr = idPrograma ? programaById.get(idPrograma) : null;
+        return {
+          NR_CONVENIO: c.NR_CONVENIO,
+          ID_PROPOSTA: c.ID_PROPOSTA,
+          SIT_CONVENIO: c.SIT_CONVENIO,
+          VL_REPASSE_CONV: c.VL_REPASSE_CONV,
+          NM_PROPONENTE: p.NM_PROPONENTE,
+          UF_PROPONENTE: p.UF_PROPONENTE,
+          MUNIC_PROPONENTE: p.MUNIC_PROPONENTE,
+          OBJETO_PROPOSTA: p.OBJETO_PROPOSTA,
+          NOME_PROGRAMA: pr?.NOME_PROGRAMA ?? '',
+        };
+      }).sort((a, b) => (+a.NR_CONVENIO) - (+b.NR_CONVENIO));
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function populateSitFilter() {
+      const situations = [...new Set(allConvenios.map(r => r.SIT_CONVENIO).filter(Boolean))].sort();
+      const sel = document.getElementById('filter-sit');
+      situations.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = s;
+        sel.appendChild(opt);
+      });
+    }
+
+    function filterConvenios() {
+      const term = document.getElementById('search').value.trim().toLowerCase();
+      const sit = document.getElementById('filter-sit').value;
+      return allConvenios.filter(r => {
+        if (sit && r.SIT_CONVENIO !== sit) return false;
+        if (!term) return true;
+        const hay = [
+          r.NM_PROPONENTE, r.NR_CONVENIO, r.OBJETO_PROPOSTA,
+          r.UF_PROPONENTE, r.MUNIC_PROPONENTE, r.NOME_PROGRAMA
+        ].join(' ').toLowerCase();
+        return hay.includes(term);
+      });
+    }
+
+    function renderList() {
+      const rows = filterConvenios();
+      const tbody = document.getElementById('list-body');
+      document.getElementById('result-count').textContent =
+        `${rows.length} convênio${rows.length !== 1 ? 's' : ''} exibido${rows.length !== 1 ? 's' : ''}`;
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Nenhum convênio encontrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => `
+        <tr class="clickable" data-nr="${escapeHtml(r.NR_CONVENIO)}">
+          <td><strong>${escapeHtml(r.NR_CONVENIO)}</strong></td>
+          <td>${escapeHtml(r.NM_PROPONENTE)}</td>
+          <td>${escapeHtml(r.UF_PROPONENTE)}</td>
+          <td>${escapeHtml(r.MUNIC_PROPONENTE)}</td>
+          <td><span class="badge">${escapeHtml(r.SIT_CONVENIO)}</span></td>
+          <td class="num">${formatMoney(r.VL_REPASSE_CONV)}</td>
+        </tr>
+      `).join('');
+
+      tbody.querySelectorAll('tr.clickable').forEach(tr => {
+        tr.addEventListener('click', () => showDetail(tr.dataset.nr));
+      });
+    }
+
+    function dlItem(label, value, full = false) {
+      return `<div class="dl-item${full ? ' full' : ''}"><dt>${escapeHtml(label)}</dt><dd>${value ?? '—'}</dd></div>`;
+    }
+
+    function section(title, body) {
+      return `<section class="section"><div class="section-header">${escapeHtml(title)}</div><div class="section-body">${body}</div></section>`;
+    }
+
+    function sectionCollapsible(title, body, count, open = false) {
+      const countLabel = count === 1 ? '1 item' : `${count} itens`;
+      const collapsed = open ? '' : ' collapsed';
+      return `<section class="section section-collapsible${collapsed}">
+        <button type="button" class="section-header" aria-expanded="${open}">
+          <span>${escapeHtml(title)} (${countLabel})</span>
+          <span class="section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="section-body">${body}</div>
+      </section>`;
+    }
+
+    function unavailableMsg() {
+      return '<p class="empty-msg">Dados não disponíveis para este convênio.</p>';
+    }
+
+    function isDevolucaoTipo(tp) {
+      return /devolu|contrapartida|ingresso/i.test(String(tp ?? ''));
+    }
+
+    function bindDetailInteractions() {
+      document.querySelectorAll('.section-collapsible .section-header').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const sec = btn.closest('.section-collapsible');
+          sec.classList.toggle('collapsed');
+          btn.setAttribute('aria-expanded', String(!sec.classList.contains('collapsed')));
+        });
+      });
+
+      document.querySelectorAll('.expand-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const row = document.getElementById(btn.dataset.target);
+          if (!row) return;
+          row.hidden = !row.hidden;
+          btn.textContent = row.hidden ? '▸' : '▾';
+        });
+      });
+    }
+
+    function renderTable(headers, rows, numericCols = []) {
+      if (!rows.length) return '<p class="empty-msg">Sem registros.</p>';
+      const ths = headers.map(h => `<th${numericCols.includes(h) ? ' class="num"' : ''}>${escapeHtml(h)}</th>`).join('');
+      const trs = rows.map(row => {
+        const tds = headers.map(h => {
+          const cls = numericCols.includes(h) ? ' class="num"' : '';
+          return `<td${cls}>${row[h] ?? '—'}</td>`;
+        }).join('');
+        return `<tr>${tds}</tr>`;
+      }).join('');
+      return `<div class="table-wrap"><table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
+    }
+
+    function renderSecaoI(licitacoes, itensPorLicitacao) {
+      if (!licitacoes.length) return unavailableMsg();
+
+      const headers = [
+        'Nº Processo', 'Tipo de Compra', 'Data Publicação',
+        'Data Homologação', 'Valor Homologado', 'Status'
+      ];
+      const ths = headers.map(h =>
+        `<th${h === 'Valor Homologado' ? ' class="num"' : ''}>${escapeHtml(h)}</th>`
+      ).join('');
+
+      const rows = licitacoes.map(lic => {
+        const id = lic.ID_LICITACAO;
+        const itens = itensPorLicitacao[id] || [];
+        const detailId = `itens-lic-${id}`;
+        const nested = itens.length
+          ? renderTable(
+              ['Descrição', 'Unidade', 'Quantidade', 'Preço Unitário', 'Valor Total', 'Fornecedor', 'CNPJ/CPF'],
+              itens.map(it => ({
+                'Descrição': escapeHtml(it.DESCRICAO_ITEM_LICITACAO),
+                'Unidade': escapeHtml(it.TIPO_UNIDADE_ITEM_LICITACAO),
+                'Quantidade': escapeHtml(it.QUANTIDADE_ITEM_LICITACAO),
+                'Preço Unitário': formatMoney(it.PRECO_UNITARIO_ITEM_LICITACAO),
+                'Valor Total': formatMoney(it.VALOR_TOTAL_ITEM_LICITACAO),
+                'Fornecedor': escapeHtml(it.NOME_FORNECEDOR_ITEM_LICITACAO),
+                'CNPJ/CPF': escapeHtml(it.IDENTIFICACAO_FORNECEDOR_ITEM_LICITACAO)
+              })),
+              ['Preço Unitário', 'Valor Total']
+            ).replace('class="table-wrap"', 'class="table-wrap nested-table"')
+          : '<p class="empty-msg">Sem itens para este processo.</p>';
+
+        return `
+          <tr>
+            <td>
+              <button type="button" class="expand-btn" data-target="${detailId}" aria-label="Expandir itens">▸</button>
+              ${escapeHtml(lic.NR_PROCESSO_LICITACAO || lic.NR_LICITACAO)}
+            </td>
+            <td>${escapeHtml(lic.TP_PROCESSO_COMPRA)}</td>
+            <td>${formatDate(lic.DATA_PUBLICACAO_LICITACAO)}</td>
+            <td>${formatDate(lic.DATA_HOMOLOGACAO_LICITACAO)}</td>
+            <td class="num">${formatMoney(lic.VALOR_LICITACAO)}</td>
+            <td>${escapeHtml(lic.STATUS_LICITACAO)}</td>
+          </tr>
+          <tr class="expandable-detail" id="${detailId}" hidden>
+            <td colspan="6">${nested}</td>
+          </tr>
+        `;
+      }).join('');
+
+      return `<div class="table-wrap"><table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+
+    function renderSecaoII(contratos) {
+      if (!contratos.length) return unavailableMsg();
+      return renderTable(
+        ['Nº Contrato', 'Objeto (TransfereGov)', 'CNPJ/CPF Contratado', 'Início Vigência',
+         'Fim Vigência', 'Data Assinatura', 'Valor Global'],
+        contratos.map(ct => ({
+          'Nº Contrato': escapeHtml(ct.NR_CONTRATO),
+          'Objeto (TransfereGov)': escapeHtml(ct.OBJETO_CONTRATO),
+          'CNPJ/CPF Contratado': escapeHtml(ct.ID_FORNECEDOR_CONTRATO),
+          'Início Vigência': formatDate(ct.DATA_INICIO_VIGENCIA_CONTRATO),
+          'Fim Vigência': formatDate(ct.DATA_FIM_VIGENCIA_CONTRATO),
+          'Data Assinatura': formatDate(ct.DATA_ASSINATURA_CONTRATO),
+          'Valor Global': formatMoney(ct.VALOR_GLOBAL_CONTRATO)
+        })),
+        ['Valor Global']
+      );
+    }
+
+    function renderSecaoIII(licitacoes, contratosPorLicitacao, itensPorLicitacao) {
+      if (!licitacoes.length) return unavailableMsg();
+
+      const rows = licitacoes.map(lic => {
+        const ct = (contratosPorLicitacao[lic.ID_LICITACAO] || [])[0];
+        const itens = itensPorLicitacao[lic.ID_LICITACAO] || [];
+        const objetoLic = itens.map(i => i.DESCRICAO_ITEM_LICITACAO).filter(Boolean).join('; ') || '—';
+        return {
+          'Nº Processo': escapeHtml(lic.NR_PROCESSO_LICITACAO || lic.NR_LICITACAO),
+          'Objeto Licitação': escapeHtml(objetoLic),
+          'Nº Contrato': escapeHtml(ct?.NR_CONTRATO),
+          'Objeto Contrato': escapeHtml(ct?.OBJETO_CONTRATO),
+          'Valor Licitado': formatMoney(lic.VALOR_LICITACAO),
+          'Valor Contrato': formatMoney(ct?.VALOR_GLOBAL_CONTRATO)
+        };
+      });
+
+      return renderTable(
+        ['Nº Processo', 'Objeto Licitação', 'Nº Contrato', 'Objeto Contrato', 'Valor Licitado', 'Valor Contrato'],
+        rows,
+        ['Valor Licitado', 'Valor Contrato']
+      );
+    }
+
+    function renderSecaoIV(contratos) {
+      if (!contratos.length) return unavailableMsg();
+      return renderTable(
+        ['Nº Contrato', 'CNPJ/CPF TransfereGov', 'Valor TransfereGov',
+         'Data Assinatura', 'Início Vigência TransfereGov', 'Fim Vigência TransfereGov'],
+        contratos.map(ct => ({
+          'Nº Contrato': escapeHtml(ct.NR_CONTRATO),
+          'CNPJ/CPF TransfereGov': escapeHtml(ct.ID_FORNECEDOR_CONTRATO),
+          'Valor TransfereGov': formatMoney(ct.VALOR_GLOBAL_CONTRATO),
+          'Data Assinatura': formatDate(ct.DATA_ASSINATURA_CONTRATO),
+          'Início Vigência TransfereGov': formatDate(ct.DATA_INICIO_VIGENCIA_CONTRATO),
+          'Fim Vigência TransfereGov': formatDate(ct.DATA_FIM_VIGENCIA_CONTRATO)
+        })),
+        ['Valor TransfereGov']
+      );
+    }
+
+    function renderSecaoV(pagamentos) {
+      if (!pagamentos.length) return unavailableMsg();
+
+      const groups = new Map();
+      for (const p of pagamentos) {
+        const key = p.NR_DL || '(sem DL)';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(p);
+      }
+
+      const headers = ['Nº DL', 'Tipo DL', 'Data Emissão DL', 'Favorecido', 'CNPJ/CPF', 'Valor Pago'];
+      const ths = headers.map(h =>
+        `<th${h === 'Valor Pago' ? ' class="num"' : ''}>${escapeHtml(h)}</th>`
+      ).join('');
+
+      let trs = '';
+      for (const [nrDl, items] of groups) {
+        let subtotal = 0;
+        for (const p of items) {
+          const val = parseFloat(String(p.VL_PAGO ?? '').replace(',', '.'));
+          if (!isNaN(val)) subtotal += val;
+          trs += `<tr>
+            <td>${escapeHtml(p.NR_DL || nrDl)}</td>
+            <td>${escapeHtml(p.TP_MOV_FINANCEIRA)}</td>
+            <td>${formatDate(p.DATA_EMISSAO_DL)}</td>
+            <td>${escapeHtml(p.NOME_FORNECEDOR)}</td>
+            <td>${escapeHtml(p.IDENTIF_FORNECEDOR)}</td>
+            <td class="num">${formatMoney(p.VL_PAGO)}</td>
+          </tr>`;
+        }
+        trs += `<tr class="group-total">
+          <td colspan="5">Total pago — DL ${escapeHtml(nrDl)}</td>
+          <td class="num">${formatMoney(subtotal)}</td>
+        </tr>`;
+      }
+
+      return `<div class="table-wrap"><table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
+    }
+
+    function renderSecaoVI(pagamentos) {
+      if (!pagamentos.length) return unavailableMsg();
+
+      const sorted = [...pagamentos].sort(
+        (a, b) => dateSortKey(b.DATA_PAG) - dateSortKey(a.DATA_PAG)
+      );
+
+      let total = 0;
+      const rows = sorted.map(p => {
+        const val = parseFloat(String(p.VL_PAGO ?? '').replace(',', '.'));
+        if (!isNaN(val)) total += val;
+        return {
+          'Nº Mov. Financeira': escapeHtml(p.NR_MOV_FIN),
+          'Data Pagamento': formatDate(p.DATA_PAG),
+          'Tipo': escapeHtml(p.TP_MOV_FINANCEIRA),
+          'Favorecido': escapeHtml(p.NOME_FORNECEDOR),
+          'CNPJ/CPF': escapeHtml(p.IDENTIF_FORNECEDOR),
+          'Nº DL': escapeHtml(p.NR_DL),
+          'Valor Pago': formatMoney(p.VL_PAGO)
+        };
+      });
+
+      const table = renderTable(
+        ['Nº Mov. Financeira', 'Data Pagamento', 'Tipo', 'Favorecido', 'CNPJ/CPF', 'Nº DL', 'Valor Pago'],
+        rows,
+        ['Valor Pago']
+      );
+
+      return table.replace(
+        '</tbody></table>',
+        `<tr class="grand-total"><td colspan="6">Total geral</td><td class="num">${formatMoney(total)}</td></tr></tbody></table>`
+      );
+    }
+
+    function renderSecaoVII(devolucoes) {
+      if (!devolucoes.length) {
+        return '<p class="empty-msg">Nenhuma devolução registrada para este convênio.</p>';
+      }
+      return renderTable(
+        ['Nº Mov. Financeira', 'Data', 'Tipo', 'Valor'],
+        devolucoes
+          .sort((a, b) => dateSortKey(b.DATA_PAG) - dateSortKey(a.DATA_PAG))
+          .map(p => ({
+            'Nº Mov. Financeira': escapeHtml(p.NR_MOV_FIN),
+            'Data': formatDate(p.DATA_PAG),
+            'Tipo': escapeHtml(p.TP_MOV_FINANCEIRA),
+            'Valor': formatMoney(p.VL_PAGO)
+          })),
+        ['Valor']
+      );
+    }
+
+    function showDetail(nrConvenio) {
+      try {
+        showDetailContent(nrConvenio);
+      } catch (err) {
+        console.error('Erro ao abrir detalhe:', err);
+        document.getElementById('detail-heading').textContent = `Convênio ${nrConvenio}`;
+        document.getElementById('detail-subheading').textContent = '';
+        document.getElementById('detail-sections').innerHTML =
+          `<div class="error-box">Erro ao carregar o detalhe: ${escapeHtml(err.message)}</div>`;
+        showScreen('detail');
+      }
+    }
+
+    function showDetailContent(nrConvenio) {
+      const c = findBy('convenio', 'NR_CONVENIO', nrConvenio);
+      if (!c) return;
+
+      const p = findBy('proposta', 'ID_PROPOSTA', c.ID_PROPOSTA);
+
+      document.getElementById('detail-heading').textContent =
+        `Convênio ${nrConvenio}`;
+      document.getElementById('detail-subheading').textContent =
+        p ? `${p.NM_PROPONENTE} · ${p.MUNIC_PROPONENTE}/${p.UF_PROPONENTE}` : '';
+
+      const parseNum = v => parseFloat(String(v ?? '').replace(',', '.'));
+      const repasse = parseNum(c.VL_REPASSE_CONV);
+      const global = parseNum(c.VL_GLOBAL_CONV);
+      const desembolsado = parseNum(c.VL_DESEMBOLSADO_CONV);
+      const saldoRepasse = (!isNaN(repasse) && !isNaN(desembolsado)) ? repasse - desembolsado : null;
+      const saldoGlobal = (!isNaN(global) && !isNaN(desembolsado)) ? global - desembolsado : null;
+
+      const identificacao = section('Identificação', `
+        <dl class="dl-grid">
+          ${dlItem('Nº Convênio', escapeHtml(c.NR_CONVENIO))}
+          ${dlItem('ID Proposta', escapeHtml(c.ID_PROPOSTA))}
+          ${dlItem('Proponente', escapeHtml(p?.NM_PROPONENTE))}
+          ${dlItem('CNPJ/Identificação', escapeHtml(p?.IDENTIF_PROPONENTE))}
+          ${dlItem('UF / Município', escapeHtml(`${p?.MUNIC_PROPONENTE || '—'}/${p?.UF_PROPONENTE || '—'}`))}
+          ${dlItem('Modalidade', escapeHtml(p?.MODALIDADE))}
+          ${dlItem('Situação', `<span class="badge">${escapeHtml(c.SIT_CONVENIO)}</span>`)}
+          ${dlItem('Subsituação', escapeHtml(c.SUBSITUACAO_CONV))}
+          ${dlItem('Assinado', escapeHtml(c.IND_ASSINADO))}
+          ${dlItem('Instrumento ativo', escapeHtml(c.INSTRUMENTO_ATIVO))}
+          ${dlItem('Data assinatura', formatDate(c.DIA_ASSIN_CONV))}
+          ${dlItem('Início vigência', formatDate(c.DIA_INIC_VIGENC_CONV))}
+          ${dlItem('Fim vigência', formatDate(c.DIA_FIM_VIGENC_CONV))}
+          ${dlItem('Qtd. termos aditivos', escapeHtml(c.QTD_TA))}
+          ${dlItem('Objeto', escapeHtml(p?.OBJETO_PROPOSTA), true)}
+        </dl>
+      `);
+
+      const financeiro = section('Valores financeiros', renderTable(
+        ['Indicador', 'Previsto', 'Desembolsado', 'Saldo'],
+        [
+          {
+            'Indicador': 'Valor global',
+            'Previsto': formatMoney(c.VL_GLOBAL_CONV),
+            'Desembolsado': formatMoney(c.VL_DESEMBOLSADO_CONV),
+            'Saldo': saldoGlobal != null ? formatMoney(saldoGlobal) : '—'
+          },
+          {
+            'Indicador': 'Repasse',
+            'Previsto': formatMoney(c.VL_REPASSE_CONV),
+            'Desembolsado': formatMoney(c.VL_DESEMBOLSADO_CONV),
+            'Saldo': saldoRepasse != null ? formatMoney(saldoRepasse) : '—'
+          },
+          {
+            'Indicador': 'Saldo em conta',
+            'Previsto': '—',
+            'Desembolsado': '—',
+            'Saldo': formatMoney(c.VL_SALDO_CONTA)
+          }
+        ],
+        ['Previsto', 'Desembolsado', 'Saldo']
+      ));
+
+      const planoCols = hasColumn('plano_aplicacao_detalhado', 'ID_PROPOSTA')
+        ? ['NATUREZA_AQUISICAO', 'DESCRICAO_ITEM', 'QTD_ITEM']
+            .concat(
+              hasColumn('plano_aplicacao_detalhado', 'VL_UNITARIO_ITEM') ? ['VL_UNITARIO_ITEM'] : [],
+              hasColumn('plano_aplicacao_detalhado', 'VL_ITEM') ? ['VL_ITEM'] : []
+            )
+        : [];
+
+      const plano = planoCols.length
+        ? filterBy('plano_aplicacao_detalhado', 'ID_PROPOSTA', c.ID_PROPOSTA).map(row => {
+            const picked = {};
+            planoCols.forEach(col => { picked[col] = row[col]; });
+            return picked;
+          })
+        : [];
+
+      const planoHeaders = ['Natureza', 'Descrição', 'Quantidade'];
+      const planoNumeric = [];
+      if (hasColumn('plano_aplicacao_detalhado', 'VL_UNITARIO_ITEM')) {
+        planoHeaders.push('Valor unitário');
+        planoNumeric.push('Valor unitário');
+      }
+      if (hasColumn('plano_aplicacao_detalhado', 'VL_ITEM')) {
+        planoHeaders.push('Valor total');
+        planoNumeric.push('Valor total');
+      }
+
+      const planoSec = section('Plano de Aplicação', renderTable(
+        planoHeaders,
+        plano.map(r => {
+          const row = {
+            'Natureza': escapeHtml(r.NATUREZA_AQUISICAO),
+            'Descrição': escapeHtml(r.DESCRICAO_ITEM),
+            'Quantidade': escapeHtml(r.QTD_ITEM),
+          };
+          if (hasColumn('plano_aplicacao_detalhado', 'VL_UNITARIO_ITEM')) {
+            row['Valor unitário'] = formatMoney(r.VL_UNITARIO_ITEM);
+          }
+          if (hasColumn('plano_aplicacao_detalhado', 'VL_ITEM')) {
+            row['Valor total'] = formatMoney(r.VL_ITEM);
+          }
+          return row;
+        }),
+        planoNumeric
+      ));
+
+      let cronograma = filterBy('cronograma_desembolso', 'NR_CONVENIO', nrConvenio);
+      if (!cronograma.length) {
+        cronograma = filterBy('cronograma_desembolso', 'ID_PROPOSTA', c.ID_PROPOSTA);
+      }
+      cronograma = cronograma.slice().sort((a, b) => {
+        const ka = (+a.ANO_CRONO_DESEMBOLSO) * 100 + (+a.MES_CRONO_DESEMBOLSO);
+        const kb = (+b.ANO_CRONO_DESEMBOLSO) * 100 + (+b.MES_CRONO_DESEMBOLSO);
+        return ka - kb;
+      });
+
+      const cronogramaSec = section('Cronograma de desembolso', renderTable(
+        ['Mês', 'Ano', 'Responsável', 'Valor parcela'],
+        cronograma.map(r => ({
+          'Mês': r.MES_CRONO_DESEMBOLSO,
+          'Ano': r.ANO_CRONO_DESEMBOLSO,
+          'Responsável': r.TIPO_RESP_CRONO_DESEMBOLSO,
+          'Valor parcela': formatMoney(r.VALOR_PARCELA_CRONO_DESEMBOLSO)
+        })),
+        ['Valor parcela']
+      ));
+
+      const emendas = filterBy('emenda', 'ID_PROPOSTA', c.ID_PROPOSTA);
+
+      const emendasSec = section('Emendas', renderTable(
+        ['Nº Emenda', 'Parlamentar', 'Tipo', 'Valor repasse'],
+        emendas.map(r => ({
+          'Nº Emenda': r.NR_EMENDA,
+          'Parlamentar': r.NOME_PARLAMENTAR,
+          'Tipo': r.TIPO_PARLAMENTAR,
+          'Valor repasse': formatMoney(r.VALOR_REPASSE_EMENDA)
+        })),
+        ['Valor repasse']
+      ));
+
+      const termos = filterBy('termo_aditivo', 'NR_CONVENIO', nrConvenio)
+        .slice()
+        .sort((a, b) => dateSortKey(a.DT_ASSINATURA_TA) - dateSortKey(b.DT_ASSINATURA_TA));
+
+      const termosSec = section('Termos aditivos', renderTable(
+        ['Assinatura', 'Início', 'Fim'],
+        termos.map(r => ({
+          'Assinatura': formatDate(r.DT_ASSINATURA_TA),
+          'Início': formatDate(r.DT_INICIO_TA),
+          'Fim': formatDate(r.DT_FIM_TA)
+        }))
+      ));
+
+      const hasLicitacao = tableExists('licitacao');
+      const hasItens = tableExists('itens_licitacao');
+      const hasContrato = tableExists('contrato');
+      const hasPagamento = tableExists('pagamento');
+
+      const licitacoes = hasLicitacao
+        ? filterBy('licitacao', 'NR_CONVENIO', nrConvenio)
+        : [];
+
+      const idLicitacoes = licitacoes.map(l => l.ID_LICITACAO).filter(Boolean);
+
+      const itensLicitacao = (hasItens && idLicitacoes.length)
+        ? filterIn('itens_licitacao', 'ID_LICITACAO', idLicitacoes)
+        : [];
+
+      const contratos = (hasContrato && idLicitacoes.length)
+        ? filterIn('contrato', 'ID_LICITACAO', idLicitacoes)
+        : [];
+
+      const pagamentos = hasPagamento
+        ? filterBy('pagamento', 'NR_CONVENIO', nrConvenio)
+        : [];
+
+      const itensPorLicitacao = {};
+      for (const it of itensLicitacao) {
+        const id = it.ID_LICITACAO;
+        if (!itensPorLicitacao[id]) itensPorLicitacao[id] = [];
+        itensPorLicitacao[id].push(it);
+      }
+
+      const contratosPorLicitacao = {};
+      for (const ct of contratos) {
+        const id = ct.ID_LICITACAO;
+        if (!contratosPorLicitacao[id]) contratosPorLicitacao[id] = [];
+        contratosPorLicitacao[id].push(ct);
+      }
+
+      const devolucoes = pagamentos.filter(p => isDevolucaoTipo(p.TP_MOV_FINANCEIRA));
+
+      const secI = sectionCollapsible(
+        'I — Processo de Execução x Pactuação',
+        hasLicitacao ? renderSecaoI(licitacoes, itensPorLicitacao) : unavailableMsg(),
+        licitacoes.length
+      );
+
+      const secII = sectionCollapsible(
+        'II — Análises Contrato x Pactuação',
+        hasContrato && hasLicitacao ? renderSecaoII(contratos) : unavailableMsg(),
+        contratos.length
+      );
+
+      const secIII = sectionCollapsible(
+        'III — Análises Contrato x Execução x Pactuação',
+        hasLicitacao && hasContrato
+          ? renderSecaoIII(licitacoes, contratosPorLicitacao, itensPorLicitacao)
+          : unavailableMsg(),
+        licitacoes.length
+      );
+
+      const secIV = sectionCollapsible(
+        'IV — Análises de Dados de Contrato',
+        hasContrato && hasLicitacao ? renderSecaoIV(contratos) : unavailableMsg(),
+        contratos.length
+      );
+
+      const secV = sectionCollapsible(
+        'V — Análises Contrato x Liquidação',
+        hasPagamento ? renderSecaoV(pagamentos.filter(p => p.NR_DL)) : unavailableMsg(),
+        pagamentos.filter(p => p.NR_DL).length
+      );
+
+      const secVI = sectionCollapsible(
+        'VI — Análises de Movimentação Financeira',
+        hasPagamento ? renderSecaoVI(pagamentos) : unavailableMsg(),
+        pagamentos.length
+      );
+
+      const secVII = sectionCollapsible(
+        'VII — Análises de Devolução de Recurso',
+        hasPagamento ? renderSecaoVII(devolucoes) : unavailableMsg(),
+        devolucoes.length
+      );
+
+      document.getElementById('detail-sections').innerHTML =
+        identificacao + financeiro + secI + secII + secIII + secIV + secV + secVI + secVII +
+        planoSec + cronogramaSec + emendasSec + termosSec;
+
+      bindDetailInteractions();
+      showScreen('detail');
+    }
+
+    function showScreen(name) {
+      document.getElementById('screen-list').classList.toggle('active', name === 'list');
+      document.getElementById('screen-detail').classList.toggle('active', name === 'detail');
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    async function init() {
+      try {
+        await loadAllSheets((name, done, total) => {
+          document.getElementById('loading-status').textContent =
+            `Carregando ${name} (${done}/${total})…`;
+        });
+
+        allConvenios = loadConvenios();
+        populateSitFilter();
+
+        const meta = DATA.meta_carga?.[0];
+        if (meta) {
+          document.getElementById('meta-carga').textContent =
+            `Carga SICONV: ${meta.data_carga_siconv} · ${meta.total_convenios} convênios · ETL: ${meta.executado_em?.replace('T', ' ').slice(0, 19) || '—'}`;
+        }
+
+        document.getElementById('loading').classList.add('hidden');
+        showScreen('list');
+        renderList();
+
+        document.getElementById('search').addEventListener('input', renderList);
+        document.getElementById('filter-sit').addEventListener('change', renderList);
+        document.getElementById('btn-back').addEventListener('click', () => showScreen('list'));
+      } catch (err) {
+        document.getElementById('loading').classList.add('hidden');
+        showError('Erro ao inicializar: ' + err.message +
+          '. Verifique se a planilha está pública e abra via servidor HTTP local (ex.: python -m http.server).');
+        console.error(err);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
