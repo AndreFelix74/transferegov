@@ -8,53 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 
 <style>
-  :root{
-    --laranja:#e45946;
-    --roxo:#69438c;
-    --amarelo:#ff9c00;
-    --verde:#317c5d;
-    --branco:#fffeff;
-    --tinta:#2b2530;
-    --tinta-suave:#6b6470;
-    --papel:#f6f3ef;
-    --papel-carta:#ffffff;
-    --linha:#e4dfd8;
-    --sombra: 0 1px 2px rgba(43,37,48,.06), 0 12px 28px -14px rgba(43,37,48,.22);
-  }
-
-  *{ box-sizing:border-box; }
-
-  html,body{
-    margin:0; padding:0;
-    background:var(--papel);
-    color:var(--tinta);
-    font-family:"IBM Plex Sans", system-ui, sans-serif;
-    -webkit-font-smoothing:antialiased;
-  }
-
-  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; }
-
-  /* ---------- topo ---------- */
-  header.topo{
-    background: var(--tinta);
-    color: var(--branco);
-    padding: 40px clamp(20px,6vw,64px) 34px;
-    border-bottom: 4px solid var(--laranja);
-  }
-  header.topo .eyebrow{
-    font-family:"IBM Plex Mono"; font-size:12px; letter-spacing:.12em;
-    text-transform:uppercase; color: var(--amarelo); margin-bottom:10px;
-    display:block;
-  }
-  header.topo h1{
-    margin:0 0 8px; font-size: clamp(24px,3.4vw,32px); font-weight:600; letter-spacing:.1px;
-  }
-  header.topo p{
-    margin:0; max-width:640px; color:#c9c2d4; font-size:14.5px; line-height:1.6;
-  }
-
   /* ---------- trilha de profundidade ---------- */
   .trilha{
     max-width:1100px; margin: 0 auto;
@@ -120,19 +76,11 @@
   }
   .porta .cta svg{ transition: transform .15s ease; }
   .porta:hover .cta svg{ transform: translateX(3px); }
-
-  /* ---------- rodapé ---------- */
-  footer{
-    max-width:1100px; margin:0 auto;
-    padding: 0 clamp(20px,6vw,64px) 40px;
-    display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
-    font-size:11.5px; color:var(--tinta-suave);
-  }
 </style>
 </head>
 <body>
 
-<header class="topo">
+<header class="topo topo--landing">
   <span class="eyebrow">Programa Cozinha Solidária · MDS</span>
   <h1>Acompanhamento de Parcerias</h1>
   <p>Três formas de olhar para os mesmos dados, cada uma para uma pergunta diferente — do panorama geral do programa até o detalhe de uma parceria específica.</p>
@@ -195,7 +143,7 @@
 
 </main>
 
-<footer>
+<footer class="rodape-pagina">
   <span>Dados: TransfereGov / SICONV</span>
   <span>Cozinha Solidária — MDS</span>
 </footer>

@@ -5,82 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel Gerencial — Parcerias Cozinha Solidária</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.1/apexcharts.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-  :root{
-    --laranja:#e45946;
-    --roxo:#69438c;
-    --amarelo:#ff9c00;
-    --verde:#317c5d;
-    --verde-escuro:#0c6642;
-    --azul:#355e7a;
-    --vermelho:#a42627;
-    --verde-1:#50D49D;
-    --verde-2:#317C5D;
-    --verde-3:#1C4836;
-    --bg:#f7f6f3;
-    --card:#fffeff;
-    --ink:#20211f;
-    --ink-soft:#6b6f6c;
-    --line:#e9e6df;
-    --radius:16px;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--ink);
-    font-family:'Manrope',sans-serif;
-    -webkit-font-smoothing:antialiased;
-  }
-  h1,h2,h3,.num{font-family:'Poppins',sans-serif;}
-
-  /* Header */
-  header{
-    background:linear-gradient(100deg, var(--verde-3), var(--verde-2) 55%, var(--verde-1));
-    padding:28px 32px 34px;
-    color:#fff;
-    position:relative;
-    overflow:hidden;
-  }
-  header::after{
-    content:"";
-    position:absolute; inset:0;
-    background:radial-gradient(circle at 85% -20%, rgba(255,156,0,.35), transparent 55%);
-    pointer-events:none;
-  }
-  .eyebrow{
-    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
-    opacity:.85; font-weight:600; margin:0 0 6px;
-  }
-  header h1{
-    margin:0; font-size:28px; font-weight:700; letter-spacing:-.01em;
-  }
-  header p{margin:8px 0 0; opacity:.9; font-size:14px; max-width:560px;}
-
-  .filters{
-    display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; position:relative;
-  }
-  .chip{
-    background:rgba(255,255,255,.14);
-    border:1px solid rgba(255,255,255,.35);
-    color:#fff;
-    padding:7px 16px;
-    border-radius:999px;
-    font-size:13px;
-    font-weight:600;
-    cursor:pointer;
-    transition:.15s;
-    backdrop-filter:blur(2px);
-  }
-  .chip:hover{background:rgba(255,255,255,.24);}
-  .chip.active{background:#fff; color:var(--verde-3); border-color:#fff;}
-
-  /* Layout */
+  /* ---------- layout do dashboard ---------- */
   main{
-    padding:24px 32px 48px;
+    padding:24px clamp(16px,4vw,40px) 48px;
     display:grid;
     grid-template-columns: 300px 1fr 1fr;
     gap:20px;
@@ -90,80 +23,13 @@
     main{grid-template-columns:1fr;}
   }
 
-  .card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    padding:20px 22px;
-    box-shadow:0 1px 2px rgba(20,20,15,.04);
-  }
   .card + .card{margin-top:20px;}
-
-  .card-title{
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:4px;
-  }
-  .card-title h3{
-    font-size:14px; margin:0; font-weight:700;
-    text-transform:uppercase; letter-spacing:.04em;
-    color:var(--ink);
-  }
-  .card-title h3 span{
-    display:block; font-family:'Manrope',sans-serif; text-transform:none;
-    letter-spacing:0; font-weight:500; font-size:12px; color:var(--ink-soft);
-    margin-top:2px;
-  }
-  .agg-toggle{
-    font-size:11px; font-weight:600; color:var(--verde);
-    background:#eef6f1; border:1px solid #d7ebe0;
-    padding:4px 10px; border-radius:999px; cursor:pointer;
-    white-space:nowrap;
-  }
-  .agg-toggle:hover{background:#e2f1e8;}
-
-  /* Tipo column */
-  .col-tipo .stat-block{
-    text-align:center; padding:6px 0 18px;
-  }
-  .col-tipo .stat-block h4{
-    font-size:12px; text-transform:uppercase; letter-spacing:.05em;
-    color:var(--ink-soft); font-weight:700; margin:0 0 8px;
-  }
-  .legend{
-    display:flex; justify-content:center; gap:14px; margin-top:6px; flex-wrap:wrap;
-  }
-  .legend-item{
-    display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-soft);
-  }
-  .legend-dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
-
-  .avg-list{list-style:none; margin:0; padding:0;}
-  .avg-list li{
-    display:flex; justify-content:space-between; align-items:center;
-    padding:11px 0; border-top:1px solid var(--line);
-    font-size:13px;
-  }
-  .avg-list li:first-child{border-top:none;}
-  .avg-list .cat{display:flex; align-items:center; gap:8px; font-weight:600;}
-  .avg-list .dot{width:9px;height:9px;border-radius:50%;}
-  .avg-list .val{font-family:'Poppins',sans-serif; font-weight:700;}
-
-  footer{
-    text-align:center; padding:18px; font-size:11px; color:var(--ink-soft);
-  }
-  .status-banner{
-    max-width:600px; margin:0 auto 8px; padding:10px 16px;
-    text-align:center; font-size:12px; border-radius:10px;
-    background:#fff8e6; border:1px solid #ffe6a8; color:#7a5900;
-  }
-  .status-banner.ok{display:none;}
-  .status-banner.error{background:#fdeceb; border-color:#f6c4c0; color:#8a2620;}
 </style>
 </head>
 <body>
 
-<header>
-  <p class="eyebrow">MDS · Programa Cozinha Solidária</p>
+<header class="topo">
+  <span class="eyebrow">MDS · Programa Cozinha Solidária</span>
   <h1>Painel Gerencial — Parcerias</h1>
   <p>Visão consolidada dos instrumentos de transferência (convênios) por edital e fase de execução.</p>
   <div class="filters">
@@ -235,7 +101,7 @@
 
 <div id="status-banner" class="status-banner">Carregando dados de <strong>view_convenio</strong>…</div>
 
-<footer>Fonte: view_convenio (Google Sheets) · pcs-mds-prestacao-contas</footer>
+<footer class="rodape-central">Fonte: view_convenio (Google Sheets) · pcs-mds-prestacao-contas</footer>
 
 <script>
 const SHEET_ID = "1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc";
@@ -243,7 +109,7 @@ const GID = "307493429"; // aba view_convenio
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
 
 const BRAND_PALETTE = ["#e45946", "#69438c", "#ff9c00", "#317c5d", "#355e7a", "#a42627", "#0c6642"];
-const baseFont = { fontFamily: "Manrope, sans-serif" };
+const baseFont = { fontFamily: "IBM Plex Sans, system-ui, sans-serif" };
 const brl = v => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const parseNum = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 const parseISODate = v => { if (!v) return null; const d = new Date(v); return isNaN(d) ? null : d; };
@@ -387,7 +253,7 @@ function buildDashboard(rows) {
 
   // ---- Periodo: placeholder, decisao de formato ainda em aberto ----
   document.querySelector("#chart-periodo").innerHTML =
-    '<p style="color:var(--ink-soft); font-size:13px; padding:40px 0; text-align:center;">Aguardando definição do formato (barra empilhada vs. rangeBar).</p>';
+    '<p style="color:var(--tinta-suave); font-size:13px; padding:40px 0; text-align:center;">Aguardando definição do formato (barra empilhada vs. rangeBar).</p>';
 
   // ---- % Vigencia x Execucao ----
   const hoje = new Date();
