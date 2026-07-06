@@ -11,30 +11,53 @@
 <link rel="stylesheet" href="styles.css">
 
 <style>
-  /* ---------- trilha de profundidade ---------- */
-  .trilha{
-    max-width:1100px; margin: 0 auto;
-    padding: 26px clamp(20px,6vw,64px) 0;
-    display:flex; align-items:center; gap:10px;
-    color: var(--tinta-suave); font-size:12px;
-  }
-  .trilha .passo{ display:flex; align-items:center; gap:6px; white-space:nowrap; }
-  .trilha .passo .bolha{
-    width:6px; height:6px; border-radius:50%; background: var(--tinta-suave);
-  }
-  .trilha .seta-trilha{ opacity:.4; }
-
-  /* ---------- grid principal ---------- */
-  main{
+  /* ---------- hub: seções ---------- */
+  main.hub{
     max-width:1100px; margin:0 auto;
     padding: 28px clamp(20px,6vw,64px) 56px;
-    display:grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap:20px;
+    display:flex; flex-direction:column; gap:32px;
   }
-  @media (max-width: 880px){ main{ grid-template-columns:1fr; } }
 
+  .secao{
+    --cor-secao: var(--laranja);
+    background: var(--papel-carta);
+    border:1px solid var(--linha);
+    border-radius:12px;
+    box-shadow: var(--sombra);
+    overflow:hidden;
+  }
+  .secao::before{
+    content:"";
+    display:block; height:4px;
+    background: var(--cor-secao);
+  }
+
+  .secao-cabecalho{
+    padding: 22px 24px 0;
+  }
+  .secao .rotulo-secao{
+    font-family:"IBM Plex Mono"; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em;
+    color: var(--cor-secao);
+    font-weight:600;
+  }
+
+  .secao-cards{
+    padding: 18px 24px 24px;
+    display:grid; gap:20px;
+  }
+  .secao-cards--3{ grid-template-columns: repeat(3, 1fr); }
+  .secao-cards--1{
+    grid-template-columns: 1fr;
+    max-width:420px;
+  }
+  @media (max-width: 880px){
+    .secao-cards--3{ grid-template-columns:1fr; }
+    .secao-cards--1{ max-width:none; }
+  }
+
+  /* ---------- cards (portas) ---------- */
   .porta{
+    --cor-porta: var(--cor-secao);
     background: var(--papel-carta);
     border:1px solid var(--linha);
     border-radius:12px;
@@ -50,32 +73,11 @@
     content:"";
     position:absolute; top:0; left:0; right:0; height:4px;
     border-radius:12px 12px 0 0;
-    background: var(--cor-porta, var(--laranja));
+    background: var(--cor-porta);
   }
 
-  .porta .rotulo-nivel{
-    font-family:"IBM Plex Mono"; font-size:10.5px; text-transform:uppercase; letter-spacing:.08em;
-    color: var(--cor-porta, var(--laranja));
-    font-weight:600;
-  }
   .porta h2{ margin:0; font-size:18px; font-weight:600; line-height:1.3; }
   .porta p.descricao{ margin:0; font-size:13px; color:var(--tinta-suave); line-height:1.55; flex:1; }
-
-  .porta .responde{
-    font-size:12px; color:var(--tinta-suave);
-    border-top:1px dashed var(--linha);
-    padding-top:12px;
-    display:flex; flex-direction:column; gap:5px;
-  }
-  .porta .responde b{ color:var(--tinta); font-weight:500; }
-
-  .porta .cta{
-    display:flex; align-items:center; gap:6px;
-    font-size:13px; font-weight:600; color: var(--cor-porta, var(--laranja));
-    margin-top:4px;
-  }
-  .porta .cta svg{ transition: transform .15s ease; }
-  .porta:hover .cta svg{ transform: translateX(3px); }
 </style>
 </head>
 <body>
@@ -83,63 +85,49 @@
 <header class="topo topo--landing">
   <span class="eyebrow">Programa Cozinha Solidária · MDS</span>
   <h1>Acompanhamento de Parcerias</h1>
-  <p>Três formas de olhar para os mesmos dados, cada uma para uma pergunta diferente — do panorama geral do programa até o detalhe de uma parceria específica.</p>
 </header>
 
-<div class="trilha">
-  <div class="passo"><span class="bolha" style="background:var(--roxo)"></span>Visão geral do programa</div>
-  <span class="seta-trilha">—›</span>
-  <div class="passo"><span class="bolha" style="background:var(--laranja)"></span>O que precisa de atenção agora</div>
-  <span class="seta-trilha">—›</span>
-  <div class="passo"><span class="bolha" style="background:var(--verde)"></span>Detalhe de uma parceria</div>
-</div>
+<main class="hub">
 
-<main>
+  <!-- GESTÃO DE PARCERIAS -->
+  <section class="secao" style="--cor-secao:#69438c">
+    <div class="secao-cabecalho">
+      <span class="rotulo-secao">Gestão de Parcerias</span>
+    </div>
+    <div class="secao-cards secao-cards--3">
 
-  <!-- PAINEL GERENCIAL -->
-  <a class="porta" href="gerencial.html" style="--cor-porta:var(--roxo)">
-    <span class="rotulo-nivel">Visão geral</span>
-    <h2>Painel Gerencial</h2>
-    <p class="descricao">Panorama consolidado de todas as parcerias do programa: volume, valores, distribuição por modalidade e andamento geral.</p>
-    <div class="responde">
-      <div><b>Responde:</b> como está o programa como um todo?</div>
-      <div>Para: gestão e visão executiva</div>
-    </div>
-    <div class="cta">
-      Abrir painel
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-    </div>
-  </a>
+      <a class="porta" href="gerencial.html">
+        <h2>Painel Gerencial</h2>
+        <p class="descricao">Panorama consolidado de todas as parcerias: volume, valores e distribuição por modalidade.</p>
+      </a>
 
-  <!-- PAINEL OPERACIONAL - PARCERIAS -->
-  <a class="porta" href="parcerias.html" style="--cor-porta:var(--laranja)">
-    <span class="rotulo-nivel">O que precisa de atenção</span>
-    <h2>Painel Operacional</h2>
-    <p class="descricao">Lista de parcerias ordenada por urgência: prazos de vigência, percentual de execução e situação atual de cada uma.</p>
-    <div class="responde">
-      <div><b>Responde:</b> quais parcerias precisam de ação agora?</div>
-      <div>Para: acompanhamento do dia a dia</div>
-    </div>
-    <div class="cta">
-      Abrir painel
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-    </div>
-  </a>
+      <a class="porta" href="parcerias.html">
+        <h2>Painel Operacional</h2>
+        <p class="descricao">Parcerias ordenadas por urgência de prazo e execução.</p>
+      </a>
 
-  <!-- DETALHAMENTO OPERACIONAL -->
-  <a class="porta" href="operacional.html" style="--cor-porta:var(--verde)">
-    <span class="rotulo-nivel">Detalhe por parceria</span>
-    <h2>Detalhamento Operacional</h2>
-    <p class="descricao">Todas as informações de uma parceria específica: proposta, convênio, plano de aplicação, cronograma, licitação e pagamentos.</p>
-    <div class="responde">
-      <div><b>Responde:</b> o que exatamente aconteceu nessa parceria?</div>
-      <div>Para: análise e prestação de contas</div>
+      <a class="porta" href="tecnicos.html">
+        <h2>Painel Técnicos</h2>
+        <p class="descricao">Consulta detalhada aos dados brutos: programas, propostas, convênios, plano de aplicação, cronograma, licitação e pagamento.</p>
+      </a>
+
     </div>
-    <div class="cta">
-      Abrir detalhamento
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </section>
+
+  <!-- FERRAMENTA DE PRESTAÇÃO DE CONTAS -->
+  <section class="secao" style="--cor-secao:#317c5d">
+    <div class="secao-cabecalho">
+      <span class="rotulo-secao">Ferramenta de Prestação de Contas</span>
     </div>
-  </a>
+    <div class="secao-cards secao-cards--1">
+
+      <a class="porta" href="operacional.html">
+        <h2>Detalhamento Operacional</h2>
+        <p class="descricao">Todas as informações de uma parceria específica, para análise e prestação de contas.</p>
+      </a>
+
+    </div>
+  </section>
 
 </main>
 
