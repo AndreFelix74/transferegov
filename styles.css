@@ -121,6 +121,30 @@ header.topo--toolbar {
   flex-wrap: wrap;
 }
 
+header.topo .topo-principal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+header.topo .voltar-inicio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #c9c2d4;
+  text-decoration: none;
+  transition: color .15s ease;
+}
+
+header.topo .voltar-inicio:hover { color: var(--branco); }
+
+header.topo .voltar-inicio svg {
+  flex: none;
+  opacity: .85;
+}
+
 header.topo .filters {
   display: flex;
   gap: 10px;
