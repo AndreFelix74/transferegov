@@ -232,7 +232,10 @@ Papa.parse(CSV_URL, {
   complete: results => {
     try {
       // grain do painel = convenios formalizados (instrumento = convenio, nao proposta)
-      const rows = results.data.filter(r => (r.NR_CONVENIO || "").trim() !== "");
+      const rows = results.data.filter(r =>
+        (r.NR_CONVENIO || "").trim() !== ""
+        && (r.SIT_CONVENIO || "").trim() !== "Proposta/Plano de Trabalho Aprovado"
+      );
       if (rows.length === 0) throw new Error("Nenhuma linha com NR_CONVENIO preenchido.");
       rows.forEach(r => { r.categoria_tipo = getCategoriaTipo(r); });
       buildDashboard(rows);
