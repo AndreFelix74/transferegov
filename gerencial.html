@@ -382,7 +382,12 @@ function buildDashboard(rows) {
     execucao[c] = {
       pactuado: subset.reduce((s, r) => s + parseNum(r.VL_GLOBAL_CONV), 0),
       desembolsado: subset.reduce((s, r) => s + parseNum(r.VL_DESEMBOLSADO_CONV), 0),
-      executado: subset.reduce((s, r) => s + parseNum(r.VL_EMPENHADO_CONV), 0),
+      executado: subset.reduce((s, r) => {
+        const valorExecutado = parseNum(r.VL_GLOBAL_PROP)
+          + parseNum(r.VL_RENDIMENTO_APLICACAO)
+          - parseNum(r.VL_SALDO_CONTA);
+        return s + valorExecutado;
+      }, 0),
     };
   });
 
@@ -490,8 +495,14 @@ function buildDashboard(rows) {
   categorias.forEach(c => {
     const subset = byCategoria(c);
     const pactuado = subset.reduce((s, r) => s + parseNum(r.VL_GLOBAL_CONV), 0);
-    const desembolsado = subset.reduce((s, r) => s + parseNum(r.VL_DESEMBOLSADO_CONV), 0);
-    const execucaoPct = pactuado ? Math.min(100, (desembolsado / pactuado) * 100) : 0;
+    const valorExecutado = subset.reduce((s, r) => {
+      return s + parseNum(r.VL_GLOBAL_PROP)
+        + parseNum(r.VL_RENDIMENTO_APLICACAO)
+        - parseNum(r.VL_SALDO_CONTA);
+    }, 0);
+    const execucaoPct = pactuado
+      ? Math.min(100, Math.max(0, (valorExecutado / pactuado) * 100))
+      : 0;
 
     const { somaDias, somaPrazo } = subset.reduce((acc, r) => {
       const ini = parseDate(r.DIA_INIC_VIGENC_CONV);
