@@ -29,14 +29,7 @@
   }
 
   main{
-    display:grid;
-    grid-template-columns: 320px 1fr;
-    gap: 20px;
-    padding: var(--main-pad-top) clamp(16px,4vw,40px) var(--main-pad-bottom);
-    align-items:start;
-  }
-  @media (max-width: 900px){
-    main{ grid-template-columns: 1fr; }
+    padding:0;
   }
 
   .coluna-lateral{
@@ -90,6 +83,49 @@
     max-width:220px;
     cursor:pointer;
   }
+
+  .abas-parcerias{
+    display:flex;
+    gap:4px;
+    padding:0 clamp(16px,4vw,40px);
+    margin-top:var(--main-pad-top);
+    border-bottom:1px solid var(--linha);
+  }
+
+  .aba-btn{
+    font-family:"IBM Plex Sans";
+    font-size:13px;
+    font-weight:600;
+    color:var(--tinta-suave);
+    background:none;
+    border:none;
+    border-bottom:2px solid transparent;
+    margin-bottom:-1px;
+    padding:10px 16px;
+    cursor:pointer;
+    transition:color .15s, border-color .15s;
+  }
+
+  .aba-btn:hover{ color:var(--tinta); }
+
+  .aba-btn.ativa{
+    color:var(--tinta);
+    border-bottom-color:var(--laranja);
+  }
+
+  .painel-aba{
+    display:none;
+    grid-template-columns:320px 1fr;
+    gap:20px;
+    padding:20px clamp(16px,4vw,40px) var(--main-pad-bottom);
+    align-items:start;
+  }
+
+  .painel-aba.ativa{ display:grid; }
+
+  @media (max-width: 900px){
+    .painel-aba{ grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
@@ -112,61 +148,106 @@
 </header>
 
 <main>
-  <!-- ===================== COLUNA LATERAL ===================== -->
-  <aside class="coluna-lateral">
+  <nav class="abas-parcerias" role="tablist" aria-label="Fases das parcerias">
+    <button type="button" class="aba-btn ativa" role="tab" aria-selected="true" aria-controls="aba-execucao" id="tab-execucao" data-aba="execucao">Em Execução</button>
+    <button type="button" class="aba-btn" role="tab" aria-selected="false" aria-controls="aba-prestacao" id="tab-prestacao" data-aba="prestacao">Em Prestação de contas</button>
+  </nav>
 
-    <section class="cartao">
-      <h2>Em execução</h2>
-      <p class="cartao-subtitulo">Prazo final de vigência</p>
-      <div id="grafico-vigencia" style="min-height:180px;"></div>
-    </section>
+  <!-- ===================== ABA: EM EXECUÇÃO ===================== -->
+  <div class="painel-aba ativa" id="aba-execucao" role="tabpanel" aria-labelledby="tab-execucao">
+    <aside class="coluna-lateral">
+      <section class="cartao">
+        <h2>Em execução</h2>
+        <p class="cartao-subtitulo">Prazo final de vigência</p>
+        <div id="grafico-vigencia" style="min-height:180px;"></div>
+      </section>
+    </aside>
 
-    <section class="cartao">
-      <h2>Em Prestação de contas</h2>
-      <p class="cartao-subtitulo">fase</p>
-      <div id="grafico-situacao" style="min-height:220px;"></div>
-    </section>
-
-  </aside>
-
-  <!-- ===================== TABELA PRINCIPAL ===================== -->
-  <section class="cartao-tabela">
-    <div class="cabecalho-tabela">
-      <h2>Parcerias em acompanhamento</h2>
-      <div class="filtros-tabela">
-        <select id="filtro-modalidade" class="filtro-select" aria-label="Filtrar por modalidade">
-          <option value="">Todas as modalidades</option>
-        </select>
-        <div class="campo-busca">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
-          <input type="text" id="busca" placeholder="Buscar proponente…">
+    <section class="cartao-tabela">
+      <div class="cabecalho-tabela">
+        <h2>Parcerias em execução</h2>
+        <div class="filtros-tabela">
+          <select id="filtro-modalidade-execucao" class="filtro-select" aria-label="Filtrar por modalidade">
+            <option value="">Todas as modalidades</option>
+          </select>
+          <div class="campo-busca">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
+            <input type="text" id="busca-execucao" placeholder="Buscar proponente…">
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="container-tabela">
-      <table class="parcerias">
-        <thead>
-          <tr>
-            <th data-campo="proponente">Proponente <span class="seta">↕</span></th>
-            <th data-campo="numeroTransfereGov">Nº TransfereGov <span class="seta">↕</span></th>
-            <th data-campo="percentualVigencia">% Vigência <span class="seta">↕</span></th>
-            <th data-campo="percentualExecucao">% Execução <span class="seta">↕</span></th>
-            <th data-campo="situacao">Situação <span class="seta">↕</span></th>
-            <th data-campo="diasRestantes" class="ativo">Dias restantes <span class="seta">↓</span></th>
-          </tr>
-        </thead>
-        <tbody id="corpo-tabela">
-          <tr><td colspan="6" class="carregando">Carregando dados da planilha…</td></tr>
-        </tbody>
-      </table>
-    </div>
+      <div class="container-tabela">
+        <table class="parcerias" data-aba="execucao">
+          <thead>
+            <tr>
+              <th data-campo="proponente">Proponente <span class="seta">↕</span></th>
+              <th data-campo="numeroTransfereGov">Nº TransfereGov <span class="seta">↕</span></th>
+              <th data-campo="percentualVigencia">% Vigência <span class="seta">↕</span></th>
+              <th data-campo="percentualExecucao">% Execução <span class="seta">↕</span></th>
+              <th data-campo="percentualDesembolso">% Desembolso <span class="seta">↕</span></th>
+              <th data-campo="diasRestantes" class="ativo">Dias restantes <span class="seta">↓</span></th>
+            </tr>
+          </thead>
+          <tbody id="corpo-tabela-execucao">
+            <tr><td colspan="6" class="carregando">Carregando dados da planilha…</td></tr>
+          </tbody>
+        </table>
+      </div>
 
-    <div class="rodape">
-      <span id="rodape-contagem">—</span>
-      <span>Ordenado por dias restantes de execução · fonte: TransfereGov / SICONV</span>
-    </div>
-  </section>
+      <div class="rodape">
+        <span id="rodape-contagem-execucao">—</span>
+        <span>Ordenado por dias restantes de execução · fonte: TransfereGov / SICONV</span>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================== ABA: EM PRESTAÇÃO DE CONTAS ===================== -->
+  <div class="painel-aba" id="aba-prestacao" role="tabpanel" aria-labelledby="tab-prestacao" hidden>
+    <aside class="coluna-lateral">
+      <section class="cartao">
+        <h2>Em Prestação de contas</h2>
+        <p class="cartao-subtitulo">Fase</p>
+        <div id="grafico-situacao" style="min-height:220px;"></div>
+      </section>
+    </aside>
+
+    <section class="cartao-tabela">
+      <div class="cabecalho-tabela">
+        <h2>Parcerias em prestação de contas</h2>
+        <div class="filtros-tabela">
+          <select id="filtro-modalidade-prestacao" class="filtro-select" aria-label="Filtrar por modalidade">
+            <option value="">Todas as modalidades</option>
+          </select>
+          <div class="campo-busca">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
+            <input type="text" id="busca-prestacao" placeholder="Buscar proponente…">
+          </div>
+        </div>
+      </div>
+
+      <div class="container-tabela">
+        <table class="parcerias" data-aba="prestacao">
+          <thead>
+            <tr>
+              <th data-campo="proponente">Proponente <span class="seta">↕</span></th>
+              <th data-campo="numeroTransfereGov">Nº TransfereGov <span class="seta">↕</span></th>
+              <th data-campo="situacao">Situação <span class="seta">↕</span></th>
+              <th data-campo="diasRestantes" class="ativo">Dias em prestação de contas <span class="seta">↓</span></th>
+            </tr>
+          </thead>
+          <tbody id="corpo-tabela-prestacao">
+            <tr><td colspan="4" class="carregando">Carregando dados da planilha…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rodape">
+        <span id="rodape-contagem-prestacao">—</span>
+        <span>Ordenado por dias em prestação de contas · fonte: TransfereGov / SICONV</span>
+      </div>
+    </section>
+  </div>
 </main>
 
 <script>
@@ -187,12 +268,17 @@ const COLUNAS = {
   valorRendimentoAplicacao: "VL_RENDIMENTO_APLICACAO",
   valorSaldoConta: "VL_SALDO_CONTA",
   valorGlobal: "VL_GLOBAL_CONV",
+  valorDesembolsado: "VL_DESEMBOLSADO_CONV",
 };
 
 const URL_DETALHE_PROPOSTA = "https://siconv.gov.br/siconv/rest/proposta/DetalharProposta.do?idProposta=";
 
 let linhas = [];
-let ordenacao = { campo: "diasRestantes", direcao: "asc" };
+let abaAtiva = "execucao";
+const ordenacao = {
+  execucao: { campo: "diasRestantes", direcao: "asc" },
+  prestacao: { campo: "diasRestantes", direcao: "asc" },
+};
 
 /* --------------------- utilitários de data --------------------- */
 function diasEntre(dataA, dataB) {
@@ -229,6 +315,7 @@ function transformarLinha(bruta) {
   const valorSaldoConta = parseNum(bruta[COLUNAS.valorSaldoConta]);
   const valorExecutado = valorGlobalProposta + valorRendimentoAplicacao - valorSaldoConta;
   const valorGlobal = parseNum(bruta[COLUNAS.valorGlobal]);
+  const valorDesembolsado = parseNum(bruta[COLUNAS.valorDesembolsado]);
   const situacao = bruta[COLUNAS.situacao] || "Não informada";
   const emExecucao = estaEmExecucao(situacao);
 
@@ -252,6 +339,11 @@ function transformarLinha(bruta) {
     percentualExecucao = Math.min(100, Math.max(0, (valorExecutado / valorGlobal) * 100));
   }
 
+  let percentualDesembolso = null;
+  if (valorGlobal > 0) {
+    percentualDesembolso = Math.min(100, Math.max(0, (valorDesembolsado / valorGlobal) * 100));
+  }
+
   return {
     idProposta: bruta[COLUNAS.idProposta] || "",
     proponente: bruta[COLUNAS.proponente] || "(sem nome cadastrado)",
@@ -260,6 +352,7 @@ function transformarLinha(bruta) {
     situacao,
     percentualVigencia,
     percentualExecucao,
+    percentualDesembolso,
     diasRestantes: diasExibicao,
     faixa,
   };
@@ -284,8 +377,10 @@ function carregarDados() {
     error: (erro) => {
       console.error(erro);
       setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
-      document.getElementById("corpo-tabela").innerHTML =
+      document.getElementById("corpo-tabela-execucao").innerHTML =
         `<tr><td colspan="6" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
+      document.getElementById("corpo-tabela-prestacao").innerHTML =
+        `<tr><td colspan="4" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
     },
   });
 }
@@ -293,9 +388,9 @@ function carregarDados() {
 /* --------------------- gráfico: prazo final de vigência --------------------- */
 function renderizarGraficoVigencia() {
   const contagem = { urgente: 0, alerta: 0, normal: 0 };
-  linhas
-    .filter((l) => l.situacao === "Em execução")
-    .forEach((l) => { if (contagem[l.faixa.chave] !== undefined) contagem[l.faixa.chave]++; });
+  linhasTabela("execucao").forEach((l) => {
+    if (contagem[l.faixa.chave] !== undefined) contagem[l.faixa.chave]++;
+  });
 
   const categorias = ["< 30 dias", "30–90 dias", "> 90 dias"];
   const valores = [contagem.urgente, contagem.alerta, contagem.normal];
@@ -330,12 +425,10 @@ function renderizarGraficoVigencia() {
 }
 
 /* --------------------- gráfico: parcerias em prestação de contas --------------------- */
-const SITUACOES_EXCLUIDAS_GRAFICO = new Set(["Não informada", "Em execução", "Proposta/Plano de Trabalho Aprovado"]);
-
 function renderizarGraficoSituacao() {
   const contagemPorSituacao = {};
-  linhas.forEach((l) => {
-    if (SITUACOES_EXCLUIDAS_GRAFICO.has(l.situacao)) return;
+  linhasTabela("prestacao").forEach((l) => {
+    if (l.situacao === "Não informada") return;
     contagemPorSituacao[l.situacao] = (contagemPorSituacao[l.situacao] || 0) + 1;
   });
 
@@ -393,17 +486,30 @@ function temConvenio(l) {
   return nr && nr !== "—";
 }
 
-function linhasTabela() {
-  return linhas.filter(
-    (l) => temConvenio(l) && l.situacao !== "Proposta/Plano de Trabalho Aprovado"
-  );
+/* --------------------- tabela --------------------- */
+function idsAba(aba) {
+  return {
+    busca: `busca-${aba}`,
+    filtroModalidade: `filtro-modalidade-${aba}`,
+    corpoTabela: `corpo-tabela-${aba}`,
+    rodapeContagem: `rodape-contagem-${aba}`,
+  };
 }
 
-function preencherFiltroModalidade() {
-  const select = document.getElementById("filtro-modalidade");
+function linhasTabela(aba) {
+  const base = linhas.filter(
+    (l) => temConvenio(l) && l.situacao !== "Proposta/Plano de Trabalho Aprovado"
+  );
+  if (aba === "execucao") return base.filter((l) => estaEmExecucao(l.situacao));
+  return base.filter((l) => !estaEmExecucao(l.situacao));
+}
+
+function preencherFiltroModalidade(aba) {
+  const { filtroModalidade } = idsAba(aba);
+  const select = document.getElementById(filtroModalidade);
   const atual = select.value;
   const modalidades = [...new Set(
-    linhasTabela()
+    linhasTabela(aba)
       .map((l) => l.modalidade)
       .filter((m) => m && m !== "—")
   )].sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -422,17 +528,18 @@ function preencherFiltroModalidade() {
   if (modalidades.includes(atual)) select.value = atual;
 }
 
-function linhasFiltradas() {
-  const termo = document.getElementById("busca").value.trim().toLowerCase();
-  const modalidade = document.getElementById("filtro-modalidade").value;
-  let base = linhasTabela();
+function linhasFiltradas(aba) {
+  const { busca, filtroModalidade } = idsAba(aba);
+  const termo = document.getElementById(busca).value.trim().toLowerCase();
+  const modalidade = document.getElementById(filtroModalidade).value;
+  let base = linhasTabela(aba);
   if (modalidade) base = base.filter((l) => l.modalidade === modalidade);
   if (!termo) return base;
   return base.filter((l) => l.proponente.toLowerCase().includes(termo));
 }
 
-function linhasOrdenadas(lista) {
-  const { campo, direcao } = ordenacao;
+function linhasOrdenadas(lista, aba) {
+  const { campo, direcao } = ordenacao[aba];
   const fator = direcao === "asc" ? 1 : -1;
   return [...lista].sort((a, b) => {
     let va = a[campo], vb = b[campo];
@@ -443,65 +550,108 @@ function linhasOrdenadas(lista) {
   });
 }
 
-function renderizarTabela() {
-  const lista = linhasOrdenadas(linhasFiltradas());
-  const corpo = document.getElementById("corpo-tabela");
+function renderizarLinhaTabela(l, aba) {
+  const celulasComuns = `
+    <td>
+      <div class="celula-proponente">
+        <span class="nome">${l.proponente}</span>
+        <span class="modalidade">${l.modalidade}</span>
+      </div>
+    </td>
+    <td>
+      <a class="link-transferegov" href="${URL_DETALHE_PROPOSTA}${l.idProposta}" target="_blank" rel="noopener">
+        ${l.numeroTransfereGov}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>
+    </td>`;
 
-  if (!lista.length) {
-    corpo.innerHTML = `<tr><td colspan="6" class="vazio">Nenhuma parceria encontrada para essa busca.</td></tr>`;
-  } else {
-    corpo.innerHTML = lista.map((l) => `
-      <tr>
-        <td>
-          <div class="celula-proponente">
-            <span class="nome">${l.proponente}</span>
-            <span class="modalidade">${l.modalidade}</span>
-          </div>
-        </td>
-        <td>
-          <a class="link-transferegov" href="${URL_DETALHE_PROPOSTA}${l.idProposta}" target="_blank" rel="noopener">
-            ${l.numeroTransfereGov}
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
-          </a>
-        </td>
-        <td>${formatarBarraPercentual(l.percentualVigencia, BRAND_COLORS.roxo)}</td>
-        <td>${formatarBarraPercentual(l.percentualExecucao, BRAND_COLORS.verde)}</td>
-        <td><span class="badge-situacao">${l.situacao}</span></td>
-        <td>${formatarCarimbo(l)}</td>
-      </tr>
-    `).join("");
+  if (aba === "prestacao") {
+    return `<tr>${celulasComuns}
+      <td><span class="badge-situacao">${l.situacao}</span></td>
+      <td>${formatarCarimbo(l)}</td>
+    </tr>`;
   }
 
-  document.getElementById("rodape-contagem").textContent =
-    `${lista.length} de ${linhasTabela().length} parceria(s) exibida(s)`;
+  return `<tr>${celulasComuns}
+    <td>${formatarBarraPercentual(l.percentualVigencia, BRAND_COLORS.roxo)}</td>
+    <td>${formatarBarraPercentual(l.percentualExecucao, BRAND_COLORS.verde)}</td>
+    <td>${formatarBarraPercentual(l.percentualDesembolso, "#355e7a")}</td>
+    <td>${formatarCarimbo(l)}</td>
+  </tr>`;
+}
+
+function renderizarTabela(aba) {
+  const { corpoTabela, rodapeContagem } = idsAba(aba);
+  const lista = linhasOrdenadas(linhasFiltradas(aba), aba);
+  const corpo = document.getElementById(corpoTabela);
+  const colspan = aba === "prestacao" ? 4 : 6;
+
+  if (!lista.length) {
+    corpo.innerHTML = `<tr><td colspan="${colspan}" class="vazio">Nenhuma parceria encontrada para essa busca.</td></tr>`;
+  } else {
+    corpo.innerHTML = lista.map((l) => renderizarLinhaTabela(l, aba)).join("");
+  }
+
+  document.getElementById(rodapeContagem).textContent =
+    `${lista.length} de ${linhasTabela(aba).length} parceria(s) exibida(s)`;
+}
+
+function renderizarTabelas() {
+  renderizarTabela("execucao");
+  renderizarTabela("prestacao");
 }
 
 function renderizarTudo() {
-  preencherFiltroModalidade();
+  preencherFiltroModalidade("execucao");
+  preencherFiltroModalidade("prestacao");
   renderizarGraficoVigencia();
   renderizarGraficoSituacao();
-  renderizarTabela();
+  renderizarTabelas();
+}
+
+function trocarAba(aba) {
+  if (aba === abaAtiva) return;
+  abaAtiva = aba;
+
+  document.querySelectorAll(".aba-btn").forEach((btn) => {
+    const ativa = btn.dataset.aba === aba;
+    btn.classList.toggle("ativa", ativa);
+    btn.setAttribute("aria-selected", ativa ? "true" : "false");
+  });
+
+  document.querySelectorAll(".painel-aba").forEach((painel) => {
+    const ativa = painel.id === `aba-${aba}`;
+    painel.classList.toggle("ativa", ativa);
+    painel.hidden = !ativa;
+  });
 }
 
 /* --------------------- interações --------------------- */
-document.getElementById("busca").addEventListener("input", renderizarTabela);
-document.getElementById("filtro-modalidade").addEventListener("change", renderizarTabela);
+["execucao", "prestacao"].forEach((aba) => {
+  document.getElementById(`busca-${aba}`).addEventListener("input", () => renderizarTabela(aba));
+  document.getElementById(`filtro-modalidade-${aba}`).addEventListener("change", () => renderizarTabela(aba));
+});
+
+document.querySelectorAll(".aba-btn").forEach((btn) => {
+  btn.addEventListener("click", () => trocarAba(btn.dataset.aba));
+});
 
 document.querySelectorAll("table.parcerias thead th").forEach((th) => {
   th.addEventListener("click", () => {
+    const aba = th.closest("table.parcerias").dataset.aba;
     const campo = th.dataset.campo;
-    if (ordenacao.campo === campo) {
-      ordenacao.direcao = ordenacao.direcao === "asc" ? "desc" : "asc";
+    if (ordenacao[aba].campo === campo) {
+      ordenacao[aba].direcao = ordenacao[aba].direcao === "asc" ? "desc" : "asc";
     } else {
-      ordenacao = { campo, direcao: "asc" };
+      ordenacao[aba] = { campo, direcao: "asc" };
     }
-    document.querySelectorAll("table.parcerias thead th").forEach((el) => {
+    th.closest("table.parcerias").querySelectorAll("thead th").forEach((el) => {
       el.classList.remove("ativo");
       el.querySelector(".seta").textContent = "↕";
     });
     th.classList.add("ativo");
-    th.querySelector(".seta").textContent = ordenacao.direcao === "asc" ? "↑" : "↓";
-    renderizarTabela();
+    th.querySelector(".seta").textContent = ordenacao[aba].direcao === "asc" ? "↑" : "↓";
+    renderizarTabela(aba);
   });
 });
 
