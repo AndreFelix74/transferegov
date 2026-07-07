@@ -9,6 +9,7 @@ from etl.config import (
     CONFIG_FILE,
     CSV_ENCODING,
     DATE_RE,
+    EXCLUDED_AGREEMENT_NUMBERS,
     RAW_DIR,
     STAGING_DIR,
     TABLES,
@@ -132,6 +133,9 @@ def transform(log: logging.Logger):
             filter_column,
             filter_ids,
         )
+        if filename == "siconv_convenio.csv" and "NR_CONVENIO" in table_df.columns:
+            table_df = table_df[~table_df["NR_CONVENIO"].isin(EXCLUDED_AGREEMENT_NUMBERS)]
+
         log.info(f"    → {len(table_df)} registros")
 
         normalized_df = normalize(table_df)

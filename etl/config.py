@@ -24,6 +24,12 @@ DECIMAL_COLUMN_PREFIXES = ("VL_", "VALOR_", "QTD_", "PRECO_", "QUANTIDADE")
 DATE_RE = r"^(\d{2})/(\d{2})/(\d{4})$"
 
 
+# Instrumentos que passam no filtro de Código de Programa (COD_PROGRAMA), mas
+# pertencem a outra área da Secretaria — excluídos manualmente do recorte da
+# Cozinha Solidária.
+EXCLUDED_AGREEMENT_NUMBERS = {"970193", "980185", "998038"}
+
+
 def is_date_column(column: str) -> bool:
     if column in NON_DATE_DAY_FIELDS:
         return False
