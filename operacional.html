@@ -385,10 +385,15 @@
     const SPREADSHEET_ID = '1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc';
 
     const SHEETS = [
-      'convenio', 'proposta', 'programa', 'programa_proposta',
-      'plano_aplicacao_detalhado', 'cronograma_desembolso', 'emenda',
-      'termo_aditivo', 'licitacao', 'itens_licitacao', 'contrato',
-      'pagamento', 'meta_carga',
+      { key: 'convenio', sheet: 'view_convenio' },
+      { key: 'plano_aplicacao_detalhado', sheet: 'view_plano_aplicacao_detalhado' },
+      { key: 'cronograma_desembolso', sheet: 'view_cronograma_desembolso' },
+      { key: 'itens_licitacao', sheet: 'view_itens_licitacao' },
+      { key: 'pagamento', sheet: 'view_pagamento' },
+      { key: 'contrato', sheet: 'contrato' },
+      { key: 'emenda', sheet: 'emenda' },
+      { key: 'termo_aditivo', sheet: 'termo_aditivo' },
+      { key: 'meta_carga', sheet: 'meta_carga' },
     ];
 
     const DATA = {};
@@ -484,10 +489,10 @@
 
     async function loadAllSheets(onProgress) {
       let done = 0;
-      await Promise.all(SHEETS.map(async name => {
-        DATA[name] = await loadSheet(name);
+      await Promise.all(SHEETS.map(async ({ key, sheet }) => {
+        DATA[key] = await loadSheet(sheet);
         done++;
-        if (onProgress) onProgress(name, done, SHEETS.length);
+        if (onProgress) onProgress(sheet, done, SHEETS.length);
       }));
     }
 
@@ -527,7 +532,10 @@
 
     function parseDateParts(str) {
       if (!str) return null;
-      const m = String(str).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      const s = String(str).trim();
+      let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return { d: +m[3], mo: +m[2], y: +m[1], raw: str };
+      m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
       if (!m) return null;
       return { d: +m[1], mo: +m[2], y: +m[3], raw: str };
     }
@@ -545,28 +553,30 @@
     }
 
     function loadConvenios() {
-      const propostaById = new Map(DATA.proposta.map(p => [p.ID_PROPOSTA, p]));
-      const programaById = new Map(DATA.programa.map(p => [p.ID_PROGRAMA, p]));
-      const programaPropostaByProposta = new Map(
-        DATA.programa_proposta.map(pp => [pp.ID_PROPOSTA, pp.ID_PROGRAMA])
-      );
-
-      return DATA.convenio.map(c => {
-        const p = propostaById.get(c.ID_PROPOSTA) || {};
-        const idPrograma = programaPropostaByProposta.get(c.ID_PROPOSTA);
-        const pr = idPrograma ? programaById.get(idPrograma) : null;
-        return {
+      return DATA.convenio
+        .filter(c => String(c.NR_CONVENIO ?? '').trim())
+        .map(c => ({
           NR_CONVENIO: c.NR_CONVENIO,
           ID_PROPOSTA: c.ID_PROPOSTA,
           SIT_CONVENIO: c.SIT_CONVENIO,
           VL_REPASSE_CONV: c.VL_REPASSE_CONV,
-          NM_PROPONENTE: p.NM_PROPONENTE,
-          UF_PROPONENTE: p.UF_PROPONENTE,
-          MUNIC_PROPONENTE: p.MUNIC_PROPONENTE,
-          OBJETO_PROPOSTA: p.OBJETO_PROPOSTA,
-          NOME_PROGRAMA: pr?.NOME_PROGRAMA ?? '',
-        };
-      }).sort((a, b) => (+a.NR_CONVENIO) - (+b.NR_CONVENIO));
+          NM_PROPONENTE: c.NM_PROPONENTE,
+          UF_PROPONENTE: c.UF_PROPONENTE,
+          MUNIC_PROPONENTE: c.MUNIC_PROPONENTE,
+          OBJETO_PROPOSTA: c.OBJETO_PROPOSTA,
+          NOME_PROGRAMA: c.NOME_PROGRAMA ?? '',
+        }))
+        .sort((a, b) => (+a.NR_CONVENIO) - (+b.NR_CONVENIO));
+    }
+
+    function licitacoesUnicas(rows) {
+      const byId = new Map();
+      for (const row of rows) {
+        if (row.ID_LICITACAO && !byId.has(row.ID_LICITACAO)) {
+          byId.set(row.ID_LICITACAO, row);
+        }
+      }
+      return [...byId.values()];
     }
 
     function escapeHtml(str) {
@@ -907,7 +917,7 @@
       const c = findBy('convenio', 'NR_CONVENIO', nrConvenio);
       if (!c) return;
 
-      const p = findBy('proposta', 'ID_PROPOSTA', c.ID_PROPOSTA);
+      const p = c;
 
       document.getElementById('detail-heading').textContent =
         `Convênio ${nrConvenio}`;
@@ -969,8 +979,8 @@
       const planoCols = hasColumn('plano_aplicacao_detalhado', 'ID_PROPOSTA')
         ? ['NATUREZA_AQUISICAO', 'DESCRICAO_ITEM', 'QTD_ITEM']
             .concat(
-              hasColumn('plano_aplicacao_detalhado', 'VL_UNITARIO_ITEM') ? ['VL_UNITARIO_ITEM'] : [],
-              hasColumn('plano_aplicacao_detalhado', 'VL_ITEM') ? ['VL_ITEM'] : []
+              hasColumn('plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM') ? ['VALOR_UNITARIO_ITEM'] : [],
+              hasColumn('plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM') ? ['VALOR_TOTAL_ITEM'] : []
             )
         : [];
 
@@ -984,11 +994,11 @@
 
       const planoHeaders = ['Natureza', 'Descrição', 'Quantidade'];
       const planoNumeric = [];
-      if (hasColumn('plano_aplicacao_detalhado', 'VL_UNITARIO_ITEM')) {
+      if (hasColumn('plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM')) {
         planoHeaders.push('Valor unitário');
         planoNumeric.push('Valor unitário');
       }
-      if (hasColumn('plano_aplicacao_detalhado', 'VL_ITEM')) {
+      if (hasColumn('plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM')) {
         planoHeaders.push('Valor total');
         planoNumeric.push('Valor total');
       }
@@ -1001,11 +1011,11 @@
             'Descrição': escapeHtml(r.DESCRICAO_ITEM),
             'Quantidade': escapeHtml(r.QTD_ITEM),
           };
-          if (hasColumn('plano_aplicacao_detalhado', 'VL_UNITARIO_ITEM')) {
-            row['Valor unitário'] = formatMoney(r.VL_UNITARIO_ITEM);
+          if (hasColumn('plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM')) {
+            row['Valor unitário'] = formatMoney(r.VALOR_UNITARIO_ITEM);
           }
-          if (hasColumn('plano_aplicacao_detalhado', 'VL_ITEM')) {
-            row['Valor total'] = formatMoney(r.VL_ITEM);
+          if (hasColumn('plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM')) {
+            row['Valor total'] = formatMoney(r.VALOR_TOTAL_ITEM);
           }
           return row;
         }),
@@ -1059,20 +1069,16 @@
         }))
       ));
 
-      const hasLicitacao = tableExists('licitacao');
-      const hasItens = tableExists('itens_licitacao');
+      const hasItensLicitacao = tableExists('itens_licitacao');
       const hasContrato = tableExists('contrato');
       const hasPagamento = tableExists('pagamento');
 
-      const licitacoes = hasLicitacao
-        ? filterBy('licitacao', 'NR_CONVENIO', nrConvenio)
+      const itensLicitacao = hasItensLicitacao
+        ? filterBy('itens_licitacao', 'NR_CONVENIO', nrConvenio)
         : [];
 
+      const licitacoes = licitacoesUnicas(itensLicitacao);
       const idLicitacoes = licitacoes.map(l => l.ID_LICITACAO).filter(Boolean);
-
-      const itensLicitacao = (hasItens && idLicitacoes.length)
-        ? filterIn('itens_licitacao', 'ID_LICITACAO', idLicitacoes)
-        : [];
 
       const contratos = (hasContrato && idLicitacoes.length)
         ? filterIn('contrato', 'ID_LICITACAO', idLicitacoes)
@@ -1100,19 +1106,19 @@
 
       const secI = sectionCollapsible(
         'I — Processo de Execução x Pactuação',
-        hasLicitacao ? renderSecaoI(licitacoes, itensPorLicitacao) : unavailableMsg(),
+        hasItensLicitacao ? renderSecaoI(licitacoes, itensPorLicitacao) : unavailableMsg(),
         licitacoes.length
       );
 
       const secII = sectionCollapsible(
         'II — Análises Contrato x Pactuação',
-        hasContrato && hasLicitacao ? renderSecaoII(contratos) : unavailableMsg(),
+        hasContrato && hasItensLicitacao ? renderSecaoII(contratos) : unavailableMsg(),
         contratos.length
       );
 
       const secIII = sectionCollapsible(
         'III — Análises Contrato x Execução x Pactuação',
-        hasLicitacao && hasContrato
+        hasItensLicitacao && hasContrato
           ? renderSecaoIII(licitacoes, contratosPorLicitacao, itensPorLicitacao)
           : unavailableMsg(),
         licitacoes.length
@@ -1120,7 +1126,7 @@
 
       const secIV = sectionCollapsible(
         'IV — Análises de Dados de Contrato',
-        hasContrato && hasLicitacao ? renderSecaoIV(contratos) : unavailableMsg(),
+        hasContrato && hasItensLicitacao ? renderSecaoIV(contratos) : unavailableMsg(),
         contratos.length
       );
 
