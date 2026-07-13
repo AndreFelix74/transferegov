@@ -6,6 +6,14 @@ const SHEET_ID = "1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc";
 const GID = "307493429"; // aba view_convenio
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID}`;
 
+const GID_SOLICITACAO_RENDIMENTO = "1677659110"; // aba solicitacao_rendimento_aplicacao
+const CSV_URL_SOLICITACAO_RENDIMENTO =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_SOLICITACAO_RENDIMENTO}`;
+
+function csvUrlForGid(gid) {
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+}
+
 /* Paleta de marca — objeto semântico + derivados para gráficos */
 const BRAND_COLORS = {
   laranja: "#e45946",

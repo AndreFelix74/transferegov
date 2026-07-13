@@ -1,0 +1,8 @@
+{
+  "title": "Convenio Enriquecido",
+  "group": "execucao",
+  "output_table": "view_convenio",
+  "joins": [
+    "proposta_enriquecida.ID_PROPOSTA = convenio.ID_PROPOSTA"
+  ]
+}

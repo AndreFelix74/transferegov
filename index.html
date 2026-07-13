@@ -52,12 +52,17 @@
     display:grid; gap:20px;
   }
   .secao-cards--3{ grid-template-columns: repeat(3, 1fr); }
+  .secao-cards--4{ grid-template-columns: repeat(4, 1fr); }
   .secao-cards--1{
     grid-template-columns: 1fr;
     max-width:420px;
   }
+  @media (max-width: 1100px){
+    .secao-cards--4{ grid-template-columns: repeat(2, 1fr); }
+  }
   @media (max-width: 880px){
-    .secao-cards--3{ grid-template-columns:1fr; }
+    .secao-cards--3,
+    .secao-cards--4{ grid-template-columns:1fr; }
     .secao-cards--1{ max-width:none; }
   }
 
@@ -99,7 +104,7 @@
     <div class="secao-cabecalho">
       <span class="rotulo-secao">Paineis de Gestão de Parceiras</span>
     </div>
-    <div class="secao-cards secao-cards--3">
+    <div class="secao-cards secao-cards--4">
 
       <a class="porta" href="gerencial.html">
         <h2>Gerencial</h2>
@@ -111,6 +116,10 @@
 
       <a class="porta" href="tecnicos.html">
         <h2>Técnicos</h2>
+      </a>
+
+      <a class="porta" href="instrumentos-parceria.html">
+        <h2>Instrumentos de Parceria</h2>
       </a>
 
     </div>

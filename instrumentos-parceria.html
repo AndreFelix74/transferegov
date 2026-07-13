@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instrumentos de Parceria | Cozinha Solidária</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<script src="common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  :root {
+    --altura-topo: 72px;
+    --main-pad-top: 20px;
+    --main-pad-bottom: 40px;
+  }
+
+  header.topo.topo--toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  main {
+    padding: var(--main-pad-top) clamp(16px, 4vw, 40px) var(--main-pad-bottom);
+  }
+
+  .cartao-tabela {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - var(--altura-topo) - var(--main-pad-top) - var(--main-pad-bottom));
+  }
+
+  .container-tabela {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  table.parcerias thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    white-space: nowrap;
+  }
+
+  table.parcerias td {
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+
+  table.parcerias td.celula-proponente-wrap {
+    white-space: normal;
+    min-width: 180px;
+  }
+
+  table.parcerias th.num,
+  table.parcerias td.num {
+    text-align: right;
+  }
+
+  .filtros-tabela {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filtro-select {
+    font-family: "IBM Plex Sans";
+    font-size: 13px;
+    color: var(--tinta);
+    background: var(--papel);
+    border: 1px solid var(--linha);
+    border-radius: 7px;
+    padding: 7px 28px 7px 10px;
+    max-width: 220px;
+    cursor: pointer;
+  }
+
+  .barra-percentual {
+    min-width: 110px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topo topo--toolbar">
+  <div class="topo-principal">
+    <a class="voltar-inicio" href="index.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Página inicial
+    </a>
+    <div class="titulo">
+      <h1>Instrumentos de Parceria</h1>
+      <span class="subtitulo">Programa Cozinha Solidária · MDS</span>
+    </div>
+  </div>
+  <div class="status-atualizacao" id="status-atualizacao">
+    <span class="ponto"></span>
+    <span>carregando dados…</span>
+  </div>
+</header>
+
+<main>
+  <section class="cartao-tabela">
+    <div class="cabecalho-tabela">
+      <h2>Instrumentos de parceria</h2>
+      <div class="filtros-tabela">
+        <select id="filtro-modalidade" class="filtro-select" aria-label="Filtrar por modalidade">
+          <option value="">Todas as modalidades</option>
+        </select>
+        <div class="campo-busca">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
+          <input type="text" id="busca" placeholder="Buscar proponente, convênio…">
+        </div>
+      </div>
+    </div>
+
+    <div class="container-tabela">
+      <table class="parcerias" id="tabela-instrumentos">
+        <thead>
+          <tr>
+            <th data-campo="modalidade">MODALIDADE <span class="seta">↕</span></th>
+            <th data-campo="nrProposta">NR_PROPOSTA <span class="seta">↕</span></th>
+            <th data-campo="nrConvenio">NR_CONVENIO <span class="seta">↕</span></th>
+            <th data-campo="proponente">NM_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="cnpj">IDENTIF_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="nrProcesso">NR_PROCESSO <span class="seta">↕</span></th>
+            <th data-campo="uf">UF_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="codPrograma">COD_PROGRAMA <span class="seta">↕</span></th>
+            <th data-campo="vlGlobalProp" class="num">VL_GLOBAL_PROP <span class="seta">↕</span></th>
+            <th data-campo="vlRepasseProp" class="num">VL_REPASSE_PROP <span class="seta">↕</span></th>
+            <th data-campo="vlContrapartidaProp" class="num">VL_CONTRAPARTIDA_PROP <span class="seta">↕</span></th>
+            <th data-campo="rendimentoDisponivel" class="num">Rendimento Disponível <span class="seta">↕</span></th>
+            <th data-campo="rendimentoUtilizado" class="num">Rendimento Utilizado <span class="seta">↕</span></th>
+            <th data-campo="rendimentoTotal" class="num">Rendimento Total <span class="seta">↕</span></th>
+            <th data-campo="vlSaldoConta" class="num">VL_SALDO_CONTA <span class="seta">↕</span></th>
+            <th data-campo="vlDesembolsado" class="num">VL_DESEMBOLSADO_CONV <span class="seta">↕</span></th>
+            <th data-campo="valorExecutado" class="num">Valor Executado <span class="seta">↕</span></th>
+            <th data-campo="pctValorExecutado">% de Valor Executado <span class="seta">↕</span></th>
+            <th data-campo="diaInicio">DIA_INIC_VIGENC_CONV <span class="seta">↕</span></th>
+            <th data-campo="diaFim">DIA_FIM_VIGENC_CONV <span class="seta">↕</span></th>
+            <th data-campo="diaLimitePrestacao">DIA_LIMITE_PREST_CONTAS <span class="seta">↕</span></th>
+            <th data-campo="totalDiasVigencia">Total de Dias de Vigência <span class="seta">↕</span></th>
+            <th data-campo="diasTranscorridos">Dias Transcorridos <span class="seta">↕</span></th>
+            <th data-campo="diasRestantes" class="ativo">Dias Restantes de Vigência <span class="seta">↓</span></th>
+            <th data-campo="pctTempoTranscorrido">% de tempo transcorrido <span class="seta">↕</span></th>
+            <th data-campo="dataAtual">Data Atual <span class="seta">↕</span></th>
+            <th data-campo="situacao">SIT_CONVENIO <span class="seta">↕</span></th>
+          </tr>
+        </thead>
+        <tbody id="corpo-tabela">
+          <tr><td colspan="27" class="carregando">Carregando dados da planilha…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rodape">
+      <span id="rodape-contagem">—</span>
+      <span>fonte: view_convenio + solicitacao_rendimento_aplicacao · TransfereGov / SICONV</span>
+    </div>
+  </section>
+</main>
+
+<script>
+const COLSPAN = 27;
+const STATUS_RENDIMENTO_APROVADO = "PT Ajustado e Aprovado";
+const URL_DETALHE_PROPOSTA = "https://discricionarias.transferegov.sistema.gov.br/voluntarias/ConsultarProposta/ResultadoDaConsultaDePropostaDetalharProposta.do?idProposta=";
+
+let linhas = [];
+let dataAtualLoad = null;
+const ordenacao = { campo: "diasRestantes", direcao: "asc" };
+
+function diasEntre(dataA, dataB) {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24;
+  return Math.round((dataA.getTime() - dataB.getTime()) / MS_POR_DIA);
+}
+
+function faixaUrgenciaExecucao(diasRestantes) {
+  if (diasRestantes === null) return { chave: "indefinido", rotulo: "sem prazo", cor: "var(--tinta-suave)" };
+  if (diasRestantes < 30) return { chave: "urgente", rotulo: "< 30 dias", cor: BRAND_COLORS.laranja };
+  if (diasRestantes < 90) return { chave: "alerta", rotulo: "30–90 dias", cor: BRAND_COLORS.amarelo };
+  return { chave: "normal", rotulo: "> 90 dias", cor: BRAND_COLORS.verde };
+}
+
+function formatarData(data) {
+  if (!data) return "—";
+  return data.toLocaleDateString("pt-BR");
+}
+
+function formatarFinanceiro(value) {
+  return (value || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatarBarraPercentual(valor, cor) {
+  if (valor === null || Number.isNaN(valor)) {
+    return `<span style="color:var(--tinta-suave)">—</span>`;
+  }
+  const limitado = Math.min(100, Math.max(0, valor));
+  return `
+    <div class="barra-percentual">
+      <div class="trilho"><div class="preenchimento" style="width:${limitado.toFixed(0)}%; background:${cor}"></div></div>
+      <span class="texto mono">${limitado.toFixed(0)}%</span>
+    </div>`;
+}
+
+function formatarCarimbo(linha) {
+  const { faixa, diasRestantes } = linha;
+  if (diasRestantes === null) return `<span class="badge-situacao">sem data de vigência</span>`;
+  return `<span class="carimbo ${faixa.chave}"><span class="dias">${diasRestantes}d</span></span>`;
+}
+
+function parseCsv(url) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: (resultado) => resolve(resultado.data || []),
+      error: reject,
+    });
+  });
+}
+
+function mapaRendimentoUtilizado(solicitacoes) {
+  const mapa = Object.create(null);
+  for (const row of solicitacoes) {
+    const status = (row.STATUS_SOLICITACAO_REND_APLICACAO || "").trim();
+    if (status !== STATUS_RENDIMENTO_APROVADO) continue;
+    const nr = String(row.NR_CONVENIO || "").trim();
+    if (!nr) continue;
+    mapa[nr] = (mapa[nr] || 0) + parseNum(row.VALOR_APROVADO_SOLICITACAO_REND_APLICACAO);
+  }
+  return mapa;
+}
+
+function transformarLinha(bruta, rendimentoPorConvenio, hoje) {
+  const nrConvenio = String(bruta.NR_CONVENIO || "").trim();
+  const dataInicio = parseDate(bruta.DIA_INIC_VIGENC_CONV);
+  const dataFim = parseDate(bruta.DIA_FIM_VIGENC_CONV);
+  const dataLimite = parseDate(bruta.DIA_LIMITE_PREST_CONTAS);
+
+  const vlGlobalProp = parseNum(bruta.VL_GLOBAL_PROP);
+  const rendimentoDisponivel = parseNum(bruta.VL_RENDIMENTO_APLICACAO);
+  const rendimentoUtilizado = nrConvenio ? (rendimentoPorConvenio[nrConvenio] || 0) : 0;
+  const rendimentoTotal = rendimentoUtilizado + rendimentoDisponivel;
+  const vlSaldoConta = parseNum(bruta.VL_SALDO_CONTA);
+  const valorExecutado = vlGlobalProp + rendimentoTotal - vlSaldoConta;
+  const pctValorExecutado = vlGlobalProp > 0
+    ? (valorExecutado / vlGlobalProp) * 100
+    : null;
+
+  let totalDiasVigencia = null;
+  let diasTranscorridos = null;
+  let diasRestantes = null;
+  let pctTempoTranscorrido = null;
+
+  if (dataInicio && dataFim) {
+    totalDiasVigencia = diasEntre(dataFim, dataInicio);
+    if (totalDiasVigencia >= 0) {
+      const decorridos = diasEntre(hoje, dataInicio);
+      diasTranscorridos = Math.min(totalDiasVigencia, Math.max(0, decorridos));
+      diasRestantes = totalDiasVigencia - diasTranscorridos;
+      pctTempoTranscorrido = totalDiasVigencia > 0
+        ? (diasTranscorridos / totalDiasVigencia) * 100
+        : null;
+    }
+  }
+
+  const faixa = faixaUrgenciaExecucao(diasRestantes);
+
+  return {
+    idProposta: bruta.ID_PROPOSTA || "",
+    modalidade: bruta.MODALIDADE || "—",
+    nrProposta: bruta.NR_PROPOSTA || "—",
+    nrConvenio: nrConvenio || "—",
+    proponente: bruta.NM_PROPONENTE || "(sem nome cadastrado)",
+    cnpj: bruta.IDENTIF_PROPONENTE || "—",
+    nrProcesso: bruta.NR_PROCESSO || "—",
+    uf: bruta.UF_PROPONENTE || "—",
+    codPrograma: bruta.COD_PROGRAMA || "—",
+    vlGlobalProp,
+    vlRepasseProp: parseNum(bruta.VL_REPASSE_PROP),
+    vlContrapartidaProp: parseNum(bruta.VL_CONTRAPARTIDA_PROP),
+    rendimentoDisponivel,
+    rendimentoUtilizado,
+    rendimentoTotal,
+    vlSaldoConta,
+    vlDesembolsado: parseNum(bruta.VL_DESEMBOLSADO_CONV),
+    valorExecutado,
+    pctValorExecutado,
+    diaInicio: dataInicio,
+    diaFim: dataFim,
+    diaLimitePrestacao: dataLimite,
+    totalDiasVigencia,
+    diasTranscorridos,
+    diasRestantes,
+    pctTempoTranscorrido,
+    dataAtual: hoje,
+    situacao: bruta.SIT_CONVENIO || "—",
+    faixa,
+  };
+}
+
+function carregarDados() {
+  Promise.all([
+    parseCsv(CSV_URL),
+    parseCsv(CSV_URL_SOLICITACAO_RENDIMENTO),
+  ])
+    .then(([convenios, solicitacoes]) => {
+      if (!convenios.length) {
+        setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
+        return;
+      }
+
+      dataAtualLoad = new Date();
+      dataAtualLoad.setHours(0, 0, 0, 0);
+
+      const rendimentoPorConvenio = mapaRendimentoUtilizado(solicitacoes);
+      linhas = convenios
+        .filter((r) => String(r.NR_CONVENIO || "").trim() !== "")
+        .map((r) => transformarLinha(r, rendimentoPorConvenio, dataAtualLoad));
+
+      const agora = new Date().toLocaleString("pt-BR");
+      setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
+      preencherFiltroModalidade();
+      renderizarTabela();
+    })
+    .catch((erro) => {
+      console.error(erro);
+      setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
+      document.getElementById("corpo-tabela").innerHTML =
+        `<tr><td colspan="${COLSPAN}" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
+    });
+}
+
+function preencherFiltroModalidade() {
+  const select = document.getElementById("filtro-modalidade");
+  const atual = select.value;
+  const modalidades = [...new Set(
+    linhas.map((l) => l.modalidade).filter((m) => m && m !== "—"),
+  )].sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+  select.replaceChildren();
+  const optTodas = document.createElement("option");
+  optTodas.value = "";
+  optTodas.textContent = "Todas as modalidades";
+  select.appendChild(optTodas);
+  modalidades.forEach((m) => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    select.appendChild(opt);
+  });
+  if (modalidades.includes(atual)) select.value = atual;
+}
+
+function linhasFiltradas() {
+  const termo = document.getElementById("busca").value.trim().toLowerCase();
+  const modalidade = document.getElementById("filtro-modalidade").value;
+  let base = linhas;
+  if (modalidade) base = base.filter((l) => l.modalidade === modalidade);
+  if (!termo) return base;
+  return base.filter((l) =>
+    l.proponente.toLowerCase().includes(termo)
+    || String(l.nrConvenio).toLowerCase().includes(termo)
+    || String(l.nrProposta).toLowerCase().includes(termo)
+    || String(l.cnpj).toLowerCase().includes(termo),
+  );
+}
+
+function linhasOrdenadas(lista) {
+  const { campo, direcao } = ordenacao;
+  const fator = direcao === "asc" ? 1 : -1;
+  return [...lista].sort((a, b) => {
+    let va = a[campo];
+    let vb = b[campo];
+    if (va instanceof Date) va = va.getTime();
+    if (vb instanceof Date) vb = vb.getTime();
+    if (va === null || va === undefined) va = direcao === "asc" ? Infinity : -Infinity;
+    if (vb === null || vb === undefined) vb = direcao === "asc" ? Infinity : -Infinity;
+    if (typeof va === "string") return va.localeCompare(vb, "pt-BR") * fator;
+    return (va - vb) * fator;
+  });
+}
+
+function renderizarLinha(l) {
+  const linkConvenio = l.idProposta
+    ? `<a class="link-transferegov" href="${URL_DETALHE_PROPOSTA}${l.idProposta}" target="_blank" rel="noopener">
+        ${l.nrConvenio}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>`
+    : `<span class="mono">${l.nrConvenio}</span>`;
+
+  return `<tr>
+    <td>${l.modalidade}</td>
+    <td class="mono">${l.nrProposta}</td>
+    <td>${linkConvenio}</td>
+    <td class="celula-proponente-wrap">${l.proponente}</td>
+    <td class="mono">${l.cnpj}</td>
+    <td class="mono">${l.nrProcesso}</td>
+    <td>${l.uf}</td>
+    <td class="mono">${l.codPrograma}</td>
+    <td class="mono num">${formatarFinanceiro(l.vlGlobalProp)}</td>
+    <td class="mono num">${formatarFinanceiro(l.vlRepasseProp)}</td>
+    <td class="mono num">${formatarFinanceiro(l.vlContrapartidaProp)}</td>
+    <td class="mono num">${formatarFinanceiro(l.rendimentoDisponivel)}</td>
+    <td class="mono num">${formatarFinanceiro(l.rendimentoUtilizado)}</td>
+    <td class="mono num">${formatarFinanceiro(l.rendimentoTotal)}</td>
+    <td class="mono num">${formatarFinanceiro(l.vlSaldoConta)}</td>
+    <td class="mono num">${formatarFinanceiro(l.vlDesembolsado)}</td>
+    <td class="mono num">${formatarFinanceiro(l.valorExecutado)}</td>
+    <td>${formatarBarraPercentual(l.pctValorExecutado, BRAND_COLORS.verde)}</td>
+    <td class="mono">${formatarData(l.diaInicio)}</td>
+    <td class="mono">${formatarData(l.diaFim)}</td>
+    <td class="mono">${formatarData(l.diaLimitePrestacao)}</td>
+    <td class="mono">${l.totalDiasVigencia === null ? "—" : l.totalDiasVigencia}</td>
+    <td class="mono">${l.diasTranscorridos === null ? "—" : l.diasTranscorridos}</td>
+    <td>${formatarCarimbo(l)}</td>
+    <td>${formatarBarraPercentual(l.pctTempoTranscorrido, BRAND_COLORS.roxo)}</td>
+    <td class="mono">${formatarData(l.dataAtual)}</td>
+    <td><span class="badge-situacao">${l.situacao}</span></td>
+  </tr>`;
+}
+
+function renderizarTabela() {
+  const lista = linhasOrdenadas(linhasFiltradas());
+  const corpo = document.getElementById("corpo-tabela");
+
+  if (!lista.length) {
+    corpo.innerHTML = `<tr><td colspan="${COLSPAN}" class="vazio">Nenhum instrumento encontrado para essa busca.</td></tr>`;
+  } else {
+    corpo.innerHTML = lista.map(renderizarLinha).join("");
+  }
+
+  document.getElementById("rodape-contagem").textContent =
+    `${lista.length} de ${linhas.length} instrumento(s) exibido(s)`;
+}
+
+document.getElementById("busca").addEventListener("input", renderizarTabela);
+document.getElementById("filtro-modalidade").addEventListener("change", renderizarTabela);
+
+document.querySelectorAll("#tabela-instrumentos thead th").forEach((th) => {
+  th.addEventListener("click", () => {
+    const campo = th.dataset.campo;
+    if (ordenacao.campo === campo) {
+      ordenacao.direcao = ordenacao.direcao === "asc" ? "desc" : "asc";
+    } else {
+      ordenacao.campo = campo;
+      ordenacao.direcao = "asc";
+    }
+    document.querySelectorAll("#tabela-instrumentos thead th").forEach((el) => {
+      el.classList.remove("ativo");
+      el.querySelector(".seta").textContent = "↕";
+    });
+    th.classList.add("ativo");
+    th.querySelector(".seta").textContent = ordenacao.direcao === "asc" ? "↑" : "↓";
+    renderizarTabela();
+  });
+});
+
+carregarDados();
+</script>
+
+</body>
+</html>

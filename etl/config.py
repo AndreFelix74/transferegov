@@ -81,6 +81,7 @@ TABLES = [
     {"file": "siconv_cronograma_desembolso.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids"},
     {"file": "siconv_emenda.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids"},
     {"file": "siconv_termo_aditivo.csv", "filter_column": "NR_CONVENIO", "filter_set": "agreement_numbers"},
+    {"file": "siconv_solicitacao_rendimento_aplicacao.csv", "filter_column": "NR_CONVENIO", "filter_set": "agreement_numbers"},
 ]
 
 VIEWS_DIR = Path(__file__).parent / "views"
