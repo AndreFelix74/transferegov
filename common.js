@@ -10,6 +10,10 @@ const GID_SOLICITACAO_RENDIMENTO = "1677659110"; // aba solicitacao_rendimento_a
 const CSV_URL_SOLICITACAO_RENDIMENTO =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_SOLICITACAO_RENDIMENTO}`;
 
+const GID_SIG_PCS = "1768843796"; // aba SIG_PCS (atribuição técnico ↔ convênio)
+const CSV_URL_SIG_PCS =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_SIG_PCS}&headers=1`;
+
 function csvUrlForGid(gid) {
   return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
 }
