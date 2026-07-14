@@ -258,9 +258,10 @@ const COLUNAS = {
   valorDesembolsado: "VL_DESEMBOLSADO_CONV",
 };
 
+/* Índices 0-based da aba SIG_PCS: A = convênio, F = técnico */
 const COLUNAS_SIG = {
-  convenio: "Nº TransfereGov",
-  tecnico: "Técnico Responsável",
+  convenio: 0,
+  tecnico: 5,
 };
 
 const URL_DETALHE_PROPOSTA = "https://discricionarias.transferegov.sistema.gov.br/voluntarias/ConsultarProposta/ResultadoDaConsultaDePropostaDetalharProposta.do?idProposta=";
@@ -301,11 +302,11 @@ function estaEmPC(situacao) {
   return s.includes("Prestação de Contas") && !s.includes("Aprovada");
 }
 
-function parseCsv(url) {
+function parseCsv(url, { header = true } = {}) {
   return new Promise((resolve, reject) => {
     Papa.parse(url, {
       download: true,
-      header: true,
+      header,
       skipEmptyLines: true,
       complete: (resultado) => resolve(resultado.data || []),
       error: reject,
@@ -316,7 +317,8 @@ function parseCsv(url) {
 function montarAtribuicao(rows) {
   const porTecnico = {};
   const porConvenio = {};
-  for (const row of rows) {
+  // rows sem header:true — linha 0 é cabeçalho; dados a partir da linha 1
+  for (const row of rows.slice(1)) {
     const nr = String(row[COLUNAS_SIG.convenio] || "").trim();
     const tecnico = String(row[COLUNAS_SIG.tecnico] || "").trim();
     if (!nr || !tecnico) continue;
@@ -387,7 +389,7 @@ function transformarLinha(bruta) {
 function carregarDados() {
   Promise.all([
     parseCsv(CSV_URL),
-    parseCsv(CSV_URL_SIG_PCS),
+    parseCsv(CSV_URL_SIG_PCS, { header: false }),
   ])
     .then(([convenios, atribuicoes]) => {
       if (!convenios.length) {
