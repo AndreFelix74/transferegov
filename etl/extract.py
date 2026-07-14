@@ -54,6 +54,18 @@ def _zip_needs_update(zip_file: dict) -> bool:
     return _remote_mtime(zip_file) > _local_mtime(zip_path)
 
 
+def _download_archives(zip_files: list[dict]):
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        download_futures = {
+            executor.submit(
+                _download_archive, zip_file, RAW_DIR / archive_name_for(zip_file),
+            ): zip_file
+            for zip_file in zip_files
+        }
+        for future in as_completed(download_futures):
+            future.result()
+
+
 def extract(log: logging.Logger):
     log.info("=== EXTRACT ===")
     RAW_DIR.mkdir(parents=True, exist_ok=True)
@@ -61,15 +73,7 @@ def extract(log: logging.Logger):
     zips_to_update = [zip_file for zip_file in TABLES if _zip_needs_update(zip_file)]
 
     log.info("=== EXTRACT DOWNLOAD ===")
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        download_futures = {
-            executor.submit(
-                _download_archive, zip_file, RAW_DIR / archive_name_for(zip_file),
-            ): zip_file
-            for zip_file in zips_to_update
-        }
-        for future in as_completed(download_futures):
-            future.result()
+    _download_archives(zips_to_update)
 
     log.info("=== EXTRACT UNZIP ===")
 
