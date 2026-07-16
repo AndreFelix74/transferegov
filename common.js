@@ -14,8 +14,63 @@ const GID_SIG_PCS = "1768843796"; // aba SIG_PCS (atribuição técnico ↔ conv
 const CSV_URL_SIG_PCS =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_SIG_PCS}&headers=1`;
 
+// Abas brutas do staging (load.py → sheet_name_from_csv)
+const CSV_URL_PAGAMENTO =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("pagamento")}`;
+const CSV_URL_PAGAMENTO_TRIBUTO =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("pagamento_tributo")}`;
+
 function csvUrlForGid(gid) {
   return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+}
+
+function parseCsv(url, { header = true } = {}) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(url, {
+      download: true,
+      header,
+      skipEmptyLines: true,
+      complete: (resultado) => resolve(resultado.data || []),
+      error: reject,
+    });
+  });
+}
+
+/** Soma uma coluna numérica agrupando por NR_CONVENIO. */
+function sumByConvenio(rows, valueColumn) {
+  const map = Object.create(null);
+  for (const row of rows) {
+    const nr = String(row.NR_CONVENIO || "").trim();
+    if (!nr) continue;
+    map[nr] = (map[nr] || 0) + parseNum(row[valueColumn]);
+  }
+  return map;
+}
+
+/**
+ * Valor Executado por NR_CONVENIO (cálculo na interface):
+ *   SUM(pagamento.VL_PAGO) + SUM(pagamento_tributo.VL_PAG_TRIBUTOS)
+ * Ausência de um dos lados conta como zero.
+ */
+function buildValorExecutadoMap(pagamentos, tributos) {
+  const pagamentosPorConvenio = sumByConvenio(pagamentos, "VL_PAGO");
+  const tributosPorConvenio = sumByConvenio(tributos, "VL_PAG_TRIBUTOS");
+  const map = Object.create(null);
+  const keys = new Set([
+    ...Object.keys(pagamentosPorConvenio),
+    ...Object.keys(tributosPorConvenio),
+  ]);
+  for (const nr of keys) {
+    map[nr] = (pagamentosPorConvenio[nr] || 0) + (tributosPorConvenio[nr] || 0);
+  }
+  return map;
+}
+
+function loadValorExecutadoMap() {
+  return Promise.all([
+    parseCsv(CSV_URL_PAGAMENTO),
+    parseCsv(CSV_URL_PAGAMENTO_TRIBUTO),
+  ]).then(([pagamentos, tributos]) => buildValorExecutadoMap(pagamentos, tributos));
 }
 
 /* Paleta de marca — objeto semântico + derivados para gráficos */

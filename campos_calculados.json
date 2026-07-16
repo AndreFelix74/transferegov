@@ -1,0 +1,32 @@
+{
+  "campos": [
+    {
+      "nome": "valor_executado",
+      "descricao": "Valor executado financeiro do instrumento de parceria, por convênio. Calculado na interface a partir das tabelas brutas do staging.",
+      "formula": "SUM(pagamento.VL_PAGO) + SUM(pagamento_tributo.VL_PAG_TRIBUTOS)",
+      "agrupamento": "NR_CONVENIO",
+      "fontes": [
+        {
+          "tabela": "pagamento",
+          "coluna": "VL_PAGO",
+          "origem": "bulk data SICONV (aba Google Sheets 'pagamento')"
+        },
+        {
+          "tabela": "pagamento_tributo",
+          "coluna": "VL_PAG_TRIBUTOS",
+          "origem": "bulk data SICONV (aba Google Sheets 'pagamento_tributo')",
+          "nota": "Agregado por (NR_CONVENIO, DATA_TRIBUTO); sem granularidade de movimentação individual."
+        }
+      ],
+      "implementacao": "common.js → buildValorExecutadoMap / loadValorExecutadoMap; consumido pelos painéis HTML",
+      "etl": "Disponibiliza apenas os CSVs brutos filtrados (pagamento e pagamento_tributo). Não calcula nem materializa valor_executado.",
+      "limitacoes": [
+        "Não inclui Devolução de Saldo Remanescente: aparece na tela ManterMovimentacaoFinanceira do TransfereGov, mas não existe em pagamento nem em nenhuma outra tabela do dump público em granularidade de transação."
+      ],
+      "validacao": {
+        "metodo": "Comparação com export manual da tela ManterMovimentacaoFinanceira (TransfereGov)",
+        "resultado": "15/15 pagamentos batendo exato; tributos batendo por agregado diário (IR+INSS = VL_PAG_TRIBUTOS do dia)"
+      }
+    }
+  ]
+}

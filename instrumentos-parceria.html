@@ -243,7 +243,7 @@ function mapaRendimentoUtilizado(solicitacoes) {
   return mapa;
 }
 
-function transformarLinha(bruta, rendimentoPorConvenio, hoje) {
+function transformarLinha(bruta, rendimentoPorConvenio, valorExecutadoPorConvenio, hoje) {
   const nrConvenio = String(bruta.NR_CONVENIO || "").trim();
   const dataInicio = parseDate(bruta.DIA_INIC_VIGENC_CONV);
   const dataFim = parseDate(bruta.DIA_FIM_VIGENC_CONV);
@@ -254,7 +254,8 @@ function transformarLinha(bruta, rendimentoPorConvenio, hoje) {
   const rendimentoUtilizado = nrConvenio ? (rendimentoPorConvenio[nrConvenio] || 0) : 0;
   const rendimentoTotal = rendimentoUtilizado + rendimentoDisponivel;
   const vlSaldoConta = parseNum(bruta.VL_SALDO_CONTA);
-  const valorExecutado = vlGlobalProp + rendimentoTotal - vlSaldoConta;
+  // SUM(VL_PAGO) + SUM(VL_PAG_TRIBUTOS) — agregado na interface a partir das abas brutas
+  const valorExecutado = nrConvenio ? (valorExecutadoPorConvenio[nrConvenio] || 0) : 0;
   const pctValorExecutado = vlGlobalProp > 0
     ? (valorExecutado / vlGlobalProp) * 100
     : null;
@@ -315,8 +316,9 @@ function carregarDados() {
   Promise.all([
     parseCsv(CSV_URL),
     parseCsv(CSV_URL_SOLICITACAO_RENDIMENTO),
+    loadValorExecutadoMap(),
   ])
-    .then(([convenios, solicitacoes]) => {
+    .then(([convenios, solicitacoes, valorExecutadoPorConvenio]) => {
       if (!convenios.length) {
         setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
         return;
@@ -328,7 +330,9 @@ function carregarDados() {
       const rendimentoPorConvenio = mapaRendimentoUtilizado(solicitacoes);
       linhas = convenios
         .filter((r) => String(r.NR_CONVENIO || "").trim() !== "")
-        .map((r) => transformarLinha(r, rendimentoPorConvenio, dataAtualLoad));
+        .map((r) => transformarLinha(
+          r, rendimentoPorConvenio, valorExecutadoPorConvenio, dataAtualLoad,
+        ));
 
       const agora = new Date().toLocaleString("pt-BR");
       setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);

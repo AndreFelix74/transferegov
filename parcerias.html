@@ -305,15 +305,17 @@ function estaEmExecucao(situacao) {
 }
 
 /* --------------------- transformação da linha crua --------------------- */
-function transformarLinha(bruta) {
+function transformarLinha(bruta, valorExecutadoPorConvenio) {
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const nr = (bruta[COLUNAS.numeroTransfereGov] || "").trim();
 
   const dataInicio = parseDate(bruta[COLUNAS.dataInicioVigencia]);
   const dataFim = parseDate(bruta[COLUNAS.dataFimVigencia]);
   const valorGlobalProposta = parseNum(bruta[COLUNAS.valorGlobalProposta]);
   const valorRendimentoAplicacao = parseNum(bruta[COLUNAS.valorRendimentoAplicacao]);
   const valorSaldoConta = parseNum(bruta[COLUNAS.valorSaldoConta]);
-  const valorExecutado = valorGlobalProposta + valorRendimentoAplicacao - valorSaldoConta;
+  // SUM(VL_PAGO) + SUM(VL_PAG_TRIBUTOS) — agregado na interface a partir das abas brutas
+  const valorExecutado = nr ? (valorExecutadoPorConvenio[nr] || 0) : 0;
   const valorGlobal = parseNum(bruta[COLUNAS.valorGlobal]);
   const valorDesembolsado = parseNum(bruta[COLUNAS.valorDesembolsado]);
   const situacao = bruta[COLUNAS.situacao] || "Não informada";
@@ -360,29 +362,28 @@ function transformarLinha(bruta) {
 
 /* --------------------- carregamento --------------------- */
 function carregarDados() {
-  Papa.parse(CSV_URL, {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: (resultado) => {
-      if (!resultado.data || !resultado.data.length) {
+  Promise.all([
+    parseCsv(CSV_URL),
+    loadValorExecutadoMap(),
+  ])
+    .then(([convenios, valorExecutadoPorConvenio]) => {
+      if (!convenios || !convenios.length) {
         setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
         return;
       }
-      linhas = resultado.data.map(transformarLinha);
+      linhas = convenios.map((r) => transformarLinha(r, valorExecutadoPorConvenio));
       const agora = new Date().toLocaleString("pt-BR");
       setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
       renderizarTudo();
-    },
-    error: (erro) => {
+    })
+    .catch((erro) => {
       console.error(erro);
       setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
       document.getElementById("corpo-tabela-execucao").innerHTML =
         `<tr><td colspan="6" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
       document.getElementById("corpo-tabela-prestacao").innerHTML =
         `<tr><td colspan="4" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
-    },
-  });
+    });
 }
 
 /* --------------------- gráfico: prazo final de vigência --------------------- */

@@ -330,7 +330,7 @@ function montarAtribuicao(rows) {
   TECNICO_POR_CONVENIO = porConvenio;
 }
 
-function transformarLinha(bruta) {
+function transformarLinha(bruta, valorExecutadoPorConvenio) {
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const nr = (bruta[COLUNAS.numeroTransfereGov] || "").trim();
 
@@ -339,7 +339,8 @@ function transformarLinha(bruta) {
   const valorGlobalProposta = parseNum(bruta[COLUNAS.valorGlobalProposta]);
   const valorRendimentoAplicacao = parseNum(bruta[COLUNAS.valorRendimentoAplicacao]);
   const valorSaldoConta = parseNum(bruta[COLUNAS.valorSaldoConta]);
-  const valorExecutado = valorGlobalProposta + valorRendimentoAplicacao - valorSaldoConta;
+  // SUM(VL_PAGO) + SUM(VL_PAG_TRIBUTOS) — agregado na interface a partir das abas brutas
+  const valorExecutado = nr ? (valorExecutadoPorConvenio[nr] || 0) : 0;
   const valorGlobal = parseNum(bruta[COLUNAS.valorGlobal]);
   const valorDesembolsado = parseNum(bruta[COLUNAS.valorDesembolsado]);
   const situacao = bruta[COLUNAS.situacao] || "Não informada";
@@ -390,8 +391,9 @@ function carregarDados() {
   Promise.all([
     parseCsv(CSV_URL),
     parseCsv(CSV_URL_SIG_PCS, { header: false }),
+    loadValorExecutadoMap(),
   ])
-    .then(([convenios, atribuicoes]) => {
+    .then(([convenios, atribuicoes, valorExecutadoPorConvenio]) => {
       if (!convenios.length) {
         setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
         return;
@@ -401,7 +403,7 @@ function carregarDados() {
         return;
       }
       montarAtribuicao(atribuicoes);
-      linhas = convenios.map(transformarLinha);
+      linhas = convenios.map((r) => transformarLinha(r, valorExecutadoPorConvenio));
       setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
       renderizarTudo();
     })

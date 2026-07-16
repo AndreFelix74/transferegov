@@ -215,14 +215,6 @@ function getCategoriaTipo(row) {
   return ano ? `Edital ${ano}` : "Sem ano informado";
 }
 
-// Gambiarra de apresentacao: edital 2026 ainda sem execucao confiavel nos dados
-function valorExecutadoApresentacao(row) {
-  if (row.categoria_tipo === "Edital 2026") return 0;
-  return parseNum(row.VL_GLOBAL_PROP)
-    + parseNum(row.VL_RENDIMENTO_APLICACAO)
-    - parseNum(row.VL_SALDO_CONTA);
-}
-
 function agruparSituacao(situacao) {
   const texto = (situacao || "")
     .trim()
@@ -237,19 +229,24 @@ function estaEmExecucao(situacao) {
   return (situacao || "").trim() === "Em execução";
 }
 
-Papa.parse(CSV_URL, {
-  download: true,
-  header: true,
-  skipEmptyLines: true,
-  complete: results => {
+Promise.all([
+  parseCsv(CSV_URL),
+  loadValorExecutadoMap(),
+])
+  .then(([convenios, valorExecutadoPorConvenio]) => {
     try {
       // grain do painel = convenios formalizados (instrumento = convenio, nao proposta)
-      const rows = results.data.filter(r =>
+      const rows = convenios.filter(r =>
         (r.NR_CONVENIO || "").trim() !== ""
         && (r.SIT_CONVENIO || "").trim() !== "Proposta/Plano de Trabalho Aprovado"
       );
       if (rows.length === 0) throw new Error("Nenhuma linha com NR_CONVENIO preenchido.");
-      rows.forEach(r => { r.categoria_tipo = getCategoriaTipo(r); });
+      rows.forEach(r => {
+        r.categoria_tipo = getCategoriaTipo(r);
+        const nr = String(r.NR_CONVENIO || "").trim();
+        // SUM(VL_PAGO) + SUM(VL_PAG_TRIBUTOS) — agregado na interface
+        r._valorExecutado = nr ? (valorExecutadoPorConvenio[nr] || 0) : 0;
+      });
       buildDashboard(rows);
       const agora = new Date().toLocaleString("pt-BR");
       setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
@@ -257,12 +254,11 @@ Papa.parse(CSV_URL, {
       console.error(err);
       setStatusDot("#status-atualizacao", "erro ao processar view_convenio", true);
     }
-  },
-  error: err => {
+  })
+  .catch(err => {
     console.error(err);
     setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
-  },
-});
+  });
 
 window.addEventListener("resize", sincronizarAlturasPainel);
 
@@ -397,7 +393,7 @@ function buildDashboard(rows) {
     execucao[c] = {
       pactuado: subset.reduce((s, r) => s + parseNum(r.VL_GLOBAL_CONV), 0),
       desembolsado: subset.reduce((s, r) => s + parseNum(r.VL_DESEMBOLSADO_CONV), 0),
-      executado: subset.reduce((s, r) => s + valorExecutadoApresentacao(r), 0),
+      executado: subset.reduce((s, r) => s + (r._valorExecutado || 0), 0),
     };
   });
 
@@ -502,7 +498,7 @@ function buildDashboard(rows) {
   categorias.forEach(c => {
     const subset = byCategoria(c);
     const pactuado = subset.reduce((s, r) => s + parseNum(r.VL_GLOBAL_CONV), 0);
-    const valorExecutado = subset.reduce((s, r) => s + valorExecutadoApresentacao(r), 0);
+    const valorExecutado = subset.reduce((s, r) => s + (r._valorExecutado || 0), 0);
     const execucaoPct = pactuado
       ? Math.min(100, Math.max(0, (valorExecutado / pactuado) * 100))
       : 0;

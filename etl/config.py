@@ -75,6 +75,7 @@ TABLES = [
     {"file": "siconv_itens_licitacao.csv", "filter_column": "ID_LICITACAO", "filter_set": "bidding_ids", "remote_file": "siconv_itens_licitacao.zip"},
     {"file": "siconv_contrato.csv", "filter_column": "ID_LICITACAO", "filter_set": "bidding_ids"},
     {"file": "siconv_pagamento.csv", "filter_column": "NR_CONVENIO", "filter_set": "agreement_numbers", "extract_column": "NR_MOV_FIN", "extract_set": "movement_numbers"},
+    {"file": "siconv_pagamento_tributo.csv", "filter_column": "NR_CONVENIO", "filter_set": "agreement_numbers"},
     {"file": "siconv_obtv_convenente.csv", "filter_column": "NR_MOV_FIN", "filter_set": "movement_numbers"},
     {"file": "siconv_plano_aplicacao_detalhado.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids", "remote_file": "siconv_plano_aplicacao.csv.zip"},
     {"file": "siconv_historico_situacao.csv", "filter_column": "ID_PROPOSTA", "filter_set": "proposal_ids"},
