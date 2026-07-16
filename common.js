@@ -19,9 +19,30 @@ const CSV_URL_PAGAMENTO =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("pagamento")}`;
 const CSV_URL_PAGAMENTO_TRIBUTO =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("pagamento_tributo")}`;
+const CSV_URL_VIEW_PAGAMENTO =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("view_pagamento")}`;
+const CSV_URL_VIEW_PLANO_APLICACAO =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("view_plano_aplicacao_detalhado")}`;
+const CSV_URL_COZINHA =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("COZINHA")}`;
 
 function csvUrlForGid(gid) {
   return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+}
+
+/** Tipo de instrumento: Fomento ou Edital {ANO_PROP}, como no painel gerencial. */
+function getCategoriaTipo(row) {
+  if ((row.MODALIDADE || "").trim().toUpperCase() === "TERMO DE FOMENTO") return "Fomento";
+  const ano = (row.ANO_PROP || "").trim();
+  return ano ? `Edital ${ano}` : "Sem ano informado";
+}
+
+function ordenarCategoriasTipo(categorias) {
+  return [...categorias].sort((a, b) => {
+    if (a === "Fomento") return 1;
+    if (b === "Fomento") return -1;
+    return a.localeCompare(b, "pt-BR");
+  });
 }
 
 function parseCsv(url, { header = true } = {}) {

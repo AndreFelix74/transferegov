@@ -208,13 +208,6 @@ function sincronizarAlturasPainel() {
   igualarAlturaColunaTipo();
 }
 
-// categoria_tipo calculada a partir dos dados reais, sem lista de anos hardcoded
-function getCategoriaTipo(row) {
-  if ((row.MODALIDADE || "").trim().toUpperCase() === "TERMO DE FOMENTO") return "Fomento";
-  const ano = (row.ANO_PROP || "").trim();
-  return ano ? `Edital ${ano}` : "Sem ano informado";
-}
-
 function agruparSituacao(situacao) {
   const texto = (situacao || "")
     .trim()
@@ -264,11 +257,7 @@ window.addEventListener("resize", sincronizarAlturasPainel);
 
 function buildDashboard(rows) {
   // categorias dinamicas, Editais em ordem alfabetica/numerica, Fomento sempre por ultimo
-  const categorias = [...new Set(rows.map(r => r.categoria_tipo))].sort((a, b) => {
-    if (a === "Fomento") return 1;
-    if (b === "Fomento") return -1;
-    return a.localeCompare(b, "pt-BR");
-  });
+  const categorias = ordenarCategoriasTipo([...new Set(rows.map(r => r.categoria_tipo))]);
   const COR = {};
   categorias.forEach((c, i) => (COR[c] = BRAND_PALETTE[i % BRAND_PALETTE.length]));
   const paletteArr = categorias.map(c => COR[c]);
