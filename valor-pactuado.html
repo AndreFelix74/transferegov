@@ -192,6 +192,8 @@ const COLSPAN = 18;
 const UF_VALIDA = /^[A-Z]{2}$/;
 const URL_DETALHE_PROPOSTA =
   "https://discricionarias.transferegov.sistema.gov.br/voluntarias/ConsultarProposta/ResultadoDaConsultaDePropostaDetalharProposta.do?idProposta=";
+const URL_DETALHE_ITEM_PAD =
+  "https://discricionarias.transferegov.sistema.gov.br/voluntarias/DetalharBensProposta/ListarBensDetalhar.do?id=";
 
 const COLUNAS_CSV = [
   { campo: "tipo", rotulo: "Tipo" },
@@ -213,6 +215,7 @@ const COLUNAS_CSV = [
   { campo: "valorUnitario", rotulo: "VALOR_UNITARIO_ITEM", numerico: true },
   { campo: "valorTotal", rotulo: "VALOR_TOTAL_ITEM", numerico: true },
   { campo: "idItemPad", rotulo: "ID_ITEM_PAD" },
+  { campo: "linkItemPad", rotulo: "LINK_ITEM_PAD" },
 ];
 
 let linhas = [];
@@ -346,6 +349,9 @@ function transformarLinha(bruta, ufPorCs) {
     valorUnitario: parseNum(bruta.VALOR_UNITARIO_ITEM),
     valorTotal: parseNum(bruta.VALOR_TOTAL_ITEM),
     idItemPad: String(bruta.ID_ITEM_PAD || "").trim() || "—",
+    linkItemPad: String(bruta.ID_ITEM_PAD || "").trim()
+      ? `${URL_DETALHE_ITEM_PAD}${String(bruta.ID_ITEM_PAD).trim()}`
+      : "",
   };
 }
 
@@ -456,6 +462,13 @@ function renderizarTabela() {
           </a>`
         : `<span class="mono">${escapeHtml(l.nrProposta)}</span>`;
 
+      const celulaItemPad = l.linkItemPad
+        ? `<a class="link-transferegov" href="${escapeHtml(l.linkItemPad)}" target="_blank" rel="noopener">
+            ${escapeHtml(l.idItemPad)}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </a>`
+        : `<span class="mono">${escapeHtml(l.idItemPad)}</span>`;
+
       return `
       <tr>
         <td>${escapeHtml(l.tipo)}</td>
@@ -475,7 +488,7 @@ function renderizarTabela() {
         <td class="num mono">${formatarFinanceiro(l.qtdItem)}</td>
         <td class="num mono">${formatarFinanceiro(l.valorUnitario)}</td>
         <td class="num mono">${formatarFinanceiro(l.valorTotal)}</td>
-        <td class="mono">${escapeHtml(l.idItemPad)}</td>
+        <td>${celulaItemPad}</td>
       </tr>`;
     }).join("");
   }
