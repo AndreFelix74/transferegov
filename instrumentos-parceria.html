@@ -126,33 +126,33 @@
       <table class="parcerias" id="tabela-instrumentos">
         <thead>
           <tr>
-            <th data-campo="modalidade">MODALIDADE <span class="seta">↕</span></th>
-            <th data-campo="nrProposta">NR_PROPOSTA <span class="seta">↕</span></th>
-            <th data-campo="nrConvenio">NR_CONVENIO <span class="seta">↕</span></th>
-            <th data-campo="proponente">NM_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="modality">MODALIDADE <span class="seta">↕</span></th>
+            <th data-campo="proposalNumber">NR_PROPOSTA <span class="seta">↕</span></th>
+            <th data-campo="convenioNumber">NR_CONVENIO <span class="seta">↕</span></th>
+            <th data-campo="proponent">NM_PROPONENTE <span class="seta">↕</span></th>
             <th data-campo="cnpj">IDENTIF_PROPONENTE <span class="seta">↕</span></th>
-            <th data-campo="nrProcesso">NR_PROCESSO <span class="seta">↕</span></th>
-            <th data-campo="uf">UF_PROPONENTE <span class="seta">↕</span></th>
-            <th data-campo="codPrograma">COD_PROGRAMA <span class="seta">↕</span></th>
-            <th data-campo="vlGlobalProp" class="num">VL_GLOBAL_PROP <span class="seta">↕</span></th>
-            <th data-campo="vlRepasseProp" class="num">VL_REPASSE_PROP <span class="seta">↕</span></th>
-            <th data-campo="vlContrapartidaProp" class="num">VL_CONTRAPARTIDA_PROP <span class="seta">↕</span></th>
-            <th data-campo="rendimentoDisponivel" class="num">Rendimento Disponível <span class="seta">↕</span></th>
-            <th data-campo="rendimentoUtilizado" class="num">Rendimento Utilizado <span class="seta">↕</span></th>
-            <th data-campo="rendimentoTotal" class="num">Rendimento Total <span class="seta">↕</span></th>
-            <th data-campo="vlSaldoConta" class="num">VL_SALDO_CONTA <span class="seta">↕</span></th>
-            <th data-campo="vlDesembolsado" class="num">VL_DESEMBOLSADO_CONV <span class="seta">↕</span></th>
-            <th data-campo="valorExecutado" class="num">Valor Executado <span class="seta">↕</span></th>
-            <th data-campo="pctValorExecutado">% de Valor Executado <span class="seta">↕</span></th>
-            <th data-campo="diaInicio">DIA_INIC_VIGENC_CONV <span class="seta">↕</span></th>
-            <th data-campo="diaFim">DIA_FIM_VIGENC_CONV <span class="seta">↕</span></th>
-            <th data-campo="diaLimitePrestacao">DIA_LIMITE_PREST_CONTAS <span class="seta">↕</span></th>
-            <th data-campo="totalDiasVigencia">Total de Dias de Vigência <span class="seta">↕</span></th>
-            <th data-campo="diasTranscorridos">Dias Transcorridos <span class="seta">↕</span></th>
-            <th data-campo="diasRestantes" class="ativo">Dias Restantes de Vigência <span class="seta">↓</span></th>
-            <th data-campo="pctTempoTranscorrido">% de tempo transcorrido <span class="seta">↕</span></th>
-            <th data-campo="dataAtual">Data Atual <span class="seta">↕</span></th>
-            <th data-campo="situacao">SIT_CONVENIO <span class="seta">↕</span></th>
+            <th data-campo="processNumber">NR_PROCESSO <span class="seta">↕</span></th>
+            <th data-campo="state">UF_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="programCode">COD_PROGRAMA <span class="seta">↕</span></th>
+            <th data-campo="globalProposalValue" class="num">VL_GLOBAL_PROP <span class="seta">↕</span></th>
+            <th data-campo="repasseValue" class="num">VL_REPASSE_PROP <span class="seta">↕</span></th>
+            <th data-campo="counterpartValue" class="num">VL_CONTRAPARTIDA_PROP <span class="seta">↕</span></th>
+            <th data-campo="availableYield" class="num">Rendimento Disponível <span class="seta">↕</span></th>
+            <th data-campo="usedYield" class="num">Rendimento Utilizado <span class="seta">↕</span></th>
+            <th data-campo="totalYield" class="num">Rendimento Total <span class="seta">↕</span></th>
+            <th data-campo="accountBalance" class="num">VL_SALDO_CONTA <span class="seta">↕</span></th>
+            <th data-campo="disbursedValue" class="num">VL_DESEMBOLSADO_CONV <span class="seta">↕</span></th>
+            <th data-campo="executedValue" class="num">Valor Executado <span class="seta">↕</span></th>
+            <th data-campo="executedValuePercent">% de Valor Executado <span class="seta">↕</span></th>
+            <th data-campo="vigencyStart">DIA_INIC_VIGENC_CONV <span class="seta">↕</span></th>
+            <th data-campo="vigencyEnd">DIA_FIM_VIGENC_CONV <span class="seta">↕</span></th>
+            <th data-campo="accountabilityDeadline">DIA_LIMITE_PREST_CONTAS <span class="seta">↕</span></th>
+            <th data-campo="totalVigencyDays">Total de Dias de Vigência <span class="seta">↕</span></th>
+            <th data-campo="elapsedDays">Dias Transcorridos <span class="seta">↕</span></th>
+            <th data-campo="daysRemaining" class="ativo">Dias Restantes de Vigência <span class="seta">↓</span></th>
+            <th data-campo="elapsedTimePercent">% de tempo transcorrido <span class="seta">↕</span></th>
+            <th data-campo="currentDate">Data Atual <span class="seta">↕</span></th>
+            <th data-campo="status">SIT_CONVENIO <span class="seta">↕</span></th>
           </tr>
         </thead>
         <tbody id="corpo-tabela">
@@ -170,309 +170,158 @@
 
 <script>
 const COLSPAN = 27;
-const STATUS_RENDIMENTO_APROVADO = "PT Ajustado e Aprovado";
-const URL_DETALHE_PROPOSTA = "https://discricionarias.transferegov.sistema.gov.br/voluntarias/ConsultarProposta/ResultadoDaConsultaDePropostaDetalharProposta.do?idProposta=";
 
-let linhas = [];
-let dataAtualLoad = null;
-const ordenacao = { campo: "diasRestantes", direcao: "asc" };
+let rows = [];
+let loadDate = null;
+const sortState = { field: "daysRemaining", direction: "asc" };
 
-function diasEntre(dataA, dataB) {
-  const MS_POR_DIA = 1000 * 60 * 60 * 24;
-  return Math.round((dataA.getTime() - dataB.getTime()) / MS_POR_DIA);
-}
-
-function faixaUrgenciaExecucao(diasRestantes) {
-  if (diasRestantes === null) return { chave: "indefinido", rotulo: "sem prazo", cor: "var(--tinta-suave)" };
-  if (diasRestantes < 30) return { chave: "urgente", rotulo: "< 30 dias", cor: BRAND_COLORS.laranja };
-  if (diasRestantes < 90) return { chave: "alerta", rotulo: "30–90 dias", cor: BRAND_COLORS.amarelo };
-  return { chave: "normal", rotulo: "> 90 dias", cor: BRAND_COLORS.verde };
-}
-
-function formatarData(data) {
-  if (!data) return "—";
-  return data.toLocaleDateString("pt-BR");
-}
-
-function formatarFinanceiro(value) {
-  return (value || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-}
-
-function formatarBarraPercentual(valor, cor) {
-  if (valor === null || Number.isNaN(valor)) {
-    return `<span style="color:var(--tinta-suave)">—</span>`;
-  }
-  const limitado = Math.min(100, Math.max(0, valor));
-  return `
-    <div class="barra-percentual">
-      <div class="trilho"><div class="preenchimento" style="width:${limitado.toFixed(0)}%; background:${cor}"></div></div>
-      <span class="texto mono">${limitado.toFixed(0)}%</span>
-    </div>`;
-}
-
-function formatarCarimbo(linha) {
-  const { faixa, diasRestantes } = linha;
-  if (diasRestantes === null) return `<span class="badge-situacao">sem data de vigência</span>`;
-  return `<span class="carimbo ${faixa.chave}"><span class="dias">${diasRestantes}d</span></span>`;
-}
-
-function parseCsv(url) {
-  return new Promise((resolve, reject) => {
-    Papa.parse(url, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: (resultado) => resolve(resultado.data || []),
-      error: reject,
-    });
-  });
-}
-
-function mapaRendimentoUtilizado(solicitacoes) {
-  const mapa = Object.create(null);
-  for (const row of solicitacoes) {
-    const status = (row.STATUS_SOLICITACAO_REND_APLICACAO || "").trim();
-    if (status !== STATUS_RENDIMENTO_APROVADO) continue;
-    const nr = String(row.NR_CONVENIO || "").trim();
-    if (!nr) continue;
-    mapa[nr] = (mapa[nr] || 0) + parseNum(row.VALOR_APROVADO_SOLICITACAO_REND_APLICACAO);
-  }
-  return mapa;
-}
-
-function transformarLinha(bruta, rendimentoPorConvenio, valorExecutadoPorConvenio, hoje) {
-  const nrConvenio = String(bruta.NR_CONVENIO || "").trim();
-  const dataInicio = parseDate(bruta.DIA_INIC_VIGENC_CONV);
-  const dataFim = parseDate(bruta.DIA_FIM_VIGENC_CONV);
-  const dataLimite = parseDate(bruta.DIA_LIMITE_PREST_CONTAS);
-
-  const vlGlobalProp = parseNum(bruta.VL_GLOBAL_PROP);
-  const rendimentoDisponivel = parseNum(bruta.VL_RENDIMENTO_APLICACAO);
-  const rendimentoUtilizado = nrConvenio ? (rendimentoPorConvenio[nrConvenio] || 0) : 0;
-  const rendimentoTotal = rendimentoUtilizado + rendimentoDisponivel;
-  const vlSaldoConta = parseNum(bruta.VL_SALDO_CONTA);
-  // SUM(VL_PAGO) + SUM(VL_PAG_TRIBUTOS) — agregado na interface a partir das abas brutas
-  const valorExecutado = nrConvenio ? (valorExecutadoPorConvenio[nrConvenio] || 0) : 0;
-  const pctValorExecutado = vlGlobalProp > 0
-    ? (valorExecutado / vlGlobalProp) * 100
-    : null;
-
-  let totalDiasVigencia = null;
-  let diasTranscorridos = null;
-  let diasRestantes = null;
-  let pctTempoTranscorrido = null;
-
-  if (dataInicio && dataFim) {
-    totalDiasVigencia = diasEntre(dataFim, dataInicio);
-    if (totalDiasVigencia >= 0) {
-      const decorridos = diasEntre(hoje, dataInicio);
-      diasTranscorridos = Math.min(totalDiasVigencia, Math.max(0, decorridos));
-      diasRestantes = totalDiasVigencia - diasTranscorridos;
-      pctTempoTranscorrido = totalDiasVigencia > 0
-        ? (diasTranscorridos / totalDiasVigencia) * 100
-        : null;
-    }
-  }
-
-  const faixa = faixaUrgenciaExecucao(diasRestantes);
-
-  return {
-    idProposta: bruta.ID_PROPOSTA || "",
-    modalidade: bruta.MODALIDADE || "—",
-    nrProposta: bruta.NR_PROPOSTA || "—",
-    nrConvenio: nrConvenio || "—",
-    proponente: bruta.NM_PROPONENTE || "(sem nome cadastrado)",
-    cnpj: bruta.IDENTIF_PROPONENTE || "—",
-    nrProcesso: bruta.NR_PROCESSO || "—",
-    uf: bruta.UF_PROPONENTE || "—",
-    codPrograma: bruta.COD_PROGRAMA || "—",
-    vlGlobalProp,
-    vlRepasseProp: parseNum(bruta.VL_REPASSE_PROP),
-    vlContrapartidaProp: parseNum(bruta.VL_CONTRAPARTIDA_PROP),
-    rendimentoDisponivel,
-    rendimentoUtilizado,
-    rendimentoTotal,
-    vlSaldoConta,
-    vlDesembolsado: parseNum(bruta.VL_DESEMBOLSADO_CONV),
-    valorExecutado,
-    pctValorExecutado,
-    diaInicio: dataInicio,
-    diaFim: dataFim,
-    diaLimitePrestacao: dataLimite,
-    totalDiasVigencia,
-    diasTranscorridos,
-    diasRestantes,
-    pctTempoTranscorrido,
-    dataAtual: hoje,
-    situacao: bruta.SIT_CONVENIO || "—",
-    faixa,
-  };
-}
-
-function carregarDados() {
-  Promise.all([
-    parseCsv(CSV_URL),
-    parseCsv(CSV_URL_SOLICITACAO_RENDIMENTO),
-    loadValorExecutadoMap(),
-  ])
-    .then(([convenios, solicitacoes, valorExecutadoPorConvenio]) => {
-      if (!convenios.length) {
+function loadData() {
+  loadPartnershipInstruments()
+    .then(({ rows: loadedRows, loadDate: date }) => {
+      if (!loadedRows.length) {
         setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
         return;
       }
-
-      dataAtualLoad = new Date();
-      dataAtualLoad.setHours(0, 0, 0, 0);
-
-      const rendimentoPorConvenio = mapaRendimentoUtilizado(solicitacoes);
-      linhas = convenios
-        .filter((r) => String(r.NR_CONVENIO || "").trim() !== "")
-        .map((r) => transformarLinha(
-          r, rendimentoPorConvenio, valorExecutadoPorConvenio, dataAtualLoad,
-        ));
-
-      const agora = new Date().toLocaleString("pt-BR");
-      setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
-      preencherFiltroModalidade();
-      renderizarTabela();
+      rows = loadedRows;
+      loadDate = date;
+      setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
+      populateModalityFilter();
+      renderTable();
     })
-    .catch((erro) => {
-      console.error(erro);
+    .catch((err) => {
+      console.error(err);
       setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
       document.getElementById("corpo-tabela").innerHTML =
         `<tr><td colspan="${COLSPAN}" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
     });
 }
 
-function preencherFiltroModalidade() {
+function populateModalityFilter() {
   const select = document.getElementById("filtro-modalidade");
-  const atual = select.value;
-  const modalidades = [...new Set(
-    linhas.map((l) => l.modalidade).filter((m) => m && m !== "—"),
+  const current = select.value;
+  const modalities = [...new Set(
+    rows.map((row) => row.modality).filter((m) => m && m !== "—"),
   )].sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   select.replaceChildren();
-  const optTodas = document.createElement("option");
-  optTodas.value = "";
-  optTodas.textContent = "Todas as modalidades";
-  select.appendChild(optTodas);
-  modalidades.forEach((m) => {
+  const allOpt = document.createElement("option");
+  allOpt.value = "";
+  allOpt.textContent = "Todas as modalidades";
+  select.appendChild(allOpt);
+  modalities.forEach((m) => {
     const opt = document.createElement("option");
     opt.value = m;
     opt.textContent = m;
     select.appendChild(opt);
   });
-  if (modalidades.includes(atual)) select.value = atual;
+  if (modalities.includes(current)) select.value = current;
 }
 
-function linhasFiltradas() {
-  const termo = document.getElementById("busca").value.trim().toLowerCase();
-  const modalidade = document.getElementById("filtro-modalidade").value;
-  let base = linhas;
-  if (modalidade) base = base.filter((l) => l.modalidade === modalidade);
-  if (!termo) return base;
-  return base.filter((l) =>
-    l.proponente.toLowerCase().includes(termo)
-    || String(l.nrConvenio).toLowerCase().includes(termo)
-    || String(l.nrProposta).toLowerCase().includes(termo)
-    || String(l.cnpj).toLowerCase().includes(termo),
+function filteredRows() {
+  const term = document.getElementById("busca").value.trim().toLowerCase();
+  const modality = document.getElementById("filtro-modalidade").value;
+  let base = rows;
+  if (modality) base = base.filter((row) => row.modality === modality);
+  if (!term) return base;
+  return base.filter((row) =>
+    row.proponent.toLowerCase().includes(term)
+    || String(row.convenioNumber).toLowerCase().includes(term)
+    || String(row.proposalNumber).toLowerCase().includes(term)
+    || String(row.cnpj).toLowerCase().includes(term),
   );
 }
 
-function linhasOrdenadas(lista) {
-  const { campo, direcao } = ordenacao;
-  const fator = direcao === "asc" ? 1 : -1;
-  return [...lista].sort((a, b) => {
-    let va = a[campo];
-    let vb = b[campo];
+function sortedRows(list) {
+  const { field, direction } = sortState;
+  const factor = direction === "asc" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    let va = a[field];
+    let vb = b[field];
     if (va instanceof Date) va = va.getTime();
     if (vb instanceof Date) vb = vb.getTime();
-    if (va === null || va === undefined) va = direcao === "asc" ? Infinity : -Infinity;
-    if (vb === null || vb === undefined) vb = direcao === "asc" ? Infinity : -Infinity;
-    if (typeof va === "string") return va.localeCompare(vb, "pt-BR") * fator;
-    return (va - vb) * fator;
+    if (va === null || va === undefined) va = direction === "asc" ? Infinity : -Infinity;
+    if (vb === null || vb === undefined) vb = direction === "asc" ? Infinity : -Infinity;
+    if (typeof va === "string") return va.localeCompare(vb, "pt-BR") * factor;
+    return (va - vb) * factor;
   });
 }
 
-function renderizarLinha(l) {
-  const linkConvenio = l.idProposta
-    ? `<a class="link-transferegov" href="${URL_DETALHE_PROPOSTA}${l.idProposta}" target="_blank" rel="noopener">
-        ${l.nrConvenio}
+function renderRow(row) {
+  const convenioLink = row.proposalId
+    ? `<a class="link-transferegov" href="${PROPOSTA_DETAIL_URL}${row.proposalId}" target="_blank" rel="noopener">
+        ${row.convenioNumber}
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
       </a>`
-    : `<span class="mono">${l.nrConvenio}</span>`;
+    : `<span class="mono">${row.convenioNumber}</span>`;
 
   return `<tr>
-    <td>${l.modalidade}</td>
-    <td class="mono">${l.nrProposta}</td>
-    <td>${linkConvenio}</td>
-    <td class="celula-proponente-wrap">${l.proponente}</td>
-    <td class="mono">${l.cnpj}</td>
-    <td class="mono">${l.nrProcesso}</td>
-    <td>${l.uf}</td>
-    <td class="mono">${l.codPrograma}</td>
-    <td class="mono num">${formatarFinanceiro(l.vlGlobalProp)}</td>
-    <td class="mono num">${formatarFinanceiro(l.vlRepasseProp)}</td>
-    <td class="mono num">${formatarFinanceiro(l.vlContrapartidaProp)}</td>
-    <td class="mono num">${formatarFinanceiro(l.rendimentoDisponivel)}</td>
-    <td class="mono num">${formatarFinanceiro(l.rendimentoUtilizado)}</td>
-    <td class="mono num">${formatarFinanceiro(l.rendimentoTotal)}</td>
-    <td class="mono num">${formatarFinanceiro(l.vlSaldoConta)}</td>
-    <td class="mono num">${formatarFinanceiro(l.vlDesembolsado)}</td>
-    <td class="mono num">${formatarFinanceiro(l.valorExecutado)}</td>
-    <td>${formatarBarraPercentual(l.pctValorExecutado, BRAND_COLORS.verde)}</td>
-    <td class="mono">${formatarData(l.diaInicio)}</td>
-    <td class="mono">${formatarData(l.diaFim)}</td>
-    <td class="mono">${formatarData(l.diaLimitePrestacao)}</td>
-    <td class="mono">${l.totalDiasVigencia === null ? "—" : l.totalDiasVigencia}</td>
-    <td class="mono">${l.diasTranscorridos === null ? "—" : l.diasTranscorridos}</td>
-    <td>${formatarCarimbo(l)}</td>
-    <td>${formatarBarraPercentual(l.pctTempoTranscorrido, BRAND_COLORS.roxo)}</td>
-    <td class="mono">${formatarData(l.dataAtual)}</td>
-    <td><span class="badge-situacao">${l.situacao}</span></td>
+    <td>${row.modality}</td>
+    <td class="mono">${row.proposalNumber}</td>
+    <td>${convenioLink}</td>
+    <td class="celula-proponente-wrap">${row.proponent}</td>
+    <td class="mono">${row.cnpj}</td>
+    <td class="mono">${row.processNumber}</td>
+    <td>${row.state}</td>
+    <td class="mono">${row.programCode}</td>
+    <td class="mono num">${formatDecimal(row.globalProposalValue)}</td>
+    <td class="mono num">${formatDecimal(row.repasseValue)}</td>
+    <td class="mono num">${formatDecimal(row.counterpartValue)}</td>
+    <td class="mono num">${formatDecimal(row.availableYield)}</td>
+    <td class="mono num">${formatDecimal(row.usedYield)}</td>
+    <td class="mono num">${formatDecimal(row.totalYield)}</td>
+    <td class="mono num">${formatDecimal(row.accountBalance)}</td>
+    <td class="mono num">${formatDecimal(row.disbursedValue)}</td>
+    <td class="mono num">${formatDecimal(row.executedValue)}</td>
+    <td>${formatPercentBar(row.executedValuePercent, BRAND_COLORS.verde)}</td>
+    <td class="mono">${formatDate(row.vigencyStart)}</td>
+    <td class="mono">${formatDate(row.vigencyEnd)}</td>
+    <td class="mono">${formatDate(row.accountabilityDeadline)}</td>
+    <td class="mono">${row.totalVigencyDays === null ? "—" : row.totalVigencyDays}</td>
+    <td class="mono">${row.elapsedDays === null ? "—" : row.elapsedDays}</td>
+    <td>${formatDeadlineStamp(row)}</td>
+    <td>${formatPercentBar(row.elapsedTimePercent, BRAND_COLORS.roxo)}</td>
+    <td class="mono">${formatDate(row.currentDate)}</td>
+    <td><span class="badge-situacao">${row.status}</span></td>
   </tr>`;
 }
 
-function renderizarTabela() {
-  const lista = linhasOrdenadas(linhasFiltradas());
-  const corpo = document.getElementById("corpo-tabela");
+function renderTable() {
+  const list = sortedRows(filteredRows());
+  const body = document.getElementById("corpo-tabela");
 
-  if (!lista.length) {
-    corpo.innerHTML = `<tr><td colspan="${COLSPAN}" class="vazio">Nenhum instrumento encontrado para essa busca.</td></tr>`;
+  if (!list.length) {
+    body.innerHTML = `<tr><td colspan="${COLSPAN}" class="vazio">Nenhum instrumento encontrado para essa busca.</td></tr>`;
   } else {
-    corpo.innerHTML = lista.map(renderizarLinha).join("");
+    body.innerHTML = list.map(renderRow).join("");
   }
 
   document.getElementById("rodape-contagem").textContent =
-    `${lista.length} de ${linhas.length} instrumento(s) exibido(s)`;
+    `${list.length} de ${rows.length} instrumento(s) exibido(s)`;
 }
 
-document.getElementById("busca").addEventListener("input", renderizarTabela);
-document.getElementById("filtro-modalidade").addEventListener("change", renderizarTabela);
+document.getElementById("busca").addEventListener("input", renderTable);
+document.getElementById("filtro-modalidade").addEventListener("change", renderTable);
 
 document.querySelectorAll("#tabela-instrumentos thead th").forEach((th) => {
   th.addEventListener("click", () => {
-    const campo = th.dataset.campo;
-    if (ordenacao.campo === campo) {
-      ordenacao.direcao = ordenacao.direcao === "asc" ? "desc" : "asc";
+    const field = th.dataset.campo;
+    if (sortState.field === field) {
+      sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
     } else {
-      ordenacao.campo = campo;
-      ordenacao.direcao = "asc";
+      sortState.field = field;
+      sortState.direction = "asc";
     }
     document.querySelectorAll("#tabela-instrumentos thead th").forEach((el) => {
       el.classList.remove("ativo");
       el.querySelector(".seta").textContent = "↕";
     });
     th.classList.add("ativo");
-    th.querySelector(".seta").textContent = ordenacao.direcao === "asc" ? "↑" : "↓";
-    renderizarTabela();
+    th.querySelector(".seta").textContent = sortState.direction === "asc" ? "↑" : "↓";
+    renderTable();
   });
 });
 
-carregarDados();
+loadData();
 </script>
 
 </body>

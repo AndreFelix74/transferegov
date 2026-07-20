@@ -154,24 +154,24 @@
       <table class="parcerias" id="tabela-plano">
         <thead>
           <tr>
-            <th data-campo="tipo">Tipo <span class="seta">↕</span></th>
-            <th data-campo="uf">UF <span class="seta">↕</span></th>
-            <th data-campo="csCodigo">CS_CODIGO <span class="seta">↕</span></th>
-            <th data-campo="nrProposta">NR_PROPOSTA <span class="seta">↕</span></th>
-            <th data-campo="sigla">SIGLA <span class="seta">↕</span></th>
-            <th data-campo="municipio">MUNICIPIO <span class="seta">↕</span></th>
-            <th data-campo="naturezaAquisicao">NATUREZA_AQUISICAO <span class="seta">↕</span></th>
-            <th data-campo="descricaoItem">DESCRICAO_ITEM <span class="seta">↕</span></th>
-            <th data-campo="cepItem">CEP_ITEM <span class="seta">↕</span></th>
-            <th data-campo="enderecoItem">ENDERECO_ITEM <span class="seta">↕</span></th>
-            <th data-campo="tipoDespesaItem">TIPO_DESPESA_ITEM <span class="seta">↕</span></th>
-            <th data-campo="naturezaDespesa">NATUREZA_DESPESA <span class="seta">↕</span></th>
-            <th data-campo="sitItem">SIT_ITEM <span class="seta">↕</span></th>
-            <th data-campo="codNaturezaDespesa">COD_NATUREZA_DESPESA <span class="seta">↕</span></th>
-            <th data-campo="qtdItem" class="num">QTD_ITEM <span class="seta">↕</span></th>
-            <th data-campo="valorUnitario" class="num">VALOR_UNITARIO_ITEM <span class="seta">↕</span></th>
-            <th data-campo="valorTotal" class="num">VALOR_TOTAL_ITEM <span class="seta">↕</span></th>
-            <th data-campo="idItemPad" class="ativo">ID_ITEM_PAD <span class="seta">↓</span></th>
+            <th data-campo="type">Tipo <span class="seta">↕</span></th>
+            <th data-campo="state">UF <span class="seta">↕</span></th>
+            <th data-campo="kitchenCode">CS_CODIGO <span class="seta">↕</span></th>
+            <th data-campo="proposalNumber">NR_PROPOSTA <span class="seta">↕</span></th>
+            <th data-campo="acronym">SIGLA <span class="seta">↕</span></th>
+            <th data-campo="municipality">MUNICIPIO <span class="seta">↕</span></th>
+            <th data-campo="acquisitionNature">NATUREZA_AQUISICAO <span class="seta">↕</span></th>
+            <th data-campo="itemDescription">DESCRICAO_ITEM <span class="seta">↕</span></th>
+            <th data-campo="itemZip">CEP_ITEM <span class="seta">↕</span></th>
+            <th data-campo="itemAddress">ENDERECO_ITEM <span class="seta">↕</span></th>
+            <th data-campo="expenseType">TIPO_DESPESA_ITEM <span class="seta">↕</span></th>
+            <th data-campo="expenseNature">NATUREZA_DESPESA <span class="seta">↕</span></th>
+            <th data-campo="itemStatus">SIT_ITEM <span class="seta">↕</span></th>
+            <th data-campo="expenseNatureCode">COD_NATUREZA_DESPESA <span class="seta">↕</span></th>
+            <th data-campo="itemQuantity" class="num">QTD_ITEM <span class="seta">↕</span></th>
+            <th data-campo="unitValue" class="num">VALOR_UNITARIO_ITEM <span class="seta">↕</span></th>
+            <th data-campo="totalValue" class="num">VALOR_TOTAL_ITEM <span class="seta">↕</span></th>
+            <th data-campo="itemPadId" class="ativo">ID_ITEM_PAD <span class="seta">↓</span></th>
           </tr>
         </thead>
         <tbody id="corpo-tabela">
@@ -189,47 +189,78 @@
 
 <script>
 const COLSPAN = 18;
-const UF_VALIDA = /^[A-Z]{2}$/;
-const URL_DETALHE_PROPOSTA =
-  "https://discricionarias.transferegov.sistema.gov.br/voluntarias/ConsultarProposta/ResultadoDaConsultaDePropostaDetalharProposta.do?idProposta=";
-const URL_DETALHE_ITEM_PAD =
-  "https://discricionarias.transferegov.sistema.gov.br/voluntarias/DetalharBensProposta/ListarBensDetalhar.do?id=";
-
 const COLUNAS_CSV = [
-  { campo: "tipo", rotulo: "Tipo" },
-  { campo: "uf", rotulo: "UF" },
-  { campo: "csCodigo", rotulo: "CS_CODIGO" },
-  { campo: "nrProposta", rotulo: "NR_PROPOSTA" },
-  { campo: "linkProposta", rotulo: "LINK_PROPOSTA" },
-  { campo: "sigla", rotulo: "SIGLA" },
-  { campo: "municipio", rotulo: "MUNICIPIO" },
-  { campo: "naturezaAquisicao", rotulo: "NATUREZA_AQUISICAO" },
-  { campo: "descricaoItem", rotulo: "DESCRICAO_ITEM" },
-  { campo: "cepItem", rotulo: "CEP_ITEM" },
-  { campo: "enderecoItem", rotulo: "ENDERECO_ITEM" },
-  { campo: "tipoDespesaItem", rotulo: "TIPO_DESPESA_ITEM" },
-  { campo: "naturezaDespesa", rotulo: "NATUREZA_DESPESA" },
-  { campo: "sitItem", rotulo: "SIT_ITEM" },
-  { campo: "codNaturezaDespesa", rotulo: "COD_NATUREZA_DESPESA" },
-  { campo: "qtdItem", rotulo: "QTD_ITEM", numerico: true },
-  { campo: "valorUnitario", rotulo: "VALOR_UNITARIO_ITEM", numerico: true },
-  { campo: "valorTotal", rotulo: "VALOR_TOTAL_ITEM", numerico: true },
-  { campo: "idItemPad", rotulo: "ID_ITEM_PAD" },
-  { campo: "linkItemPad", rotulo: "LINK_ITEM_PAD" },
+  { campo: "type", rotulo: "Tipo" },
+  { campo: "state", rotulo: "UF" },
+  { campo: "kitchenCode", rotulo: "CS_CODIGO" },
+  { campo: "proposalNumber", rotulo: "NR_PROPOSTA" },
+  { campo: "proposalLink", rotulo: "LINK_PROPOSTA" },
+  { campo: "acronym", rotulo: "SIGLA" },
+  { campo: "municipality", rotulo: "MUNICIPIO" },
+  { campo: "acquisitionNature", rotulo: "NATUREZA_AQUISICAO" },
+  { campo: "itemDescription", rotulo: "DESCRICAO_ITEM" },
+  { campo: "itemZip", rotulo: "CEP_ITEM" },
+  { campo: "itemAddress", rotulo: "ENDERECO_ITEM" },
+  { campo: "expenseType", rotulo: "TIPO_DESPESA_ITEM" },
+  { campo: "expenseNature", rotulo: "NATUREZA_DESPESA" },
+  { campo: "itemStatus", rotulo: "SIT_ITEM" },
+  { campo: "expenseNatureCode", rotulo: "COD_NATUREZA_DESPESA" },
+  { campo: "itemQuantity", rotulo: "QTD_ITEM", numerico: true },
+  { campo: "unitValue", rotulo: "VALOR_UNITARIO_ITEM", numerico: true },
+  { campo: "totalValue", rotulo: "VALOR_TOTAL_ITEM", numerico: true },
+  { campo: "itemPadId", rotulo: "ID_ITEM_PAD" },
+  { campo: "itemPadLink", rotulo: "LINK_ITEM_PAD" },
 ];
 
-let linhas = [];
-let ufsCozinha = [];
-const ordenacao = { campo: "idItemPad", direcao: "asc" };
+let rows = [];
+let kitchenStates = [];
+const sortState = { field: "itemPadId", direction: "asc" };
 
-/** Separador CSV: ";" se o locale usa vírgula decimal; "," caso contrário. */
+function loadData() {
+  loadAgreedValueData()
+    .then(({ rows: loadedRows, kitchenStates: states }) => {
+      if (!loadedRows.length) {
+        setStatusDot("#status-atualizacao", "view_plano_aplicacao_detalhado sem linhas", true);
+        return;
+      }
+      rows = loadedRows;
+      kitchenStates = states;
+      setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
+      populateFilters();
+      renderTable();
+    })
+    .catch((err) => {
+      console.error(err);
+      setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
+      document.getElementById("corpo-tabela").innerHTML =
+        `<tr><td colspan="${COLSPAN}" class="erro">Não foi possível carregar os dados. Verifique se as abas view_plano_aplicacao_detalhado, COZINHA e view_convenio estão compartilhadas.</td></tr>`;
+    });
+}
+
+function populateSelect(selectId, values, allLabel) {
+  const select = document.getElementById(selectId);
+  const current = select.value;
+  select.replaceChildren();
+  const allOpt = document.createElement("option");
+  allOpt.value = "";
+  allOpt.textContent = allLabel;
+  select.appendChild(allOpt);
+  values.forEach((value) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = value;
+    select.appendChild(opt);
+  });
+  if (values.includes(current)) select.value = current;
+}
+
 function csvDelimiterForLocale() {
   const locale = navigator.language || "pt-BR";
   const decimal = (1.1).toLocaleString(locale).replace(/\d/g, "")[0];
   return decimal === "," ? ";" : ",";
 }
 
-function formatarNumeroCsv(value, locale) {
+function formatCsvNumber(value, locale) {
   return (value || 0).toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -237,284 +268,148 @@ function formatarNumeroCsv(value, locale) {
   });
 }
 
-function escaparCampoCsv(valor, delimiter) {
-  const texto = String(valor ?? "");
+function escapeCsvField(value, delimiter) {
+  const text = String(value ?? "");
   if (
-    texto.includes(delimiter)
-    || texto.includes('"')
-    || texto.includes("\n")
-    || texto.includes("\r")
+    text.includes(delimiter)
+    || text.includes('"')
+    || text.includes("\n")
+    || text.includes("\r")
   ) {
-    return `"${texto.replaceAll('"', '""')}"`;
+    return `"${text.replaceAll('"', '""')}"`;
   }
-  return texto;
+  return text;
 }
 
-function baixarCsvFiltrado() {
-  const lista = linhasOrdenadas(linhasFiltradas());
-  if (!lista.length) return;
+function downloadFilteredCsv() {
+  const list = sortedRows(filteredRows());
+  if (!list.length) return;
 
   const locale = navigator.language || "pt-BR";
   const delimiter = csvDelimiterForLocale();
-  const cabecalho = COLUNAS_CSV.map((c) => escaparCampoCsv(c.rotulo, delimiter)).join(delimiter);
-  const corpo = lista.map((linha) =>
+  const header = COLUNAS_CSV.map((c) => escapeCsvField(c.rotulo, delimiter)).join(delimiter);
+  const body = list.map((row) =>
     COLUNAS_CSV.map((col) => {
-      const bruto = linha[col.campo];
-      const valor = col.numerico ? formatarNumeroCsv(bruto, locale) : bruto;
-      return escaparCampoCsv(valor, delimiter);
+      const raw = row[col.campo];
+      const value = col.numerico ? formatCsvNumber(raw, locale) : raw;
+      return escapeCsvField(value, delimiter);
     }).join(delimiter),
   ).join("\r\n");
 
-  const conteudo = `\uFEFF${cabecalho}\r\n${corpo}\r\n`;
-  const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8" });
+  const content = `\uFEFF${header}\r\n${body}\r\n`;
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const carimbo = new Date().toISOString().slice(0, 10);
+  const stamp = new Date().toISOString().slice(0, 10);
   link.href = url;
-  link.download = `valor-pactuado-${carimbo}.csv`;
+  link.download = `valor-pactuado-${stamp}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 }
 
-function formatarFinanceiro(value) {
-  return (value || 0).toLocaleString(navigator.language || "pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function normalizarCsCodigo(valor) {
-  return String(valor || "").trim().toUpperCase();
-}
-
-function ufValida(valor) {
-  const uf = String(valor || "").trim().toUpperCase();
-  return UF_VALIDA.test(uf) ? uf : "";
-}
-
-/** Mapa Código da Cozinha → UF a partir da aba COZINHA. */
-function mapaUfPorCozinha(cozinhas) {
-  const mapa = Object.create(null);
-  for (const row of cozinhas) {
-    const codigo = normalizarCsCodigo(row["Código da Cozinha"]);
-    const uf = ufValida(row.UF);
-    if (!codigo || !uf) continue;
-    mapa[codigo] = uf;
-  }
-  return mapa;
-}
-
-function ufsDaPlanilhaCozinha(cozinhas) {
-  return [...new Set(
-    cozinhas.map((r) => ufValida(r.UF)).filter(Boolean),
-  )].sort((a, b) => a.localeCompare(b, "pt-BR"));
-}
-
-function idsPropostaComConvenio(convenios) {
-  const ids = new Set();
-  for (const row of convenios) {
-    if (String(row.NR_CONVENIO || "").trim() === "") continue;
-    const id = String(row.ID_PROPOSTA || "").trim();
-    if (id) ids.add(id);
-  }
-  return ids;
-}
-
-function transformarLinha(bruta, ufPorCs) {
-  const csCodigo = normalizarCsCodigo(bruta.CS_CODIGO);
-  const idProposta = String(bruta.ID_PROPOSTA || "").trim();
-  const linkProposta = idProposta
-    ? (String(bruta.LINK_PROPOSTA || "").trim() || `${URL_DETALHE_PROPOSTA}${idProposta}`)
-    : "";
-  return {
-    tipo: getCategoriaTipo(bruta),
-    uf: (csCodigo && ufPorCs[csCodigo]) || "—",
-    csCodigo: csCodigo || "—",
-    idProposta,
-    linkProposta,
-    nrProposta: bruta.NR_PROPOSTA || "—",
-    sigla: bruta.SIGLA || "—",
-    municipio: bruta.MUNICIPIO || "—",
-    naturezaAquisicao: bruta.NATUREZA_AQUISICAO || "—",
-    descricaoItem: bruta.DESCRICAO_ITEM || "—",
-    cepItem: bruta.CEP_ITEM || "—",
-    enderecoItem: bruta.ENDERECO_ITEM || "—",
-    tipoDespesaItem: bruta.TIPO_DESPESA_ITEM || "—",
-    naturezaDespesa: bruta.NATUREZA_DESPESA || "—",
-    sitItem: bruta.SIT_ITEM || "—",
-    codNaturezaDespesa: bruta.COD_NATUREZA_DESPESA || "—",
-    qtdItem: parseNum(bruta.QTD_ITEM),
-    valorUnitario: parseNum(bruta.VALOR_UNITARIO_ITEM),
-    valorTotal: parseNum(bruta.VALOR_TOTAL_ITEM),
-    idItemPad: String(bruta.ID_ITEM_PAD || "").trim() || "—",
-    linkItemPad: String(bruta.ID_ITEM_PAD || "").trim()
-      ? `${URL_DETALHE_ITEM_PAD}${String(bruta.ID_ITEM_PAD).trim()}`
-      : "",
-  };
-}
-
-function carregarDados() {
-  Promise.all([
-    parseCsv(CSV_URL_VIEW_PLANO_APLICACAO),
-    parseCsv(CSV_URL_COZINHA),
-    parseCsv(CSV_URL), // view_convenio — critério de instrumento formalizado
-  ])
-    .then(([plano, cozinhas, convenios]) => {
-      if (!plano.length) {
-        setStatusDot("#status-atualizacao", "view_plano_aplicacao_detalhado sem linhas", true);
-        return;
-      }
-
-      const propostasComConvenio = idsPropostaComConvenio(convenios);
-      const ufPorCs = mapaUfPorCozinha(cozinhas);
-      ufsCozinha = ufsDaPlanilhaCozinha(cozinhas);
-      // Só itens de propostas com convênio vinculado (mesmo critério de instrumentos-parceria).
-      linhas = plano
-        .filter((r) => propostasComConvenio.has(String(r.ID_PROPOSTA || "").trim()))
-        .map((r) => transformarLinha(r, ufPorCs));
-
-      const agora = new Date().toLocaleString("pt-BR");
-      setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
-      preencherFiltros();
-      renderizarTabela();
-    })
-    .catch((erro) => {
-      console.error(erro);
-      setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
-      document.getElementById("corpo-tabela").innerHTML =
-        `<tr><td colspan="${COLSPAN}" class="erro">Não foi possível carregar os dados. Verifique se as abas view_plano_aplicacao_detalhado, COZINHA e view_convenio estão compartilhadas.</td></tr>`;
-    });
-}
-
-function preencherSelect(selectId, valores, rotuloTodas) {
-  const select = document.getElementById(selectId);
-  const atual = select.value;
-  select.replaceChildren();
-  const optTodas = document.createElement("option");
-  optTodas.value = "";
-  optTodas.textContent = rotuloTodas;
-  select.appendChild(optTodas);
-  valores.forEach((valor) => {
-    const opt = document.createElement("option");
-    opt.value = valor;
-    opt.textContent = valor;
-    select.appendChild(opt);
-  });
-  if (valores.includes(atual)) select.value = atual;
-}
-
-function preencherFiltros() {
-  const tipos = ordenarCategoriasTipo([...new Set(
-    linhas.map((l) => l.tipo).filter(Boolean),
+function populateFilters() {
+  const types = sortInstrumentCategories([...new Set(
+    rows.map((row) => row.type).filter(Boolean),
   )]);
 
-  // Opções de UF vêm da planilha COZINHA (não da view).
-  preencherSelect("filtro-uf", ufsCozinha, "Todas as UFs da CS");
-  preencherSelect("filtro-tipo", tipos, "Todos os tipos");
+  populateSelect("filtro-uf", kitchenStates, "Todas as UFs da CS");
+  populateSelect("filtro-tipo", types, "Todos os tipos");
 }
 
-function linhasFiltradas() {
-  const termo = document.getElementById("busca").value.trim().toLowerCase();
-  const uf = document.getElementById("filtro-uf").value;
-  const tipo = document.getElementById("filtro-tipo").value;
-  let base = linhas;
-  if (uf) base = base.filter((l) => l.uf === uf);
-  if (tipo) base = base.filter((l) => l.tipo === tipo);
-  if (!termo) return base;
-  return base.filter((l) =>
-    String(l.csCodigo).toLowerCase().includes(termo)
-    || String(l.nrProposta).toLowerCase().includes(termo)
-    || String(l.descricaoItem).toLowerCase().includes(termo)
-    || String(l.municipio).toLowerCase().includes(termo)
-    || String(l.sigla).toLowerCase().includes(termo)
-    || String(l.enderecoItem).toLowerCase().includes(termo)
-    || String(l.idItemPad).toLowerCase().includes(termo),
+function filteredRows() {
+  const term = document.getElementById("busca").value.trim().toLowerCase();
+  const state = document.getElementById("filtro-uf").value;
+  const type = document.getElementById("filtro-tipo").value;
+  let base = rows;
+  if (state) base = base.filter((row) => row.state === state);
+  if (type) base = base.filter((row) => row.type === type);
+  if (!term) return base;
+  return base.filter((row) =>
+    String(row.kitchenCode).toLowerCase().includes(term)
+    || String(row.proposalNumber).toLowerCase().includes(term)
+    || String(row.itemDescription).toLowerCase().includes(term)
+    || String(row.municipality).toLowerCase().includes(term)
+    || String(row.acronym).toLowerCase().includes(term)
+    || String(row.itemAddress).toLowerCase().includes(term)
+    || String(row.itemPadId).toLowerCase().includes(term),
   );
 }
 
-function linhasOrdenadas(lista) {
-  const { campo, direcao } = ordenacao;
-  const fator = direcao === "asc" ? 1 : -1;
+function sortedRows(lista) {
+  const { field, direction } = sortState;
+  const fator = direction === "asc" ? 1 : -1;
   return [...lista].sort((a, b) => {
-    let va = a[campo];
-    let vb = b[campo];
-    if (va === null || va === undefined) va = direcao === "asc" ? Infinity : -Infinity;
-    if (vb === null || vb === undefined) vb = direcao === "asc" ? Infinity : -Infinity;
+    let va = a[field];
+    let vb = b[field];
+    if (va === null || va === undefined) va = direction === "asc" ? Infinity : -Infinity;
+    if (vb === null || vb === undefined) vb = direction === "asc" ? Infinity : -Infinity;
     if (typeof va === "string") return va.localeCompare(vb, "pt-BR", { numeric: true }) * fator;
     return (va - vb) * fator;
   });
 }
 
-function renderizarTabela() {
-  const lista = linhasOrdenadas(linhasFiltradas());
+function renderTable() {
+  const lista = sortedRows(filteredRows());
   const corpo = document.getElementById("corpo-tabela");
 
   if (!lista.length) {
     corpo.innerHTML = `<tr><td colspan="${COLSPAN}" class="vazio">Nenhum item encontrado para esses filtros.</td></tr>`;
   } else {
-    corpo.innerHTML = lista.map((l) => {
-      const celulaProposta = l.linkProposta
-        ? `<a class="link-transferegov" href="${escapeHtml(l.linkProposta)}" target="_blank" rel="noopener">
-            ${escapeHtml(l.nrProposta)}
+    corpo.innerHTML = lista.map((row) => {
+      const celulaProposta = row.proposalLink
+        ? `<a class="link-transferegov" href="${escapeHtml(row.proposalLink)}" target="_blank" rel="noopener">
+            ${escapeHtml(row.proposalNumber)}
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
           </a>`
-        : `<span class="mono">${escapeHtml(l.nrProposta)}</span>`;
+        : `<span class="mono">${escapeHtml(row.proposalNumber)}</span>`;
 
-      const celulaItemPad = l.linkItemPad
-        ? `<a class="link-transferegov" href="${escapeHtml(l.linkItemPad)}" target="_blank" rel="noopener">
-            ${escapeHtml(l.idItemPad)}
+      const celulaItemPad = row.itemPadLink
+        ? `<a class="link-transferegov" href="${escapeHtml(row.itemPadLink)}" target="_blank" rel="noopener">
+            ${escapeHtml(row.itemPadId)}
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
           </a>`
-        : `<span class="mono">${escapeHtml(l.idItemPad)}</span>`;
+        : `<span class="mono">${escapeHtml(row.itemPadId)}</span>`;
 
       return `
       <tr>
-        <td>${escapeHtml(l.tipo)}</td>
-        <td>${escapeHtml(l.uf)}</td>
-        <td class="mono">${escapeHtml(l.csCodigo)}</td>
+        <td>${escapeHtml(row.type)}</td>
+        <td>${escapeHtml(row.state)}</td>
+        <td class="mono">${escapeHtml(row.kitchenCode)}</td>
         <td>${celulaProposta}</td>
-        <td>${escapeHtml(l.sigla)}</td>
-        <td>${escapeHtml(l.municipio)}</td>
-        <td>${escapeHtml(l.naturezaAquisicao)}</td>
-        <td class="celula-wrap">${escapeHtml(l.descricaoItem)}</td>
-        <td class="mono">${escapeHtml(l.cepItem)}</td>
-        <td class="celula-wrap">${escapeHtml(l.enderecoItem)}</td>
-        <td>${escapeHtml(l.tipoDespesaItem)}</td>
-        <td>${escapeHtml(l.naturezaDespesa)}</td>
-        <td>${escapeHtml(l.sitItem)}</td>
-        <td class="mono">${escapeHtml(l.codNaturezaDespesa)}</td>
-        <td class="num mono">${formatarFinanceiro(l.qtdItem)}</td>
-        <td class="num mono">${formatarFinanceiro(l.valorUnitario)}</td>
-        <td class="num mono">${formatarFinanceiro(l.valorTotal)}</td>
+        <td>${escapeHtml(row.acronym)}</td>
+        <td>${escapeHtml(row.municipality)}</td>
+        <td>${escapeHtml(row.acquisitionNature)}</td>
+        <td class="celula-wrap">${escapeHtml(row.itemDescription)}</td>
+        <td class="mono">${escapeHtml(row.itemZip)}</td>
+        <td class="celula-wrap">${escapeHtml(row.itemAddress)}</td>
+        <td>${escapeHtml(row.expenseType)}</td>
+        <td>${escapeHtml(row.expenseNature)}</td>
+        <td>${escapeHtml(row.itemStatus)}</td>
+        <td class="mono">${escapeHtml(row.expenseNatureCode)}</td>
+        <td class="num mono">${formatDecimal(row.itemQuantity, { decimals: 2 })}</td>
+        <td class="num mono">${formatDecimal(row.unitValue, { decimals: 2 })}</td>
+        <td class="num mono">${formatDecimal(row.totalValue, { decimals: 2 })}</td>
         <td>${celulaItemPad}</td>
       </tr>`;
     }).join("");
   }
 
   document.getElementById("rodape-contagem").textContent =
-    `${lista.length} de ${linhas.length} item(ns) exibido(s)`;
+    `${lista.length} de ${rows.length} item(ns) exibido(s)`;
   document.getElementById("btn-download").disabled = lista.length === 0;
-}
-
-function escapeHtml(texto) {
-  return String(texto ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }
 
 document.querySelectorAll("#tabela-plano thead th").forEach((th) => {
   th.addEventListener("click", () => {
-    const campo = th.dataset.campo;
-    if (!campo) return;
-    if (ordenacao.campo === campo) {
-      ordenacao.direcao = ordenacao.direcao === "asc" ? "desc" : "asc";
+    const field = th.dataset.campo;
+    if (!field) return;
+    if (sortState.field === field) {
+      sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
     } else {
-      ordenacao.campo = campo;
-      ordenacao.direcao = "asc";
+      sortState.field = field;
+      sortState.direction = "asc";
     }
     document.querySelectorAll("#tabela-plano thead th").forEach((el) => {
       el.classList.remove("ativo");
@@ -523,17 +418,17 @@ document.querySelectorAll("#tabela-plano thead th").forEach((th) => {
     });
     th.classList.add("ativo");
     const seta = th.querySelector(".seta");
-    if (seta) seta.textContent = ordenacao.direcao === "asc" ? "↑" : "↓";
-    renderizarTabela();
+    if (seta) seta.textContent = sortState.direction === "asc" ? "↑" : "↓";
+    renderTable();
   });
 });
 
-document.getElementById("filtro-uf").addEventListener("change", renderizarTabela);
-document.getElementById("filtro-tipo").addEventListener("change", renderizarTabela);
-document.getElementById("busca").addEventListener("input", renderizarTabela);
-document.getElementById("btn-download").addEventListener("click", baixarCsvFiltrado);
+document.getElementById("filtro-uf").addEventListener("change", renderTable);
+document.getElementById("filtro-tipo").addEventListener("change", renderTable);
+document.getElementById("busca").addEventListener("input", renderTable);
+document.getElementById("btn-download").addEventListener("click", downloadFilteredCsv);
 
-carregarDados();
+loadData();
 </script>
 
 </body>

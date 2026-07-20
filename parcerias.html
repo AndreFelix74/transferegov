@@ -181,12 +181,12 @@
         <table class="parcerias" data-aba="execucao">
           <thead>
             <tr>
-              <th data-campo="proponente">Proponente <span class="seta">↕</span></th>
-              <th data-campo="numeroTransfereGov">Nº TransfereGov <span class="seta">↕</span></th>
-              <th data-campo="percentualVigencia">% Vigência <span class="seta">↕</span></th>
-              <th data-campo="percentualExecucao">% Execução <span class="seta">↕</span></th>
-              <th data-campo="percentualDesembolso">% Desembolso <span class="seta">↕</span></th>
-              <th data-campo="diasRestantes" class="ativo">Dias restantes <span class="seta">↓</span></th>
+              <th data-campo="proponent">Proponente <span class="seta">↕</span></th>
+              <th data-campo="convenioNumber">Nº TransfereGov <span class="seta">↕</span></th>
+              <th data-campo="vigencyPercent">% Vigência <span class="seta">↕</span></th>
+              <th data-campo="executionPercent">% Execução <span class="seta">↕</span></th>
+              <th data-campo="disbursementPercent">% Desembolso <span class="seta">↕</span></th>
+              <th data-campo="daysRemaining" class="ativo">Dias restantes <span class="seta">↓</span></th>
             </tr>
           </thead>
           <tbody id="corpo-tabela-execucao">
@@ -230,10 +230,10 @@
         <table class="parcerias" data-aba="prestacao">
           <thead>
             <tr>
-              <th data-campo="proponente">Proponente <span class="seta">↕</span></th>
-              <th data-campo="numeroTransfereGov">Nº TransfereGov <span class="seta">↕</span></th>
-              <th data-campo="situacao">Situação <span class="seta">↕</span></th>
-              <th data-campo="diasRestantes" class="ativo">Dias em prestação de contas <span class="seta">↓</span></th>
+              <th data-campo="proponent">Proponente <span class="seta">↕</span></th>
+              <th data-campo="convenioNumber">Nº TransfereGov <span class="seta">↕</span></th>
+              <th data-campo="status">Situação <span class="seta">↕</span></th>
+              <th data-campo="daysRemaining" class="ativo">Dias em prestação de contas <span class="seta">↓</span></th>
             </tr>
           </thead>
           <tbody id="corpo-tabela-prestacao">
@@ -251,133 +251,26 @@
 </main>
 
 <script>
-/* =====================================================================
-   CONFIGURAÇÃO — ajuste aqui caso os cabeçalhos da view_convenio
-   no Google Sheets usem nomes diferentes dos campos brutos do SICONV.
-   ===================================================================== */
-const COLUNAS = {
-  idProposta: "ID_PROPOSTA",
-  proponente: "NM_PROPONENTE",
-  modalidade: "MODALIDADE",
-  numeroTransfereGov: "NR_CONVENIO",
-  situacao: "SIT_CONVENIO",
-  dataInicioVigencia: "DIA_INIC_VIGENC_CONV",
-  dataFimVigencia: "DIA_FIM_VIGENC_CONV",
-  valorEmpenhado: "VL_EMPENHADO_CONV",
-  valorGlobalProposta: "VL_GLOBAL_PROP",
-  valorRendimentoAplicacao: "VL_RENDIMENTO_APLICACAO",
-  valorSaldoConta: "VL_SALDO_CONTA",
-  valorGlobal: "VL_GLOBAL_CONV",
-  valorDesembolsado: "VL_DESEMBOLSADO_CONV",
+let rows = [];
+let activeTab = "execucao";
+const sortState = {
+  execucao: { field: "daysRemaining", direction: "asc" },
+  prestacao: { field: "daysRemaining", direction: "asc" },
 };
 
-const URL_DETALHE_PROPOSTA = "https://discricionarias.transferegov.sistema.gov.br/voluntarias/ConsultarProposta/ResultadoDaConsultaDePropostaDetalharProposta.do?idProposta=";
-
-let linhas = [];
-let abaAtiva = "execucao";
-const ordenacao = {
-  execucao: { campo: "diasRestantes", direcao: "asc" },
-  prestacao: { campo: "diasRestantes", direcao: "asc" },
-};
-
-/* --------------------- utilitários de data --------------------- */
-function diasEntre(dataA, dataB) {
-  const MS_POR_DIA = 1000 * 60 * 60 * 24;
-  return Math.round((dataA.getTime() - dataB.getTime()) / MS_POR_DIA);
-}
-
-function faixaUrgenciaExecucao(diasRestantes) {
-  if (diasRestantes === null) return { chave: "indefinido", rotulo: "sem prazo", cor: "var(--tinta-suave)" };
-  if (diasRestantes < 30) return { chave: "urgente", rotulo: "< 30 dias", cor: BRAND_COLORS.laranja };
-  if (diasRestantes < 90) return { chave: "alerta", rotulo: "30–90 dias", cor: BRAND_COLORS.amarelo };
-  return { chave: "normal", rotulo: "> 90 dias", cor: BRAND_COLORS.verde };
-}
-
-function faixaUrgenciaPrestacao(dias) {
-  if (dias === null) return { chave: "indefinido", rotulo: "", cor: "var(--tinta-suave)" };
-  if (dias > 180) return { chave: "urgente", rotulo: "", cor: BRAND_COLORS.laranja };
-  if (dias >= 91) return { chave: "alerta", rotulo: "", cor: BRAND_COLORS.amarelo };
-  return { chave: "normal", rotulo: "", cor: BRAND_COLORS.verde };
-}
-
-function estaEmExecucao(situacao) {
-  return (situacao || "").trim() === "Em execução";
-}
-
-/* --------------------- transformação da linha crua --------------------- */
-function transformarLinha(bruta, valorExecutadoPorConvenio) {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const nr = (bruta[COLUNAS.numeroTransfereGov] || "").trim();
-
-  const dataInicio = parseDate(bruta[COLUNAS.dataInicioVigencia]);
-  const dataFim = parseDate(bruta[COLUNAS.dataFimVigencia]);
-  const valorGlobalProposta = parseNum(bruta[COLUNAS.valorGlobalProposta]);
-  const valorRendimentoAplicacao = parseNum(bruta[COLUNAS.valorRendimentoAplicacao]);
-  const valorSaldoConta = parseNum(bruta[COLUNAS.valorSaldoConta]);
-  // SUM(VL_PAGO) + SUM(VL_PAG_TRIBUTOS) — agregado na interface a partir das abas brutas
-  const valorExecutado = nr ? (valorExecutadoPorConvenio[nr] || 0) : 0;
-  const valorGlobal = parseNum(bruta[COLUNAS.valorGlobal]);
-  const valorDesembolsado = parseNum(bruta[COLUNAS.valorDesembolsado]);
-  const situacao = bruta[COLUNAS.situacao] || "Não informada";
-  const emExecucao = estaEmExecucao(situacao);
-
-  const diasRestantes = dataFim
-    ? (emExecucao ? diasEntre(dataFim, hoje) : diasEntre(hoje, dataFim))
-    : null;
-  const diasExibicao = diasRestantes === null ? null : (emExecucao ? diasRestantes : Math.abs(diasRestantes));
-  const faixa = emExecucao
-    ? faixaUrgenciaExecucao(diasRestantes)
-    : faixaUrgenciaPrestacao(diasExibicao);
-
-  let percentualVigencia = null;
-  if (dataInicio && dataFim && dataFim > dataInicio) {
-    const duracaoTotal = diasEntre(dataFim, dataInicio);
-    const duracaoDecorrida = diasEntre(hoje, dataInicio);
-    percentualVigencia = Math.min(100, Math.max(0, (duracaoDecorrida / duracaoTotal) * 100));
-  }
-
-  let percentualExecucao = null;
-  if (valorGlobal > 0) {
-    percentualExecucao = Math.min(100, Math.max(0, (valorExecutado / valorGlobal) * 100));
-  }
-
-  let percentualDesembolso = null;
-  if (valorGlobal > 0) {
-    percentualDesembolso = Math.min(100, Math.max(0, (valorDesembolsado / valorGlobal) * 100));
-  }
-
-  return {
-    idProposta: bruta[COLUNAS.idProposta] || "",
-    proponente: bruta[COLUNAS.proponente] || "(sem nome cadastrado)",
-    modalidade: bruta[COLUNAS.modalidade] || "—",
-    numeroTransfereGov: bruta[COLUNAS.numeroTransfereGov] || "—",
-    situacao,
-    percentualVigencia,
-    percentualExecucao,
-    percentualDesembolso,
-    diasRestantes: diasExibicao,
-    faixa,
-  };
-}
-
-/* --------------------- carregamento --------------------- */
-function carregarDados() {
-  Promise.all([
-    parseCsv(CSV_URL),
-    loadValorExecutadoMap(),
-  ])
-    .then(([convenios, valorExecutadoPorConvenio]) => {
-      if (!convenios || !convenios.length) {
+function loadData() {
+  loadConveniosWithExecutedValue()
+    .then(({ convenios, executedValueByConvenio }) => {
+      if (!convenios.length) {
         setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
         return;
       }
-      linhas = convenios.map((r) => transformarLinha(r, valorExecutadoPorConvenio));
-      const agora = new Date().toLocaleString("pt-BR");
-      setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
-      renderizarTudo();
+      rows = convenios.map((r) => transformConvenioRow(r, executedValueByConvenio));
+      setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
+      renderAll();
     })
-    .catch((erro) => {
-      console.error(erro);
+    .catch((err) => {
+      console.error(err);
       setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
       document.getElementById("corpo-tabela-execucao").innerHTML =
         `<tr><td colspan="6" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
@@ -386,18 +279,17 @@ function carregarDados() {
     });
 }
 
-/* --------------------- gráfico: prazo final de vigência --------------------- */
-function renderizarGraficoVigencia() {
-  const contagem = { urgente: 0, alerta: 0, normal: 0 };
-  linhasTabela("execucao").forEach((l) => {
-    if (contagem[l.faixa.chave] !== undefined) contagem[l.faixa.chave]++;
+function renderVigencyChart() {
+  const counts = { urgente: 0, alerta: 0, normal: 0 };
+  tableRows("execucao").forEach((row) => {
+    if (counts[row.band.key] !== undefined) counts[row.band.key]++;
   });
 
-  const categorias = ["< 30 dias", "30–90 dias", "> 90 dias"];
-  const valores = [contagem.urgente, contagem.alerta, contagem.normal];
-  const cores = [BRAND_COLORS.laranja, BRAND_COLORS.amarelo, BRAND_COLORS.verde];
+  const categories = ["< 30 dias", "30–90 dias", "> 90 dias"];
+  const values = [counts.urgente, counts.alerta, counts.normal];
+  const colors = [BRAND_COLORS.laranja, BRAND_COLORS.amarelo, BRAND_COLORS.verde];
 
-  const opcoes = {
+  const options = {
     chart: { type: "bar", height: 180, toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
     plotOptions: {
       bar: {
@@ -408,9 +300,9 @@ function renderizarGraficoVigencia() {
         dataLabels: { position: "top", hideOverflowingLabels: false },
       },
     },
-    series: [{ data: valores }],
-    xaxis: { categories: categorias, labels: { style: { fontSize: "11px" } } },
-    colors: cores,
+    series: [{ data: values }],
+    xaxis: { categories, labels: { style: { fontSize: "11px" } } },
+    colors,
     dataLabels: {
       enabled: true,
       textAnchor: "start",
@@ -422,24 +314,23 @@ function renderizarGraficoVigencia() {
   };
 
   document.getElementById("grafico-vigencia").innerHTML = "";
-  new ApexCharts(document.getElementById("grafico-vigencia"), opcoes).render();
+  new ApexCharts(document.getElementById("grafico-vigencia"), options).render();
 }
 
-/* --------------------- gráfico: parcerias em prestação de contas --------------------- */
-function renderizarGraficoSituacao() {
-  const contagemPorSituacao = {};
-  linhasTabela("prestacao").forEach((l) => {
-    if (l.situacao === "Não informada") return;
-    contagemPorSituacao[l.situacao] = (contagemPorSituacao[l.situacao] || 0) + 1;
+function renderStatusChart() {
+  const countByStatus = {};
+  tableRows("prestacao").forEach((row) => {
+    if (row.status === "Não informada") return;
+    countByStatus[row.status] = (countByStatus[row.status] || 0) + 1;
   });
 
-  const entradas = Object.entries(contagemPorSituacao).sort((a, b) => b[1] - a[1]);
-  const categorias = entradas.map(([situacao]) => situacao);
-  const valores = entradas.map(([, total]) => total);
-  const cores = categorias.map((_, i) => CHART_CYCLE_COLORS[i % CHART_CYCLE_COLORS.length]);
+  const entries = Object.entries(countByStatus).sort((a, b) => b[1] - a[1]);
+  const categories = entries.map(([status]) => status);
+  const values = entries.map(([, total]) => total);
+  const colors = categories.map((_, i) => CHART_CYCLE_COLORS[i % CHART_CYCLE_COLORS.length]);
 
-  const opcoes = {
-    chart: { type: "bar", height: Math.max(180, categorias.length * 34), toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
+  const options = {
+    chart: { type: "bar", height: Math.max(180, categories.length * 34), toolbar: { show: false }, fontFamily: "IBM Plex Sans" },
     plotOptions: {
       bar: {
         horizontal: true,
@@ -449,9 +340,9 @@ function renderizarGraficoSituacao() {
         dataLabels: { position: "top", hideOverflowingLabels: false },
       },
     },
-    series: [{ data: valores }],
-    xaxis: { categories: categorias, labels: { style: { fontSize: "10.5px" }, maxWidth: 140 } },
-    colors: cores,
+    series: [{ data: values }],
+    xaxis: { categories, labels: { style: { fontSize: "10.5px" }, maxWidth: 140 } },
+    colors,
     dataLabels: {
       enabled: true,
       textAnchor: "start",
@@ -463,200 +354,178 @@ function renderizarGraficoSituacao() {
   };
 
   document.getElementById("grafico-situacao").innerHTML = "";
-  new ApexCharts(document.getElementById("grafico-situacao"), opcoes).render();
+  new ApexCharts(document.getElementById("grafico-situacao"), options).render();
 }
 
-/* --------------------- tabela --------------------- */
-function formatarBarraPercentual(valor, cor) {
-  if (valor === null) return `<span style="color:var(--tinta-suave)">—</span>`;
-  return `
-    <div class="barra-percentual">
-      <div class="trilho"><div class="preenchimento" style="width:${valor.toFixed(0)}%; background:${cor}"></div></div>
-      <span class="texto mono">${valor.toFixed(0)}%</span>
-    </div>`;
-}
-
-function formatarCarimbo(linha) {
-  const { faixa, diasRestantes } = linha;
-  if (diasRestantes === null) return `<span class="badge-situacao">sem data de vigência</span>`;
-  return `<span class="carimbo ${faixa.chave}"><span class="dias">${diasRestantes}d</span></span>`;
-}
-
-function temConvenio(l) {
-  const nr = (l.numeroTransfereGov || "").trim();
-  return nr && nr !== "—";
-}
-
-/* --------------------- tabela --------------------- */
-function idsAba(aba) {
+function tabIds(tab) {
   return {
-    busca: `busca-${aba}`,
-    filtroModalidade: `filtro-modalidade-${aba}`,
-    corpoTabela: `corpo-tabela-${aba}`,
-    rodapeContagem: `rodape-contagem-${aba}`,
+    search: `busca-${tab}`,
+    modalityFilter: `filtro-modalidade-${tab}`,
+    tableBody: `corpo-tabela-${tab}`,
+    footerCount: `rodape-contagem-${tab}`,
   };
 }
 
-function linhasTabela(aba) {
-  const base = linhas.filter(
-    (l) => temConvenio(l) && l.situacao !== "Proposta/Plano de Trabalho Aprovado"
+function tableRows(tab) {
+  const base = rows.filter(
+    (row) => hasConvenio(row) && row.status !== "Proposta/Plano de Trabalho Aprovado",
   );
-  if (aba === "execucao") return base.filter((l) => estaEmExecucao(l.situacao));
-  return base.filter((l) => !estaEmExecucao(l.situacao));
+  if (tab === "execucao") return base.filter((row) => isInExecution(row.status));
+  return base.filter((row) => !isInExecution(row.status));
 }
 
-function preencherFiltroModalidade(aba) {
-  const { filtroModalidade } = idsAba(aba);
-  const select = document.getElementById(filtroModalidade);
-  const atual = select.value;
-  const modalidades = [...new Set(
-    linhasTabela(aba)
-      .map((l) => l.modalidade)
-      .filter((m) => m && m !== "—")
+function populateModalityFilter(tab) {
+  const { modalityFilter } = tabIds(tab);
+  const select = document.getElementById(modalityFilter);
+  const current = select.value;
+  const modalities = [...new Set(
+    tableRows(tab)
+      .map((row) => row.modality)
+      .filter((m) => m && m !== "—"),
   )].sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   select.replaceChildren();
-  const optTodas = document.createElement("option");
-  optTodas.value = "";
-  optTodas.textContent = "Todas as modalidades";
-  select.appendChild(optTodas);
-  modalidades.forEach((m) => {
+  const allOpt = document.createElement("option");
+  allOpt.value = "";
+  allOpt.textContent = "Todas as modalidades";
+  select.appendChild(allOpt);
+  modalities.forEach((m) => {
     const opt = document.createElement("option");
     opt.value = m;
     opt.textContent = m;
     select.appendChild(opt);
   });
-  if (modalidades.includes(atual)) select.value = atual;
+  if (modalities.includes(current)) select.value = current;
 }
 
-function linhasFiltradas(aba) {
-  const { busca, filtroModalidade } = idsAba(aba);
-  const termo = document.getElementById(busca).value.trim().toLowerCase();
-  const modalidade = document.getElementById(filtroModalidade).value;
-  let base = linhasTabela(aba);
-  if (modalidade) base = base.filter((l) => l.modalidade === modalidade);
-  if (!termo) return base;
-  return base.filter((l) => l.proponente.toLowerCase().includes(termo));
+function filteredRows(tab) {
+  const { search, modalityFilter } = tabIds(tab);
+  const term = document.getElementById(search).value.trim().toLowerCase();
+  const modality = document.getElementById(modalityFilter).value;
+  let base = tableRows(tab);
+  if (modality) base = base.filter((row) => row.modality === modality);
+  if (!term) return base;
+  return base.filter((row) => row.proponent.toLowerCase().includes(term));
 }
 
-function linhasOrdenadas(lista, aba) {
-  const { campo, direcao } = ordenacao[aba];
-  const fator = direcao === "asc" ? 1 : -1;
-  return [...lista].sort((a, b) => {
-    let va = a[campo], vb = b[campo];
-    if (va === null || va === undefined) va = direcao === "asc" ? Infinity : -Infinity;
-    if (vb === null || vb === undefined) vb = direcao === "asc" ? Infinity : -Infinity;
-    if (typeof va === "string") return va.localeCompare(vb) * fator;
-    return (va - vb) * fator;
+function sortedRows(list, tab) {
+  const { field, direction } = sortState[tab];
+  const factor = direction === "asc" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    let va = a[field];
+    let vb = b[field];
+    if (va === null || va === undefined) va = direction === "asc" ? Infinity : -Infinity;
+    if (vb === null || vb === undefined) vb = direction === "asc" ? Infinity : -Infinity;
+    if (typeof va === "string") return va.localeCompare(vb) * factor;
+    return (va - vb) * factor;
   });
 }
 
-function renderizarLinhaTabela(l, aba) {
-  const celulasComuns = `
+function renderTableRow(row, tab) {
+  const commonCells = `
     <td>
       <div class="celula-proponente">
-        <span class="nome">${l.proponente}</span>
-        <span class="modalidade">${l.modalidade}</span>
+        <span class="nome">${row.proponent}</span>
+        <span class="modalidade">${row.modality}</span>
       </div>
     </td>
     <td>
-      <a class="link-transferegov" href="${URL_DETALHE_PROPOSTA}${l.idProposta}" target="_blank" rel="noopener">
-        ${l.numeroTransfereGov}
+      <a class="link-transferegov" href="${PROPOSTA_DETAIL_URL}${row.proposalId}" target="_blank" rel="noopener">
+        ${row.convenioNumber}
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
       </a>
     </td>`;
 
-  if (aba === "prestacao") {
-    return `<tr>${celulasComuns}
-      <td><span class="badge-situacao">${l.situacao}</span></td>
-      <td>${formatarCarimbo(l)}</td>
+  if (tab === "prestacao") {
+    return `<tr>${commonCells}
+      <td><span class="badge-situacao">${row.status}</span></td>
+      <td>${formatDeadlineStamp(row)}</td>
     </tr>`;
   }
 
-  return `<tr>${celulasComuns}
-    <td>${formatarBarraPercentual(l.percentualVigencia, BRAND_COLORS.roxo)}</td>
-    <td>${formatarBarraPercentual(l.percentualExecucao, BRAND_COLORS.verde)}</td>
-    <td>${formatarBarraPercentual(l.percentualDesembolso, "#355e7a")}</td>
-    <td>${formatarCarimbo(l)}</td>
+  return `<tr>${commonCells}
+    <td>${formatPercentBar(row.vigencyPercent, BRAND_COLORS.roxo)}</td>
+    <td>${formatPercentBar(row.executionPercent, BRAND_COLORS.verde)}</td>
+    <td>${formatPercentBar(row.disbursementPercent, "#355e7a")}</td>
+    <td>${formatDeadlineStamp(row)}</td>
   </tr>`;
 }
 
-function renderizarTabela(aba) {
-  const { corpoTabela, rodapeContagem } = idsAba(aba);
-  const lista = linhasOrdenadas(linhasFiltradas(aba), aba);
-  const corpo = document.getElementById(corpoTabela);
-  const colspan = aba === "prestacao" ? 4 : 6;
+function renderTable(tab) {
+  const { tableBody, footerCount } = tabIds(tab);
+  const list = sortedRows(filteredRows(tab), tab);
+  const body = document.getElementById(tableBody);
+  const colspan = tab === "prestacao" ? 4 : 6;
 
-  if (!lista.length) {
-    corpo.innerHTML = `<tr><td colspan="${colspan}" class="vazio">Nenhuma parceria encontrada para essa busca.</td></tr>`;
+  if (!list.length) {
+    body.innerHTML = `<tr><td colspan="${colspan}" class="vazio">Nenhuma parceria encontrada para essa busca.</td></tr>`;
   } else {
-    corpo.innerHTML = lista.map((l) => renderizarLinhaTabela(l, aba)).join("");
+    body.innerHTML = list.map((row) => renderTableRow(row, tab)).join("");
   }
 
-  document.getElementById(rodapeContagem).textContent =
-    `${lista.length} de ${linhasTabela(aba).length} parceria(s) exibida(s)`;
+  document.getElementById(footerCount).textContent =
+    `${list.length} de ${tableRows(tab).length} parceria(s) exibida(s)`;
 }
 
-function renderizarTabelas() {
-  renderizarTabela("execucao");
-  renderizarTabela("prestacao");
+function renderTables() {
+  renderTable("execucao");
+  renderTable("prestacao");
 }
 
-function renderizarTudo() {
-  preencherFiltroModalidade("execucao");
-  preencherFiltroModalidade("prestacao");
-  renderizarGraficoVigencia();
-  renderizarGraficoSituacao();
-  renderizarTabelas();
+function renderAll() {
+  populateModalityFilter("execucao");
+  populateModalityFilter("prestacao");
+  renderVigencyChart();
+  renderStatusChart();
+  renderTables();
 }
 
-function trocarAba(aba) {
-  if (aba === abaAtiva) return;
-  abaAtiva = aba;
+function switchTab(tab) {
+  if (tab === activeTab) return;
+  activeTab = tab;
 
   document.querySelectorAll(".aba-btn").forEach((btn) => {
-    const ativa = btn.dataset.aba === aba;
-    btn.classList.toggle("ativa", ativa);
-    btn.setAttribute("aria-selected", ativa ? "true" : "false");
+    const isActive = btn.dataset.aba === tab;
+    btn.classList.toggle("ativa", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
   });
 
-  document.querySelectorAll(".painel-aba").forEach((painel) => {
-    const ativa = painel.id === `aba-${aba}`;
-    painel.classList.toggle("ativa", ativa);
-    painel.hidden = !ativa;
+  document.querySelectorAll(".painel-aba").forEach((panel) => {
+    const isActive = panel.id === `aba-${tab}`;
+    panel.classList.toggle("ativa", isActive);
+    panel.hidden = !isActive;
   });
 }
 
-/* --------------------- interações --------------------- */
-["execucao", "prestacao"].forEach((aba) => {
-  document.getElementById(`busca-${aba}`).addEventListener("input", () => renderizarTabela(aba));
-  document.getElementById(`filtro-modalidade-${aba}`).addEventListener("change", () => renderizarTabela(aba));
+["execucao", "prestacao"].forEach((tab) => {
+  document.getElementById(`busca-${tab}`).addEventListener("input", () => renderTable(tab));
+  document.getElementById(`filtro-modalidade-${tab}`).addEventListener("change", () => renderTable(tab));
 });
 
 document.querySelectorAll(".aba-btn").forEach((btn) => {
-  btn.addEventListener("click", () => trocarAba(btn.dataset.aba));
+  btn.addEventListener("click", () => switchTab(btn.dataset.aba));
 });
 
 document.querySelectorAll("table.parcerias thead th").forEach((th) => {
   th.addEventListener("click", () => {
-    const aba = th.closest("table.parcerias").dataset.aba;
-    const campo = th.dataset.campo;
-    if (ordenacao[aba].campo === campo) {
-      ordenacao[aba].direcao = ordenacao[aba].direcao === "asc" ? "desc" : "asc";
+    const tab = th.closest("table.parcerias").dataset.aba;
+    const field = th.dataset.campo;
+    if (sortState[tab].field === field) {
+      sortState[tab].direction = sortState[tab].direction === "asc" ? "desc" : "asc";
     } else {
-      ordenacao[aba] = { campo, direcao: "asc" };
+      sortState[tab] = { field, direction: "asc" };
     }
     th.closest("table.parcerias").querySelectorAll("thead th").forEach((el) => {
       el.classList.remove("ativo");
       el.querySelector(".seta").textContent = "↕";
     });
     th.classList.add("ativo");
-    th.querySelector(".seta").textContent = ordenacao[aba].direcao === "asc" ? "↑" : "↓";
-    renderizarTabela(aba);
+    th.querySelector(".seta").textContent = sortState[tab].direction === "asc" ? "↑" : "↓";
+    renderTable(tab);
   });
 });
 
-carregarDados();
+loadData();
 </script>
 
 </body>

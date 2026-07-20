@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cozinha Solidária — Consulta de Convênios</title>
+  <script src="common.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -382,8 +384,6 @@
   </main>
 
   <script>
-    const SPREADSHEET_ID = '1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc';
-
     const SHEETS = [
       { key: 'convenio', sheet: 'view_convenio' },
       { key: 'plano_aplicacao_detalhado', sheet: 'view_plano_aplicacao_detalhado' },
@@ -404,185 +404,10 @@
       maximumFractionDigits: 2,
     });
 
-    function sheetUrl(name) {
-      return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
-    }
-
-    function parseCsv(text) {
-      const rows = [];
-      let row = [];
-      let field = '';
-      let i = 0;
-      let inQuotes = false;
-
-      while (i < text.length) {
-        const ch = text[i];
-        if (inQuotes) {
-          if (ch === '"') {
-            if (text[i + 1] === '"') {
-              field += '"';
-              i += 2;
-              continue;
-            }
-            inQuotes = false;
-            i++;
-            continue;
-          }
-          field += ch;
-          i++;
-          continue;
-        }
-        if (ch === '"') {
-          inQuotes = true;
-          i++;
-          continue;
-        }
-        if (ch === ',') {
-          row.push(field);
-          field = '';
-          i++;
-          continue;
-        }
-        if (ch === '\r') {
-          i++;
-          continue;
-        }
-        if (ch === '\n') {
-          row.push(field);
-          if (row.some(cell => cell !== '')) rows.push(row);
-          row = [];
-          field = '';
-          i++;
-          continue;
-        }
-        field += ch;
-        i++;
-      }
-
-      row.push(field);
-      if (row.some(cell => cell !== '')) rows.push(row);
-      if (!rows.length) return [];
-
-      const headers = rows[0];
-      return rows.slice(1).map(cells => {
-        const obj = {};
-        headers.forEach((header, idx) => {
-          obj[header] = cells[idx] ?? '';
-        });
-        return obj;
-      });
-    }
-
-    async function loadSheet(name) {
-      const resp = await fetch(sheetUrl(name));
-      if (!resp.ok) {
-        throw new Error(`Não foi possível carregar aba "${name}" (${resp.status})`);
-      }
-      const text = (await resp.text()).replace(/^\uFEFF/, '');
-      const rows = parseCsv(text);
-      if (name === 'meta_carga') {
-        const expected = ['executado_em', 'data_carga_siconv', 'total_convenios'];
-        if (!rows.length || !expected.every(col => col in rows[0])) return [];
-      }
-      return rows;
-    }
-
-    async function loadAllSheets(onProgress) {
-      let done = 0;
-      await Promise.all(SHEETS.map(async ({ key, sheet }) => {
-        DATA[key] = await loadSheet(sheet);
-        done++;
-        if (onProgress) onProgress(sheet, done, SHEETS.length);
-      }));
-    }
-
-    function tableExists(name) {
-      return Array.isArray(DATA[name]) && DATA[name].length > 0;
-    }
-
-    function tableColumns(name) {
-      const rows = DATA[name];
-      if (!rows?.length) return [];
-      return Object.keys(rows[0]);
-    }
-
-    function hasColumn(table, col) {
-      return tableColumns(table).includes(col);
-    }
-
-    function findBy(table, col, val) {
-      return DATA[table]?.find(row => row[col] === val) || null;
-    }
-
-    function filterBy(table, col, val) {
-      return (DATA[table] || []).filter(row => row[col] === val);
-    }
-
-    function filterIn(table, col, values) {
-      if (!values.length) return [];
-      const allowed = new Set(values);
-      return (DATA[table] || []).filter(row => allowed.has(row[col]));
-    }
-
     function formatMoney(val) {
       if (val == null || val === '') return '—';
       const n = parseFloat(String(val).replace(',', '.'));
-      return isNaN(n) ? val : fmtMoney.format(n);
-    }
-
-    function parseDateParts(str) {
-      if (!str) return null;
-      const s = String(str).trim();
-      let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (m) return { d: +m[3], mo: +m[2], y: +m[1], raw: str };
-      m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-      if (!m) return null;
-      return { d: +m[1], mo: +m[2], y: +m[3], raw: str };
-    }
-
-    function formatDate(str) {
-      const p = parseDateParts(str);
-      if (!p) return str || '—';
-      return `${String(p.d).padStart(2,'0')}/${String(p.mo).padStart(2,'0')}/${p.y}`;
-    }
-
-    function dateSortKey(str) {
-      const p = parseDateParts(str);
-      if (!p) return 0;
-      return p.y * 10000 + p.mo * 100 + p.d;
-    }
-
-    function loadConvenios() {
-      return DATA.convenio
-        .filter(c => String(c.NR_CONVENIO ?? '').trim())
-        .map(c => ({
-          NR_CONVENIO: c.NR_CONVENIO,
-          ID_PROPOSTA: c.ID_PROPOSTA,
-          SIT_CONVENIO: c.SIT_CONVENIO,
-          VL_REPASSE_CONV: c.VL_REPASSE_CONV,
-          NM_PROPONENTE: c.NM_PROPONENTE,
-          UF_PROPONENTE: c.UF_PROPONENTE,
-          MUNIC_PROPONENTE: c.MUNIC_PROPONENTE,
-          OBJETO_PROPOSTA: c.OBJETO_PROPOSTA,
-          NOME_PROGRAMA: c.NOME_PROGRAMA ?? '',
-        }))
-        .sort((a, b) => (+a.NR_CONVENIO) - (+b.NR_CONVENIO));
-    }
-
-    function licitacoesUnicas(rows) {
-      const byId = new Map();
-      for (const row of rows) {
-        if (row.ID_LICITACAO && !byId.has(row.ID_LICITACAO)) {
-          byId.set(row.ID_LICITACAO, row);
-        }
-      }
-      return [...byId.values()];
-    }
-
-    function escapeHtml(str) {
-      return String(str ?? '')
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      return Number.isNaN(n) ? val : fmtMoney.format(n);
     }
 
     function populateSitFilter() {
@@ -698,7 +523,7 @@
       return `<div class="table-wrap"><table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
     }
 
-    function renderSecaoI(licitacoes, itensPorLicitacao) {
+    function renderSectionI(licitacoes, itensPorLicitacao) {
       if (!licitacoes.length) return unavailableMsg();
 
       const headers = [
@@ -750,7 +575,7 @@
       return `<div class="table-wrap"><table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table></div>`;
     }
 
-    function renderSecaoII(contratos) {
+    function renderSectionII(contratos) {
       if (!contratos.length) return unavailableMsg();
       return renderTable(
         ['Nº Contrato', 'Objeto (TransfereGov)', 'CNPJ/CPF Contratado', 'Início Vigência',
@@ -768,7 +593,7 @@
       );
     }
 
-    function renderSecaoIII(licitacoes, contratosPorLicitacao, itensPorLicitacao) {
+    function renderSectionIII(licitacoes, contratosPorLicitacao, itensPorLicitacao) {
       if (!licitacoes.length) return unavailableMsg();
 
       const rows = licitacoes.map(lic => {
@@ -792,7 +617,7 @@
       );
     }
 
-    function renderSecaoIV(contratos) {
+    function renderSectionIV(contratos) {
       if (!contratos.length) return unavailableMsg();
       return renderTable(
         ['Nº Contrato', 'CNPJ/CPF TransfereGov', 'Valor TransfereGov',
@@ -809,7 +634,7 @@
       );
     }
 
-    function renderSecaoV(pagamentos) {
+    function renderSectionV(pagamentos) {
       if (!pagamentos.length) return unavailableMsg();
 
       const groups = new Map();
@@ -848,7 +673,7 @@
       return `<div class="table-wrap"><table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
     }
 
-    function renderSecaoVI(pagamentos) {
+    function renderSectionVI(pagamentos) {
       if (!pagamentos.length) return unavailableMsg();
 
       const sorted = [...pagamentos].sort(
@@ -882,7 +707,7 @@
       );
     }
 
-    function renderSecaoVII(devolucoes) {
+    function renderSectionVII(devolucoes) {
       if (!devolucoes.length) {
         return '<p class="empty-msg">Nenhuma devolução registrada para este convênio.</p>';
       }
@@ -914,7 +739,7 @@
     }
 
     function showDetailContent(nrConvenio) {
-      const c = findBy('convenio', 'NR_CONVENIO', nrConvenio);
+      const c = findBy(DATA, 'convenio', 'NR_CONVENIO', nrConvenio);
       if (!c) return;
 
       const p = c;
@@ -976,16 +801,16 @@
         ['Previsto', 'Desembolsado', 'Saldo']
       ));
 
-      const planoCols = hasColumn('plano_aplicacao_detalhado', 'ID_PROPOSTA')
+      const planoCols = hasColumn(DATA, 'plano_aplicacao_detalhado', 'ID_PROPOSTA')
         ? ['NATUREZA_AQUISICAO', 'DESCRICAO_ITEM', 'QTD_ITEM']
             .concat(
-              hasColumn('plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM') ? ['VALOR_UNITARIO_ITEM'] : [],
-              hasColumn('plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM') ? ['VALOR_TOTAL_ITEM'] : []
+              hasColumn(DATA, 'plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM') ? ['VALOR_UNITARIO_ITEM'] : [],
+              hasColumn(DATA, 'plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM') ? ['VALOR_TOTAL_ITEM'] : []
             )
         : [];
 
       const plano = planoCols.length
-        ? filterBy('plano_aplicacao_detalhado', 'ID_PROPOSTA', c.ID_PROPOSTA).map(row => {
+        ? filterBy(DATA, 'plano_aplicacao_detalhado', 'ID_PROPOSTA', c.ID_PROPOSTA).map(row => {
             const picked = {};
             planoCols.forEach(col => { picked[col] = row[col]; });
             return picked;
@@ -994,11 +819,11 @@
 
       const planoHeaders = ['Natureza', 'Descrição', 'Quantidade'];
       const planoNumeric = [];
-      if (hasColumn('plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM')) {
+      if (hasColumn(DATA, 'plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM')) {
         planoHeaders.push('Valor unitário');
         planoNumeric.push('Valor unitário');
       }
-      if (hasColumn('plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM')) {
+      if (hasColumn(DATA, 'plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM')) {
         planoHeaders.push('Valor total');
         planoNumeric.push('Valor total');
       }
@@ -1011,10 +836,10 @@
             'Descrição': escapeHtml(r.DESCRICAO_ITEM),
             'Quantidade': escapeHtml(r.QTD_ITEM),
           };
-          if (hasColumn('plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM')) {
+          if (hasColumn(DATA, 'plano_aplicacao_detalhado', 'VALOR_UNITARIO_ITEM')) {
             row['Valor unitário'] = formatMoney(r.VALOR_UNITARIO_ITEM);
           }
-          if (hasColumn('plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM')) {
+          if (hasColumn(DATA, 'plano_aplicacao_detalhado', 'VALOR_TOTAL_ITEM')) {
             row['Valor total'] = formatMoney(r.VALOR_TOTAL_ITEM);
           }
           return row;
@@ -1022,9 +847,9 @@
         planoNumeric
       ));
 
-      let cronograma = filterBy('cronograma_desembolso', 'NR_CONVENIO', nrConvenio);
+      let cronograma = filterBy(DATA, 'cronograma_desembolso', 'NR_CONVENIO', nrConvenio);
       if (!cronograma.length) {
-        cronograma = filterBy('cronograma_desembolso', 'ID_PROPOSTA', c.ID_PROPOSTA);
+        cronograma = filterBy(DATA, 'cronograma_desembolso', 'ID_PROPOSTA', c.ID_PROPOSTA);
       }
       cronograma = cronograma.slice().sort((a, b) => {
         const ka = (+a.ANO_CRONO_DESEMBOLSO) * 100 + (+a.MES_CRONO_DESEMBOLSO);
@@ -1043,7 +868,7 @@
         ['Valor parcela']
       ));
 
-      const emendas = filterBy('emenda', 'ID_PROPOSTA', c.ID_PROPOSTA);
+      const emendas = filterBy(DATA, 'emenda', 'ID_PROPOSTA', c.ID_PROPOSTA);
 
       const emendasSec = section('Emendas', renderTable(
         ['Nº Emenda', 'Parlamentar', 'Tipo', 'Valor repasse'],
@@ -1056,7 +881,7 @@
         ['Valor repasse']
       ));
 
-      const termos = filterBy('termo_aditivo', 'NR_CONVENIO', nrConvenio)
+      const termos = filterBy(DATA, 'termo_aditivo', 'NR_CONVENIO', nrConvenio)
         .slice()
         .sort((a, b) => dateSortKey(a.DT_ASSINATURA_TA) - dateSortKey(b.DT_ASSINATURA_TA));
 
@@ -1069,23 +894,23 @@
         }))
       ));
 
-      const hasItensLicitacao = tableExists('itens_licitacao');
-      const hasContrato = tableExists('contrato');
-      const hasPagamento = tableExists('pagamento');
+      const hasItensLicitacao = tableExists(DATA, 'itens_licitacao');
+      const hasContrato = tableExists(DATA, 'contrato');
+      const hasPagamento = tableExists(DATA, 'pagamento');
 
       const itensLicitacao = hasItensLicitacao
-        ? filterBy('itens_licitacao', 'NR_CONVENIO', nrConvenio)
+        ? filterBy(DATA, 'itens_licitacao', 'NR_CONVENIO', nrConvenio)
         : [];
 
-      const licitacoes = licitacoesUnicas(itensLicitacao);
+      const licitacoes = uniqueBiddings(itensLicitacao);
       const idLicitacoes = licitacoes.map(l => l.ID_LICITACAO).filter(Boolean);
 
       const contratos = (hasContrato && idLicitacoes.length)
-        ? filterIn('contrato', 'ID_LICITACAO', idLicitacoes)
+        ? filterIn(DATA, 'contrato', 'ID_LICITACAO', idLicitacoes)
         : [];
 
       const pagamentos = hasPagamento
-        ? filterBy('pagamento', 'NR_CONVENIO', nrConvenio)
+        ? filterBy(DATA, 'pagamento', 'NR_CONVENIO', nrConvenio)
         : [];
 
       const itensPorLicitacao = {};
@@ -1106,45 +931,45 @@
 
       const secI = sectionCollapsible(
         'I — Processo de Execução x Pactuação',
-        hasItensLicitacao ? renderSecaoI(licitacoes, itensPorLicitacao) : unavailableMsg(),
+        hasItensLicitacao ? renderSectionI(licitacoes, itensPorLicitacao) : unavailableMsg(),
         licitacoes.length
       );
 
       const secII = sectionCollapsible(
         'II — Análises Contrato x Pactuação',
-        hasContrato && hasItensLicitacao ? renderSecaoII(contratos) : unavailableMsg(),
+        hasContrato && hasItensLicitacao ? renderSectionII(contratos) : unavailableMsg(),
         contratos.length
       );
 
       const secIII = sectionCollapsible(
         'III — Análises Contrato x Execução x Pactuação',
         hasItensLicitacao && hasContrato
-          ? renderSecaoIII(licitacoes, contratosPorLicitacao, itensPorLicitacao)
+          ? renderSectionIII(licitacoes, contratosPorLicitacao, itensPorLicitacao)
           : unavailableMsg(),
         licitacoes.length
       );
 
       const secIV = sectionCollapsible(
         'IV — Análises de Dados de Contrato',
-        hasContrato && hasItensLicitacao ? renderSecaoIV(contratos) : unavailableMsg(),
+        hasContrato && hasItensLicitacao ? renderSectionIV(contratos) : unavailableMsg(),
         contratos.length
       );
 
       const secV = sectionCollapsible(
         'V — Análises Contrato x Liquidação',
-        hasPagamento ? renderSecaoV(pagamentos.filter(p => p.NR_DL)) : unavailableMsg(),
+        hasPagamento ? renderSectionV(pagamentos.filter(p => p.NR_DL)) : unavailableMsg(),
         pagamentos.filter(p => p.NR_DL).length
       );
 
       const secVI = sectionCollapsible(
         'VI — Análises de Movimentação Financeira',
-        hasPagamento ? renderSecaoVI(pagamentos) : unavailableMsg(),
+        hasPagamento ? renderSectionVI(pagamentos) : unavailableMsg(),
         pagamentos.length
       );
 
       const secVII = sectionCollapsible(
         'VII — Análises de Devolução de Recurso',
-        hasPagamento ? renderSecaoVII(devolucoes) : unavailableMsg(),
+        hasPagamento ? renderSectionVII(devolucoes) : unavailableMsg(),
         devolucoes.length
       );
 
@@ -1169,12 +994,12 @@
 
     async function init() {
       try {
-        await loadAllSheets((name, done, total) => {
+        Object.assign(DATA, await loadSheets(SHEETS, (name, done, total) => {
           document.getElementById('loading-status').textContent =
             `Carregando ${name} (${done}/${total})…`;
-        });
+        }));
 
-        allConvenios = loadConvenios();
+        allConvenios = buildConvenioListFromData(DATA);
         populateSitFilter();
 
         const meta = DATA.meta_carga?.[0];

@@ -208,47 +208,34 @@ function sincronizarAlturasPainel() {
   igualarAlturaColunaTipo();
 }
 
-function agruparSituacao(situacao) {
-  const texto = (situacao || "")
+function groupStatus(status) {
+  const text = (status || "")
     .trim()
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
-  if (texto.includes("prest")) return "Em prestação de contas";
+  if (text.includes("prest")) return "Em prestação de contas";
   return "Em execução";
 }
 
-function estaEmExecucao(situacao) {
-  return (situacao || "").trim() === "Em execução";
-}
-
-Promise.all([
-  parseCsv(CSV_URL),
-  loadValorExecutadoMap(),
-])
-  .then(([convenios, valorExecutadoPorConvenio]) => {
+loadConveniosWithExecutedValue({ filterFormalized: true })
+  .then(({ convenios, executedValueByConvenio }) => {
     try {
-      // grain do painel = convenios formalizados (instrumento = convenio, nao proposta)
-      const rows = convenios.filter(r =>
-        (r.NR_CONVENIO || "").trim() !== ""
-        && (r.SIT_CONVENIO || "").trim() !== "Proposta/Plano de Trabalho Aprovado"
-      );
+      const rows = convenios;
       if (rows.length === 0) throw new Error("Nenhuma linha com NR_CONVENIO preenchido.");
-      rows.forEach(r => {
-        r.categoria_tipo = getCategoriaTipo(r);
+      rows.forEach((r) => {
+        r.instrumentCategory = getInstrumentCategory(r);
         const nr = String(r.NR_CONVENIO || "").trim();
-        // SUM(VL_PAGO) + SUM(VL_PAG_TRIBUTOS) — agregado na interface
-        r._valorExecutado = nr ? (valorExecutadoPorConvenio[nr] || 0) : 0;
+        r._executedValue = nr ? (executedValueByConvenio[nr] || 0) : 0;
       });
       buildDashboard(rows);
-      const agora = new Date().toLocaleString("pt-BR");
-      setStatusDot("#status-atualizacao", `atualizado às ${agora}`, false);
+      setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
     } catch (err) {
       console.error(err);
       setStatusDot("#status-atualizacao", "erro ao processar view_convenio", true);
     }
   })
-  .catch(err => {
+  .catch((err) => {
     console.error(err);
     setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
   });
@@ -256,27 +243,27 @@ Promise.all([
 window.addEventListener("resize", sincronizarAlturasPainel);
 
 function buildDashboard(rows) {
-  // categorias dinamicas, Editais em ordem alfabetica/numerica, Fomento sempre por ultimo
-  const categorias = ordenarCategoriasTipo([...new Set(rows.map(r => r.categoria_tipo))]);
+  // categories dinamicas, Editais em ordem alfabetica/numerica, Fomento sempre por ultimo
+  const categories = sortInstrumentCategories([...new Set(rows.map((r) => r.instrumentCategory))]);
   const COR = {};
-  categorias.forEach((c, i) => (COR[c] = BRAND_PALETTE[i % BRAND_PALETTE.length]));
-  const paletteArr = categorias.map(c => COR[c]);
+  categories.forEach((c, i) => (COR[c] = BRAND_PALETTE[i % BRAND_PALETTE.length]));
+  const paletteArr = categories.map((c) => COR[c]);
 
-  const byCategoria = c => rows.filter(r => r.categoria_tipo === c);
+  const byCategory = (c) => rows.filter((r) => r.instrumentCategory === c);
 
-  // ---- Tipo: qtd + recurso pactuado ----
-  const qtd = {}, recurso = {};
-  categorias.forEach(c => {
-    const subset = byCategoria(c);
+  const qtd = {};
+  const recurso = {};
+  categories.forEach((c) => {
+    const subset = byCategory(c);
     qtd[c] = subset.length;
     recurso[c] = subset.reduce((s, r) => s + parseNum(r.VL_GLOBAL_CONV), 0);
   });
-  const avgPactuacao = categorias.map(c => (qtd[c] ? recurso[c] / qtd[c] : 0));
+  const avgPactuacao = categories.map((c) => (qtd[c] ? recurso[c] / qtd[c] : 0));
 
   new ApexCharts(document.querySelector("#chart-qtd"), {
     chart: { type: "donut", height: 190, ...baseFont },
-    series: categorias.map(c => qtd[c]),
-    labels: categorias,
+    series: categories.map((c) => qtd[c]),
+    labels: categories,
     colors: paletteArr,
     legend: { show: false },
     dataLabels: {
@@ -295,7 +282,7 @@ function buildDashboard(rows) {
               show: true,
               label: "Total",
               fontSize: "11px",
-              formatter: () => categorias.reduce((s, c) => s + qtd[c], 0),
+              formatter: () => categories.reduce((s, c) => s + qtd[c], 0),
             },
           },
         },
@@ -305,8 +292,8 @@ function buildDashboard(rows) {
 
   new ApexCharts(document.querySelector("#chart-recurso"), {
     chart: { type: "donut", height: 190, ...baseFont },
-    series: categorias.map(c => recurso[c]),
-    labels: categorias,
+    series: categories.map(c => recurso[c]),
+    labels: categories,
     colors: paletteArr,
     legend: { show: false },
     dataLabels: {
@@ -327,7 +314,7 @@ function buildDashboard(rows) {
               show: true,
               label: "Total",
               fontSize: "11px",
-              formatter: () => formatBRLCompact(categorias.reduce((s, c) => s + recurso[c], 0)),
+              formatter: () => formatBRLCompact(categories.reduce((s, c) => s + recurso[c], 0)),
             },
           },
         },
@@ -335,11 +322,11 @@ function buildDashboard(rows) {
     },
   }).render();
 
-  const legendHTML = `<div class="legend">${categorias.map(c => `<span class="legend-item"><span class="legend-dot" style="background:${COR[c]}"></span>${c}</span>`).join("")}</div>`;
+  const legendHTML = `<div class="legend">${categories.map(c => `<span class="legend-item"><span class="legend-dot" style="background:${COR[c]}"></span>${c}</span>`).join("")}</div>`;
   document.querySelector("#chart-recurso").insertAdjacentHTML("afterend", legendHTML);
 
   // ---- Valor medio de pactuacao ----
-  document.querySelector("#avg-list").innerHTML = categorias.map((c, i) => `
+  document.querySelector("#avg-list").innerHTML = categories.map((c, i) => `
     <li>
       <span class="cat"><span class="dot" style="background:${COR[c]}"></span>${c}</span>
       <span class="val">${formatBRLCompact(avgPactuacao[i])}</span>
@@ -348,10 +335,10 @@ function buildDashboard(rows) {
   // ---- Situacao: em execucao vs. prestacao de contas ----
   const situacaoLabels = ["Em execução", "Em prestação de contas"];
   const situacaoData = {};
-  categorias.forEach(c => {
-    const subset = byCategoria(c);
+  categories.forEach(c => {
+    const subset = byCategory(c);
     situacaoData[c] = situacaoLabels.map((fase) =>
-      subset.filter((r) => agruparSituacao(r.SIT_CONVENIO) === fase).length
+      subset.filter((r) => groupStatus(r.SIT_CONVENIO) === fase).length
     );
   });
 
@@ -366,7 +353,7 @@ function buildDashboard(rows) {
       },
       ...baseFont,
     },
-    series: categorias.map(c => ({ name: c, data: situacaoData[c] })),
+    series: categories.map(c => ({ name: c, data: situacaoData[c] })),
     colors: paletteArr,
     plotOptions: { bar: { borderRadius: 4, columnWidth: "55%" } },
     xaxis: { categories: situacaoLabels, labels: { style: { fontSize: "11px" } } },
@@ -377,12 +364,12 @@ function buildDashboard(rows) {
 
   // ---- Execucao orcamentaria ----
   const execucao = {};
-  categorias.forEach(c => {
-    const subset = byCategoria(c);
+  categories.forEach(c => {
+    const subset = byCategory(c);
     execucao[c] = {
       pactuado: subset.reduce((s, r) => s + parseNum(r.VL_GLOBAL_CONV), 0),
       desembolsado: subset.reduce((s, r) => s + parseNum(r.VL_DESEMBOLSADO_CONV), 0),
-      executado: subset.reduce((s, r) => s + (r._valorExecutado || 0), 0),
+      executado: subset.reduce((s, r) => s + (r._executedValue || 0), 0),
     };
   });
 
@@ -398,13 +385,13 @@ function buildDashboard(rows) {
       ...baseFont,
     },
     series: [
-      { name: "Pactuado", data: categorias.map(c => execucao[c].pactuado) },
-      { name: "Desembolsado", data: categorias.map(c => execucao[c].desembolsado) },
-      { name: "Executado", data: categorias.map(c => execucao[c].executado) },
+      { name: "Pactuado", data: categories.map(c => execucao[c].pactuado) },
+      { name: "Desembolsado", data: categories.map(c => execucao[c].desembolsado) },
+      { name: "Executado", data: categories.map(c => execucao[c].executado) },
     ],
     colors: ["#355e7a", "#317c5d", "#ff9c00"],
     plotOptions: { bar: { borderRadius: 4, columnWidth: "60%" } },
-    xaxis: { categories: categorias, labels: { style: { fontSize: "12px" } } },
+    xaxis: { categories: categories, labels: { style: { fontSize: "12px" } } },
     yaxis: { labels: { formatter: (v) => formatBRLCompact(v), style: { fontSize: "11px" } } },
     dataLabels: { enabled: false },
     tooltip: { y: { formatter: formatBRL } },
@@ -422,7 +409,7 @@ function buildDashboard(rows) {
     mesesEixo.push(new Date(d));
   }
   const labelMes = (data) => `${MESES_PT[data.getMonth()]}/${String(data.getFullYear()).slice(2)}`;
-  const categoriasPeriodo = mesesEixo.map(labelMes);
+  const categoriesPeriodo = mesesEixo.map(labelMes);
 
   const execucaoPorMes = new Array(mesesEixo.length).fill(0);
   const prestacaoPorMes = new Array(mesesEixo.length).fill(0);
@@ -433,9 +420,9 @@ function buildDashboard(rows) {
     if (!ini || !fim) return;
 
     mesesEixo.forEach((mes, i) => {
-      if (mes >= ini && mes < fim && estaEmExecucao(r.SIT_CONVENIO)) {
+      if (mes >= ini && mes < fim && isInExecution(r.SIT_CONVENIO)) {
         execucaoPorMes[i]++;
-      } else if (mes >= fim && !estaEmExecucao(r.SIT_CONVENIO)) {
+      } else if (mes >= fim && !isInExecution(r.SIT_CONVENIO)) {
         prestacaoPorMes[i]++;
       }
     });
@@ -461,7 +448,7 @@ function buildDashboard(rows) {
     stroke: { curve: "smooth", width: 2 },
     fill: { type: "gradient", gradient: { opacityFrom: 0.55, opacityTo: 0.15 } },
     xaxis: {
-      categories: categoriasPeriodo,
+      categories: categoriesPeriodo,
       tickPlacement: "on",
       labels: {
         style: { fontSize: "11px" },
@@ -471,7 +458,7 @@ function buildDashboard(rows) {
       },
     },
     tooltip: {
-      x: { formatter: (_valor, { dataPointIndex }) => categoriasPeriodo[dataPointIndex] ?? "" },
+      x: { formatter: (_valor, { dataPointIndex }) => categoriesPeriodo[dataPointIndex] ?? "" },
     },
     yaxis: {
       labels: { style: { fontSize: "11px" } },
@@ -484,10 +471,10 @@ function buildDashboard(rows) {
 
   // ---- % Vigencia x Execucao ----
   const vigenciaExecucao = {};
-  categorias.forEach(c => {
-    const subset = byCategoria(c);
+  categories.forEach(c => {
+    const subset = byCategory(c);
     const pactuado = subset.reduce((s, r) => s + parseNum(r.VL_GLOBAL_CONV), 0);
-    const valorExecutado = subset.reduce((s, r) => s + (r._valorExecutado || 0), 0);
+    const valorExecutado = subset.reduce((s, r) => s + (r._executedValue || 0), 0);
     const execucaoPct = pactuado
       ? Math.min(100, Math.max(0, (valorExecutado / pactuado) * 100))
       : 0;
@@ -510,12 +497,12 @@ function buildDashboard(rows) {
   new ApexCharts(document.querySelector("#chart-vigencia"), {
     chart: { type: "bar", height: 300, toolbar: { show: false }, ...baseFont },
     series: [
-      { name: "% Execução (R$)", data: categorias.map(c => Math.round(vigenciaExecucao[c].execucaoPct)) },
-      { name: "% Vigência decorrida", data: categorias.map(c => Math.round(vigenciaExecucao[c].vigenciaPct)) },
+      { name: "% Execução (R$)", data: categories.map(c => Math.round(vigenciaExecucao[c].execucaoPct)) },
+      { name: "% Vigência decorrida", data: categories.map(c => Math.round(vigenciaExecucao[c].vigenciaPct)) },
     ],
     colors: ["#0c6642", "#69438c"],
     plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: "60%" } },
-    xaxis: { categories: categorias, max: 100, labels: { formatter: v => v + "%", style: { fontSize: "11px" } } },
+    xaxis: { categories: categories, max: 100, labels: { formatter: v => v + "%", style: { fontSize: "11px" } } },
     yaxis: { labels: { style: { fontSize: "12px", fontWeight: 600 } } },
     dataLabels: { formatter: v => v + "%", style: { fontSize: "11px", fontWeight: 700, colors: ["#fff"] } },
     legend: { position: "top", fontSize: "12px" },
