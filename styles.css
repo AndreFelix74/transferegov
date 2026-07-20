@@ -125,6 +125,7 @@ header.topo--toolbar {
   flex-wrap: wrap;
 }
 
+/* sticky compartilhado pelos painéis (gerencial, parcerias, técnicos, etc.) */
 header.topo.topo--toolbar {
   position: sticky;
   top: 0;
