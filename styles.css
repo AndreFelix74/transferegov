@@ -15,6 +15,10 @@
   --papel-carta: #ffffff;
   --linha: #e4dfd8;
   --sombra: 0 1px 2px rgba(43, 37, 48, .06), 0 8px 24px -12px rgba(43, 37, 48, .18);
+  /* layout dos painéis de tabela */
+  --altura-topo: 72px;
+  --main-pad-top: 20px;
+  --main-pad-bottom: 40px;
 }
 
 /* ---------- reset & tipografia ---------- */
@@ -119,6 +123,13 @@ header.topo--toolbar {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+/* sticky compartilhado pelos painéis (gerencial, parcerias, técnicos, etc.) */
+header.topo.topo--toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 header.topo .topo-principal {
@@ -309,6 +320,9 @@ header.topo .chip.active {
   border-radius: 10px;
   box-shadow: var(--sombra);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - var(--altura-topo) - var(--main-pad-top) - var(--main-pad-bottom));
 }
 
 .cartao-tabela .cabecalho-tabela {
@@ -351,7 +365,31 @@ header.topo .chip.active {
 
 .ordenar-por { font-size: 11.5px; color: var(--tinta-suave); }
 
-.container-tabela { overflow-x: auto; }
+/* ---------- painéis de tabela (filtros / sticky / scroll) ---------- */
+.filtros-tabela {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filtro-select {
+  font-family: "IBM Plex Sans";
+  font-size: 13px;
+  color: var(--tinta);
+  background: var(--papel);
+  border: 1px solid var(--linha);
+  border-radius: 7px;
+  padding: 7px 28px 7px 10px;
+  max-width: 220px;
+  cursor: pointer;
+}
+
+.container-tabela {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
 
 table.parcerias {
   width: 100%;
@@ -373,6 +411,14 @@ table.parcerias thead th {
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+table.parcerias th.num,
+table.parcerias td.num {
+  text-align: right;
 }
 
 table.parcerias thead th:hover { color: var(--tinta); }

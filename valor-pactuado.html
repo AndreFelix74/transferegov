@@ -14,39 +14,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-  :root {
-    --altura-topo: 72px;
-    --main-pad-top: 20px;
-    --main-pad-bottom: 40px;
-  }
-
-  header.topo.topo--toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
   main {
     padding: var(--main-pad-top) clamp(16px, 4vw, 40px) var(--main-pad-bottom);
-  }
-
-  .cartao-tabela {
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100dvh - var(--altura-topo) - var(--main-pad-top) - var(--main-pad-bottom));
-  }
-
-  .container-tabela {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-  }
-
-  table.parcerias thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    white-space: nowrap;
   }
 
   table.parcerias td {
@@ -58,30 +27,6 @@
     white-space: normal;
     min-width: 160px;
     max-width: 280px;
-  }
-
-  table.parcerias th.num,
-  table.parcerias td.num {
-    text-align: right;
-  }
-
-  .filtros-tabela {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .filtro-select {
-    font-family: "IBM Plex Sans";
-    font-size: 13px;
-    color: var(--tinta);
-    background: var(--papel);
-    border: 1px solid var(--linha);
-    border-radius: 7px;
-    padding: 7px 28px 7px 10px;
-    max-width: 220px;
-    cursor: pointer;
   }
 
   .btn-download {

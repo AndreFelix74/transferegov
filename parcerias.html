@@ -15,19 +15,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.1/apexcharts.min.js"></script>
 
 <style>
-  /* ---------- layout ---------- */
-  :root {
-    --altura-topo: 72px;
-    --main-pad-top: 20px;
-    --main-pad-bottom: 40px;
-  }
-
-  header.topo.topo--toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
+  /* ---------- layout (abas + coluna lateral) ---------- */
   main{
     padding:0;
   }
@@ -41,47 +29,10 @@
   }
   @media (max-width: 900px){ .coluna-lateral{ position:static; } }
 
-  .cartao-tabela{
-    display:flex;
-    flex-direction:column;
-    max-height: calc(100dvh - var(--altura-topo) - var(--main-pad-top) - var(--main-pad-bottom));
-  }
-
-  .container-tabela{
-    flex:1 1 auto;
-    min-height:0;
-    overflow:auto;
-  }
-
-  table.parcerias thead th{
-    position:sticky;
-    top:0;
-    z-index:2;
-  }
-
   .cartao-subtitulo{
     margin:-8px 0 14px;
     font-size:12px;
     color:var(--tinta-suave);
-  }
-
-  .filtros-tabela{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    flex-wrap:wrap;
-  }
-
-  .filtro-select{
-    font-family:"IBM Plex Sans";
-    font-size:13px;
-    color:var(--tinta);
-    background:var(--papel);
-    border:1px solid var(--linha);
-    border-radius:7px;
-    padding:7px 28px 7px 10px;
-    max-width:220px;
-    cursor:pointer;
   }
 
   .abas-parcerias{
