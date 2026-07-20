@@ -14,12 +14,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-  header.topo.topo--toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
   main{
     display:grid;
     grid-template-columns: 320px 1fr;
@@ -58,36 +52,14 @@
     border:none; background:none; color:var(--roxo); font-weight:600; cursor:pointer; font-size:12px;
   }
 
+  /* overrides vs forma canônica em styles.css */
   .cartao-tabela{
-    display:flex;
-    flex-direction:column;
     max-height: 520px;
   }
-  .container-tabela{
-    flex:1 1 auto;
-    min-height:0;
-    overflow:auto;
-  }
-  table.parcerias thead th{
-    position:sticky;
-    top:0;
-    z-index:2;
-  }
-
-  .filtros-tabela{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    flex-wrap:wrap;
-  }
   .filtro-select{
-    font-family:"IBM Plex Sans";
-    font-size:13px;
-    color:var(--tinta);
-    background:var(--papel);
-    border:1px solid var(--linha);
     border-radius:6px;
     padding:6px 10px;
+    max-width:none;
   }
 </style>
 </head>
