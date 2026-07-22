@@ -1,6 +1,7 @@
 raw/
 staging/
 logs/
+etl_atividades/.ultima_data_extraida
 modelo_dados_siconv/
 db/
 *__pycache__*
