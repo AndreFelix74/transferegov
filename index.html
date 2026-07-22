@@ -53,6 +53,10 @@
   }
   .secao-cards--3{ grid-template-columns: repeat(3, 1fr); }
   .secao-cards--4{ grid-template-columns: repeat(4, 1fr); }
+  .secao-cards--2{
+    grid-template-columns: repeat(2, 1fr);
+    max-width:860px;
+  }
   .secao-cards--1{
     grid-template-columns: 1fr;
     max-width:420px;
@@ -61,9 +65,11 @@
     .secao-cards--4{ grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 880px){
+    .secao-cards--2,
     .secao-cards--3,
     .secao-cards--4{ grid-template-columns:1fr; }
-    .secao-cards--1{ max-width:none; }
+    .secao-cards--1,
+    .secao-cards--2{ max-width:none; }
   }
 
   /* ---------- cards (portas) ---------- */
@@ -134,10 +140,14 @@
     <div class="secao-cabecalho">
       <span class="rotulo-secao">Ferramenta de Prestação de Contas</span>
     </div>
-    <div class="secao-cards secao-cards--1">
+    <div class="secao-cards secao-cards--2">
 
       <a class="porta" href="operacional.html">
         <h2>Análise</h2>
+      </a>
+
+      <a class="porta" href="relatorio-mensal.html">
+        <h2>Relatório Mensal de Produção</h2>
       </a>
 
     </div>

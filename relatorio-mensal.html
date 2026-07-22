@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório Mensal de Produção | Cozinha Solidária</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<script src="common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  /* Accent da seção Prestação de Contas (verde) */
+  header.topo {
+    border-bottom-color: var(--verde);
+  }
+
+  main {
+    padding: var(--main-pad-top) clamp(16px, 4vw, 40px) var(--main-pad-bottom);
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  .painel-controles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 18px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    background: var(--papel-carta);
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
+  }
+
+  .campo-controle {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 200px;
+  }
+
+  .campo-controle label {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--tinta-suave);
+  }
+
+  .campo-controle select,
+  .campo-controle input[type="month"] {
+    font-family: "IBM Plex Sans";
+    font-size: 14px;
+    color: var(--tinta);
+    background: var(--papel);
+    border: 1px solid var(--linha);
+    border-radius: 7px;
+    padding: 8px 12px;
+    min-width: 220px;
+  }
+
+  .acoes-controle {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .btn {
+    font-family: "IBM Plex Sans";
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+
+  .btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  .btn-primario {
+    background: var(--verde);
+    color: var(--branco);
+  }
+
+  .btn-primario:hover:not(:disabled) {
+    background: #0c6642;
+  }
+
+  .btn-secundario {
+    background: var(--papel);
+    color: var(--tinta);
+    border-color: var(--linha);
+  }
+
+  .btn-secundario:hover:not(:disabled) {
+    background: #f0ebe4;
+  }
+
+  .aviso-placeholder {
+    font-size: 12px;
+    color: var(--tinta-suave);
+    margin: -8px 0 18px;
+    padding: 10px 14px;
+    background: #f0f7f3;
+    border: 1px solid #c5ddd1;
+    border-radius: 8px;
+  }
+
+  /* ---------- documento (Anexo XI) ---------- */
+  .documento {
+    display: none;
+    background: var(--papel-carta);
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
+    padding: 28px 32px 36px;
+  }
+
+  .documento.visivel { display: block; }
+
+  .doc-cabecalho {
+    text-align: center;
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 2px solid var(--verde);
+  }
+
+  .doc-cabecalho .orgao {
+    font-family: "IBM Plex Mono";
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--tinta-suave);
+    margin: 0 0 8px;
+  }
+
+  .doc-cabecalho h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--tinta);
+  }
+
+  .doc-cabecalho .anexo {
+    margin: 0;
+    font-size: 13px;
+    color: var(--verde);
+    font-weight: 600;
+  }
+
+  .doc-secao {
+    margin-bottom: 26px;
+  }
+
+  .doc-secao h3 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--verde);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .doc-secao h3::before {
+    content: "";
+    width: 3px;
+    height: 14px;
+    background: var(--verde);
+    border-radius: 2px;
+  }
+
+  .doc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+  }
+
+  @media (max-width: 640px) {
+    .doc-grid { grid-template-columns: 1fr; }
+  }
+
+  .doc-campo label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--tinta-suave);
+    margin-bottom: 4px;
+  }
+
+  .doc-campo .valor,
+  .doc-campo input,
+  .doc-campo textarea {
+    font-family: "IBM Plex Sans";
+    font-size: 14px;
+    color: var(--tinta);
+    width: 100%;
+  }
+
+  .doc-campo .valor {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--linha);
+    min-height: 1.4em;
+  }
+
+  .doc-campo input,
+  .doc-campo textarea {
+    background: var(--papel);
+    border: 1px solid var(--linha);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .doc-campo textarea {
+    min-height: 88px;
+    resize: vertical;
+  }
+
+  .doc-campo.editavel label::after {
+    content: " (preenchimento manual)";
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+    color: var(--amarelo);
+  }
+
+  table.doc-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  table.doc-tabela th,
+  table.doc-tabela td {
+    border: 1px solid var(--linha);
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  table.doc-tabela th {
+    background: var(--papel);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--tinta-suave);
+    font-weight: 600;
+  }
+
+  table.doc-tabela td.num {
+    text-align: right;
+    font-family: "IBM Plex Mono";
+  }
+
+  table.doc-tabela .nota {
+    font-size: 11.5px;
+    color: var(--tinta-suave);
+    font-style: italic;
+  }
+
+  .doc-assinaturas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 48px;
+    padding-top: 12px;
+  }
+
+  @media (max-width: 640px) {
+    .doc-assinaturas { grid-template-columns: 1fr; }
+  }
+
+  .linha-assinatura {
+    text-align: center;
+  }
+
+  .linha-assinatura .espaco {
+    border-top: 1px solid var(--tinta);
+    margin: 56px 12px 8px;
+  }
+
+  .linha-assinatura .cargo {
+    font-size: 12px;
+    color: var(--tinta-suave);
+  }
+
+  .no-print { /* marcado para @media print */ }
+
+  /* Nota de incerteza do mapeamento de refeições — deve sobreviver à impressão */
+  .nota-incerteza {
+    margin: 10px 0 0;
+    font-size: 11.5px;
+    font-style: italic;
+    color: var(--tinta-suave);
+    line-height: 1.45;
+  }
+
+  /* ---------- impressão / PDF via window.print ---------- */
+  @media print {
+    @page {
+      size: A4;
+      margin: 16mm 14mm;
+    }
+
+    html, body {
+      background: #fff !important;
+      color: #000 !important;
+    }
+
+    header.topo,
+    .painel-controles,
+    .aviso-placeholder,
+    footer.rodape-pagina,
+    .no-print {
+      display: none !important;
+    }
+
+    main {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .documento {
+      display: block !important;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    .doc-cabecalho {
+      border-bottom-color: #000;
+    }
+
+    .doc-cabecalho .anexo,
+    .doc-secao h3 {
+      color: #000;
+    }
+
+    .doc-secao h3::before {
+      background: #000;
+    }
+
+    .doc-campo.editavel label::after {
+      content: none;
+    }
+
+    .doc-campo input,
+    .doc-campo textarea {
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 1px solid #999 !important;
+      border-radius: 0 !important;
+      padding: 4px 0 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    table.doc-tabela th,
+    table.doc-tabela td {
+      border-color: #333;
+    }
+
+    table.doc-tabela th {
+      background: #eee !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .linha-assinatura .espaco {
+      margin-top: 64px;
+    }
+
+    .nota-incerteza {
+      color: #555 !important;
+      font-size: 10pt;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="topo topo--toolbar">
+  <div class="topo-principal">
+    <a class="voltar-inicio" href="index.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Página inicial
+    </a>
+    <div class="titulo">
+      <h1>Relatório Mensal de Produção</h1>
+      <span class="subtitulo">Anexo XI · Edital MDS nº 01/2026 · Prestação de Contas</span>
+    </div>
+  </div>
+  <div class="status-atualizacao" id="status-atualizacao">
+    <span class="ponto"></span>
+    <span>carregando dados…</span>
+  </div>
+</header>
+
+<main>
+  <p class="aviso-placeholder no-print">
+    Selecione a cozinha e o mês de referência, gere o relatório, complete os campos manuais
+    e use <strong>Baixar PDF</strong> (abre o diálogo de impressão do navegador — escolha “Salvar como PDF”).
+  </p>
+
+  <section class="painel-controles no-print" aria-label="Filtros do relatório">
+    <div class="campo-controle">
+      <!--
+        PLACEHOLDER DE LOGIN: este seletor de Cozinha Solidária é temporário.
+        Em produção, a cozinha virá da autenticação da pessoa gestora (login real),
+        e este dropdown será removido ou restrito ao escopo autorizado.
+        A implementar depois.
+      -->
+      <label for="sel-cozinha">Cozinha Solidária</label>
+      <select id="sel-cozinha" aria-label="Selecionar cozinha (placeholder de login)">
+        <option value="">Carregando cozinhas…</option>
+      </select>
+    </div>
+
+    <div class="campo-controle">
+      <label for="sel-mes">Mês de referência</label>
+      <input type="month" id="sel-mes" aria-label="Mês e ano do relatório">
+    </div>
+
+    <div class="acoes-controle">
+      <button type="button" class="btn btn-primario" id="btn-gerar" disabled>Gerar Relatório</button>
+      <button type="button" class="btn btn-secundario" id="btn-pdf" disabled>Baixar PDF</button>
+    </div>
+  </section>
+
+  <article class="documento" id="documento" aria-live="polite">
+    <header class="doc-cabecalho">
+      <p class="orgao">Ministério do Desenvolvimento e Assistência Social, Família e Combate à Fome</p>
+      <h2>Relatório Mensal de Produção da Cozinha Solidária</h2>
+      <p class="anexo">Anexo XI — Edital MDS nº 01/2026</p>
+    </header>
+
+    <!-- Seção 1 / Identificação -->
+    <section class="doc-secao" aria-labelledby="sec-ident">
+      <h3 id="sec-ident">1. Identificação</h3>
+      <div class="doc-grid">
+        <div class="doc-campo">
+          <label>Cozinha Solidária</label>
+          <div class="valor" id="doc-cozinha">—</div>
+        </div>
+        <div class="doc-campo">
+          <label>Mês / Ano de referência</label>
+          <div class="valor" id="doc-mes">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seção 3 — Produção e entrega -->
+    <section class="doc-secao" aria-labelledby="sec-producao">
+      <h3 id="sec-producao">3. Produção e entrega de refeições</h3>
+      <table class="doc-tabela">
+        <tbody>
+          <tr>
+            <th scope="row">Dias da semana em que a cozinha funcionou no mês</th>
+            <td id="doc-dias-semana">—</td>
+          </tr>
+          <tr>
+            <th scope="row">Quantidade de dias de produção e entrega no mês</th>
+            <td class="num" id="doc-qtd-dias">—</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="doc-tabela" style="margin-top:14px" aria-label="Refeições por tipo">
+        <thead>
+          <tr>
+            <th>Tipo de refeição</th>
+            <th class="num">Quantidade</th>
+          </tr>
+        </thead>
+        <tbody id="doc-refeicoes-corpo">
+          <tr>
+            <td>Café da manhã</td>
+            <td class="num" id="doc-cafe">—</td>
+          </tr>
+          <tr>
+            <td>Almoço</td>
+            <td class="num" id="doc-almoco">—</td>
+          </tr>
+          <tr>
+            <td>Lanche</td>
+            <td class="num" id="doc-lanche">—</td>
+          </tr>
+          <tr>
+            <td>Jantar</td>
+            <td class="num" id="doc-jantar">—</td>
+          </tr>
+          <tr>
+            <td>Ceia</td>
+            <td class="num" id="doc-ceia">—</td>
+          </tr>
+          <tr>
+            <th scope="row">Registros de contabilização no mês (ver observação abaixo)</th>
+            <td class="num" id="doc-total-refeicoes">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="nota-incerteza">
+        Por tipo (café/almoço/lanche/jantar/ceia): aguardando confirmação do mapeamento de domínio.
+        Por ora apenas o total genérico de “Contabilização de refeições servidas” é preenchido —
+        contagem de registros de log, não necessariamente refeições reais confirmadas.
+      </p>
+    </section>
+
+    <!-- Seção 4 -->
+    <section class="doc-secao" aria-labelledby="sec-info">
+      <h3 id="sec-info">4. Informações complementares</h3>
+      <div class="doc-grid" style="margin-bottom:14px">
+        <div class="doc-campo">
+          <label>Registros de contabilização no mês (ver observação abaixo)</label>
+          <div class="valor mono" id="doc-total-mes">—</div>
+        </div>
+        <div class="doc-campo">
+          <label>Local(is) de entrega / distribuição</label>
+          <div class="valor" id="doc-locais">—</div>
+        </div>
+      </div>
+
+      <div class="doc-campo editavel" style="margin-bottom:14px">
+        <label for="doc-perfil">Perfil do público atendido</label>
+        <textarea id="doc-perfil" rows="3" placeholder="Descreva o perfil do público atendido no mês…"></textarea>
+      </div>
+
+      <div class="doc-campo editavel">
+        <label for="doc-recursos">Relato sobre destinação dos recursos</label>
+        <textarea id="doc-recursos" rows="4" placeholder="Relate a destinação dos recursos no mês de referência…"></textarea>
+      </div>
+    </section>
+
+    <div class="doc-assinaturas">
+      <div class="linha-assinatura">
+        <div class="espaco"></div>
+        <div class="cargo">Responsável pela Cozinha Solidária<br>(assinatura eletrônica)</div>
+      </div>
+      <div class="linha-assinatura">
+        <div class="espaco"></div>
+        <div class="cargo">Local e data</div>
+      </div>
+    </div>
+  </article>
+</main>
+
+<footer class="rodape-pagina no-print">
+  <span>Anexo XI · Edital MDS nº 01/2026</span>
+  <span>Cozinha Solidária — MDS</span>
+</footer>
+
+<script>
+(function () {
+  const WEEKDAY_LABELS = [
+    "domingo", "segunda-feira", "terça-feira", "quarta-feira",
+    "quinta-feira", "sexta-feira", "sábado",
+  ];
+
+  const MEAL_TYPE_RESULT = "Contabilização de refeições servidas";
+
+  /** @type {object[]} */
+  let allRecords = [];
+
+  const elStatus = "#status-atualizacao";
+  const selCozinha = document.getElementById("sel-cozinha");
+  const selMes = document.getElementById("sel-mes");
+  const btnGerar = document.getElementById("btn-gerar");
+  const btnPdf = document.getElementById("btn-pdf");
+  const documento = document.getElementById("documento");
+
+  function setDefaultMonth() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    selMes.value = `${y}-${m}`;
+  }
+
+  function uniqueKitchens(records) {
+    return [...new Set(
+      records.map((r) => String(r.cozinha || "").trim()).filter(Boolean),
+    )].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }
+
+  function populateKitchenSelect(kitchens) {
+    selCozinha.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = kitchens.length
+      ? "Selecione a cozinha…"
+      : "Nenhuma cozinha encontrada";
+    selCozinha.appendChild(placeholder);
+    for (const name of kitchens) {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      selCozinha.appendChild(opt);
+    }
+  }
+
+  function recordYearMonth(record) {
+    const parts = parseDateParts(record.data_acao);
+    if (!parts) return null;
+    return `${parts.y}-${String(parts.mo).padStart(2, "0")}`;
+  }
+
+  function filterRecords(records, kitchen, yearMonth) {
+    return records.filter((r) => {
+      if (String(r.cozinha || "").trim() !== kitchen) return false;
+      return recordYearMonth(r) === yearMonth;
+    });
+  }
+
+  function distinctActionDates(records) {
+    const keys = new Set();
+    const dates = [];
+    for (const r of records) {
+      const parts = parseDateParts(r.data_acao);
+      if (!parts) continue;
+      const key = parts.y * 10000 + parts.mo * 100 + parts.d;
+      if (keys.has(key)) continue;
+      keys.add(key);
+      dates.push(new Date(parts.y, parts.mo - 1, parts.d));
+    }
+    dates.sort((a, b) => a - b);
+    return dates;
+  }
+
+  function weekdaysFromDates(dates) {
+    const present = new Set(dates.map((d) => d.getDay()));
+    return WEEKDAY_LABELS
+      .filter((_, i) => present.has(i))
+      .map((label) => label.charAt(0).toUpperCase() + label.slice(1));
+  }
+
+  /**
+   * Agrega refeições por tipo a partir dos registros filtrados.
+   *
+   * TODO: Mapeamento de tipo_resultado/quantidade para tipo de refeição
+   * ainda não confirmado com o domínio — não assumir correspondência,
+   * aguardar confirmação.
+   *
+   * Por ora, apenas soma o total de registros com
+   * tipo_resultado == 'Contabilização de refeições servidas' como total
+   * genérico, sem quebrar por tipo de refeição.
+   */
+  function aggregateMealsByType(records) {
+    const mealRows = records.filter(
+      (r) => String(r.tipo_resultado || "").trim() === MEAL_TYPE_RESULT,
+    );
+
+    let total = 0;
+    for (const row of mealRows) {
+      const qty = parseNum(row.quantidade);
+      total += qty > 0 ? qty : 1;
+    }
+
+    return {
+      cafe: null,
+      almoco: null,
+      lanche: null,
+      jantar: null,
+      ceia: null,
+      total,
+      recordCount: mealRows.length,
+    };
+  }
+
+  function deliveryPlaces(records) {
+    const places = new Set();
+    for (const r of records) {
+      const local = String(r.local_distribuicao || "").trim();
+      const desc = String(r.descricao || "").trim();
+      if (local) places.add(local);
+      else if (desc) places.add(desc);
+    }
+    return [...places].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }
+
+  function formatMonthLabel(yearMonth) {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const d = new Date(y, m - 1, 1);
+    const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+
+  function formatMealCell(value) {
+    if (value === null || value === undefined) return "—";
+    return formatDecimal(value);
+  }
+
+  function renderReport({ kitchen, yearMonth, filtered }) {
+    const dates = distinctActionDates(filtered);
+    const weekdays = weekdaysFromDates(dates);
+    const meals = aggregateMealsByType(filtered);
+    const places = deliveryPlaces(filtered);
+
+    document.getElementById("doc-cozinha").textContent = kitchen || "—";
+    document.getElementById("doc-mes").textContent = formatMonthLabel(yearMonth);
+    document.getElementById("doc-dias-semana").textContent =
+      weekdays.length ? weekdays.join(", ") : "—";
+    document.getElementById("doc-qtd-dias").textContent = formatDecimal(dates.length);
+
+    document.getElementById("doc-cafe").textContent = formatMealCell(meals.cafe);
+    document.getElementById("doc-almoco").textContent = formatMealCell(meals.almoco);
+    document.getElementById("doc-lanche").textContent = formatMealCell(meals.lanche);
+    document.getElementById("doc-jantar").textContent = formatMealCell(meals.jantar);
+    document.getElementById("doc-ceia").textContent = formatMealCell(meals.ceia);
+    document.getElementById("doc-total-refeicoes").textContent = formatDecimal(meals.total);
+    document.getElementById("doc-total-mes").textContent = formatDecimal(meals.total);
+    document.getElementById("doc-locais").textContent =
+      places.length ? places.join("; ") : "—";
+
+    documento.classList.add("visivel");
+    btnPdf.disabled = false;
+  }
+
+  function updateGenerateEnabled() {
+    btnGerar.disabled = !(selCozinha.value && selMes.value && allRecords.length);
+  }
+
+  btnGerar.addEventListener("click", () => {
+    const kitchen = selCozinha.value;
+    const yearMonth = selMes.value;
+    if (!kitchen || !yearMonth) return;
+
+    const filtered = filterRecords(allRecords, kitchen, yearMonth);
+    if (!filtered.length) {
+      setStatusDot(elStatus, `sem registros para ${kitchen} em ${formatMonthLabel(yearMonth)}`, true);
+      renderReport({ kitchen, yearMonth, filtered: [] });
+      return;
+    }
+
+    setStatusDot(elStatus, `${filtered.length} registros · ${kitchen}`, false);
+    renderReport({ kitchen, yearMonth, filtered });
+  });
+
+  btnPdf.addEventListener("click", () => {
+    if (!documento.classList.contains("visivel")) return;
+    window.print();
+  });
+
+  selCozinha.addEventListener("change", updateGenerateEnabled);
+  selMes.addEventListener("change", updateGenerateEnabled);
+
+  setDefaultMonth();
+
+  parseCsv(CSV_URL_ATIVIDADES_COZINHAS)
+    .then((rows) => {
+      allRecords = rows || [];
+      const kitchens = uniqueKitchens(allRecords);
+      populateKitchenSelect(kitchens);
+      updateGenerateEnabled();
+
+      if (!allRecords.length) {
+        setStatusDot(
+          elStatus,
+          "aba atividades_cozinhas vazia ou indisponível — aguarde a carga ETL",
+          true,
+        );
+        return;
+      }
+      setStatusDot(
+        elStatus,
+        `${formatDecimal(allRecords.length)} registros · ${kitchens.length} cozinhas`,
+        false,
+      );
+    })
+    .catch((err) => {
+      console.error(err);
+      populateKitchenSelect([]);
+      setStatusDot(elStatus, "falha ao carregar atividades_cozinhas", true);
+    });
+})();
+</script>
+
+</body>
+</html>

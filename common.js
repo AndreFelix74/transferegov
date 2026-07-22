@@ -27,6 +27,8 @@ const CSV_URL_VIEW_PLANO_APLICACAO =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("view_plano_aplicacao_detalhado")}`;
 const CSV_URL_COZINHA =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("COZINHA")}`;
+const CSV_URL_ATIVIDADES_COZINHAS =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("atividades_cozinhas")}`;
 
 const PROPOSTA_DETAIL_URL =
   "https://discricionarias.transferegov.sistema.gov.br/voluntarias/ConsultarProposta/ResultadoDaConsultaDePropostaDetalharProposta.do?idProposta=";
