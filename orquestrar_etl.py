@@ -1,7 +1,7 @@
 """
 Orquestração do ETL SICONV - Cozinha Solidária / MDS
 =====================================================
-Extract  → Baixa os zips individuais de https://repositorio.dados.gov.br/seges/detru/ e extrai para ./raw
+Extract  → Baixa os zips individuais de https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov/ e extrai para ./raw
 Transform → Normaliza dados de ./raw em ./staging e gera tabelas largas declarativas
 Load      → Carrega os CSVs de ./staging na planilha Google Sheets
 
