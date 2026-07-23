@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suporte — Central de Dados Cozinha Solidária</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  header.topo.topo--landing {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  main.suporte{
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 28px clamp(20px,6vw,64px) 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* Bloco CTA no topo */
+  .cta-suporte{
+    background: var(--papel-carta, #fff);
+    border: 1px solid var(--linha, #e5e2e0);
+    border-radius: 12px;
+    box-shadow: var(--sombra, 0 1px 2px rgba(43,37,48,.06));
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .cta-suporte::before{
+    content: "";
+    display: block;
+    height: 4px;
+    background: #2b2530;
+    border-radius: 12px 12px 0 0;
+    margin: -24px -24px 8px;
+  }
+  .cta-suporte p{
+    margin: 0;
+    color: #4a444f;
+    line-height: 1.5;
+  }
+  .cta-suporte .botao-planner{
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #2b2530;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .cta-suporte .botao-planner:hover{
+    background: #443c4a;
+    transform: translateY(-1px);
+  }
+  .cta-suporte .botao-planner svg{
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Conteúdo textual */
+  .conteudo{
+    background: var(--papel-carta, #fff);
+    border: 1px solid var(--linha, #e5e2e0);
+    border-radius: 12px;
+    box-shadow: var(--sombra, 0 1px 2px rgba(43,37,48,.06));
+    padding: 28px 32px;
+    line-height: 1.6;
+    color: #2b2530;
+  }
+  .conteudo h2{
+    font-family: "IBM Plex Mono";
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #2b2530;
+    font-weight: 600;
+    margin: 28px 0 10px;
+  }
+  .conteudo h2:first-child{ margin-top: 0; }
+  .conteudo p{ margin: 0 0 12px; }
+  .conteudo ul{ margin: 0 0 16px; padding-left: 22px; }
+  .conteudo li{ margin-bottom: 4px; }
+  .conteudo a{
+    color: #317c5d;
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(49,124,93,.3);
+  }
+  .conteudo a:hover{ border-bottom-color: #317c5d; }
+  .conteudo strong{ font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header class="topo topo--landing">
+  <span class="eyebrow"><a href="index.html" style="color:inherit;text-decoration:none;">Programa Cozinha Solidária · MDS</a></span>
+  <h1>Suporte</h1>
+</header>
+
+<main class="suporte">
+
+  <!-- CTA topo -->
+  <section class="cta-suporte">
+    <p>Este é o canal oficial de suporte da <strong>Central de Dados Cozinha Solidária</strong>. Todas as dúvidas, relatos de problema e solicitações de melhoria devem ser registradas como tarefa no Planner do projeto.</p>
+    <a class="botao-planner" href="https://planner.cloud.microsoft/webui/plan/Qr952Yvsd0KJPrarlIz9aGQAEKxd/view/board?tid=49e66e23-2e11-4c98-9799-c02815282bd6" target="_blank" rel="noopener noreferrer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="12" y1="18" x2="12" y2="12"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+      Abrir chamado no Planner
+    </a>
+  </section>
+
+  <!-- Conteúdo -->
+  <article class="conteudo">
+
+    <h2>Objetivo</h2>
+    <ul>
+      <li>Centralizar o atendimento do sistema em um único canal.</li>
+      <li>Garantir que nenhum chamado se perca.</li>
+      <li>Permitir análise recorrente de problemas e melhorias.</li>
+      <li>Organizar o backlog com base em evidências.</li>
+    </ul>
+
+    <h2>Quem deve usar</h2>
+    <ul>
+      <li>Usuárias do sistema.</li>
+      <li>Product Owner.</li>
+      <li>Equipe de desenvolvimento.</li>
+      <li>Demais pessoas envolvidas na operação do sistema.</li>
+    </ul>
+
+    <h2>Como registrar um chamado</h2>
+    <p>Todo chamado é aberto como uma tarefa no bucket <strong>No bucket</strong> do <a href="https://planner.cloud.microsoft/webui/plan/Qr952Yvsd0KJPrarlIz9aGQAEKxd/view/board?tid=49e66e23-2e11-4c98-9799-c02815282bd6" target="_blank" rel="noopener noreferrer">Planner do projeto</a>. Cada tarefa corresponde a um chamado — evitar juntar assuntos diferentes na mesma tarefa.</p>
+    <p>No título, resumir o problema ou solicitação em uma frase curta.</p>
+    <p>Na descrição, incluir:</p>
+    <ul>
+      <li>Projeto (se aplicável)</li>
+      <li>Tela ou etapa do sistema</li>
+      <li>O que você esperava que acontecesse</li>
+      <li>O que aconteceu de fato</li>
+      <li>Print da tela (quando possível — anexar à tarefa)</li>
+    </ul>
+
+    <h2>Fluxo de atendimento</h2>
+    <ul>
+      <li>Toda comunicação sobre o chamado acontece nos comentários da própria tarefa no Planner.</li>
+      <li>A equipe de desenvolvimento responde dúvidas, pede informações adicionais e investiga bugs pelos comentários.</li>
+      <li>Artur e Luiza são responsáveis pela triagem, classificação e priorização das tarefas.</li>
+      <li>Bugs identificados pela própria equipe de desenvolvimento podem ser registrados diretamente como tarefa, sem depender de relato da usuária.</li>
+    </ul>
+
+    <h2>Classificação dos chamados</h2>
+    <p>A classificação é feita por Artur e Luiza durante a priorização, via marcação/categoria da tarefa. Pode incluir:</p>
+    <ul>
+      <li><strong>Bug</strong> — comportamento incorreto do sistema</li>
+      <li><strong>Dúvida</strong> — esclarecimento sobre uso ou comportamento esperado</li>
+      <li><strong>Melhoria</strong> — sugestão de evolução do produto</li>
+      <li><strong>Confusão conceitual</strong> — desalinhamento entre expectativa e design do sistema</li>
+      <li><strong>Validação</strong> — conferência de dados ou resultados</li>
+      <li><strong>Exportação</strong> — problemas ou pedidos relativos a exportação de dados</li>
+      <li><strong>Performance</strong> — lentidão ou problemas de desempenho</li>
+    </ul>
+
+    <h2>Uso pela equipe de desenvolvimento</h2>
+    <ul>
+      <li>Devs respondem dúvidas e investigam bugs diretamente nos comentários da tarefa.</li>
+      <li>Compromissos de roadmap não são definidos no atendimento — a priorização acontece no Planner, sob responsabilidade de Artur e Luiza.</li>
+    </ul>
+
+    <h2>Uso pelo Product Owner</h2>
+    <ul>
+      <li>Artur e Luiza acompanham as tarefas registradas no Planner.</li>
+      <li>Periodicamente, os registros são analisados para identificar recorrências e prioridades.</li>
+      <li>Nem toda solicitação resultará em implementação — a priorização segue critérios de impacto, recorrência e estratégia do produto.</li>
+      <li><strong>Devolutiva obrigatória:</strong> quando um chamado for resolvido, adiado ou descartado, a própria tarefa deve receber um comentário informando a decisão e, quando cabível, a justificativa antes de ser encerrada.</li>
+    </ul>
+
+    <h2>Regra importante</h2>
+    <p>Para garantir registro e acompanhamento adequados:</p>
+    <ul>
+      <li>Evitar solicitar suporte por mensagem privada, e-mail ou outros canais.</li>
+      <li>Utilizar sempre o Planner como canal único de suporte do sistema.</li>
+    </ul>
+
+    <p style="margin-top:24px;color:#6a6470;font-size:14px;">Este canal é parte da governança do produto e assegura que a Central de Dados Cozinha Solidária evolua de forma organizada, transparente e baseada em evidências.</p>
+  </article>
+
+</main>
+
+<footer class="rodape-pagina">
+  <span>Dados: TransfereGov / SICONV</span>
+  <span>Cozinha Solidária — MDS</span>
+</footer>
+
+</body>
+</html>
