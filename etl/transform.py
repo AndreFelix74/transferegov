@@ -85,7 +85,7 @@ def normalize(dataframe: pd.DataFrame) -> pd.DataFrame:
     for col in normalized.columns:
         if is_date_column(col):
             normalized[col] = normalized[col].str.replace(
-                DATE_RE, r"\3-\2-\1", regex=True,
+                DATE_RE, r"\3-\2-\1\4", regex=True,
             )
         elif is_decimal_column(col):
             normalized[col] = _normalize_financial_series(normalized[col])

@@ -21,7 +21,8 @@ CHUNK_SIZE = 1_000_000
 DATE_COLUMN_PREFIXES = ("DATA_", "DT_")
 NON_DATE_DAY_FIELDS = ("DIA", "MES", "ANO")
 DECIMAL_COLUMN_PREFIXES = ("VL_", "VALOR_", "QTD_", "PRECO_", "QUANTIDADE")
-DATE_RE = r"^(\d{2})/(\d{2})/(\d{4})$"
+# dd/mm/yyyy ou dd/mm/yyyy hh:mm:ss → yyyy-mm-dd[ hh:mm:ss] via \3-\2-\1\4
+DATE_RE = r"^(\d{2})/(\d{2})/(\d{4})( \d{2}:\d{2}:\d{2})?$"
 
 
 # Instrumentos que passam no filtro de Código de Programa (COD_PROGRAMA), mas
