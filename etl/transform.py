@@ -49,8 +49,11 @@ def load_view_definitions() -> list[dict]:
 
 def load_target_programs(config_file: Path) -> list[str]:
     with open(config_file, encoding="utf-8") as config_file_handle:
-        config = json.load(config_file_handle)
-    return [program["codigo"] for program in config["programas"]]
+        return [
+            stripped
+            for line in config_file_handle
+            if (stripped := line.strip()) and not stripped.startswith("#")
+        ]
 
 
 def filter_raw_csv(

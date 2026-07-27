@@ -6,7 +6,7 @@ RAW_DIR = BASE_DIR / "raw"
 STAGING_DIR = BASE_DIR / "staging"
 DB_DIR = BASE_DIR / "db"
 LOG_DIR = BASE_DIR / "logs"
-CONFIG_FILE = BASE_DIR / "programas_alvo.json"
+CONFIG_FILE = BASE_DIR / "programas_alvo.txt"
 DB_FILE = DB_DIR / "siconv.db"
 
 GOOGLE_SPREADSHEET_ID = "1sS6T-EbMOtlIXRbY5OAgZtzb9nde9MnNAkWmfP4ruYc"
