@@ -11,8 +11,10 @@ H_PATTERN = re.compile(r"\bH(\d{10})\b")
 _ZERO_TYPO_TABLE = str.maketrans({"O": "0", "o": "0"})
 
 
-def extrair_cs(descricao: str) -> str | None:
-    descricao = descricao or ""
+def extrair_cs(descricao: object) -> str | None:
+    # pandas NaN é float truthy: `nan or ""` não vira string e quebra o regex.
+    if not isinstance(descricao, str):
+        return None
 
     match_cs = CS_PATTERN.search(descricao)
     if match_cs:
