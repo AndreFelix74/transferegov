@@ -3,24 +3,29 @@ import logging
 import pandas as pd
 
 
-def enrich_proposta_com_programa(
+def _concat_distinct(series: pd.Series) -> object:
+    values = sorted({str(v).strip() for v in series.dropna() if str(v).strip()})
+    if not values:
+        return pd.NA
+    return "; ".join(values)
+
+
+def agregar_programa_por_proposta(
     proposta_df: pd.DataFrame,
     programa_proposta_df: pd.DataFrame,
     programa_df: pd.DataFrame,
     log: logging.Logger,
 ) -> pd.DataFrame:
     """
-    Enriquece proposta com dados de programa via programa_proposta.
-    Retorna proposta_enriquecida: 1 linha por proposta (ou mais, no raro caso de
-    propostas associadas a múltiplos programas — confirmado empiricamente, ~0.1% da
-    base). Garantia: nenhuma linha de proposta é descartada (zero-or-one match por
-    grupo, preservando todas as linhas via concat de matched + unmatched).
+    Anexa COD_PROGRAMA e NOME_PROGRAMA à proposta, 1 linha por ID_PROPOSTA.
+
+    Usa a mesma lógica de match (uf_especifica / brasil_todo) de antes; quando
+    uma proposta casa com vários programas, concatena valores distintos com '; '.
+    Propostas sem match preservam-se (left join): COD/NOME ficam nulos.
     """
     base = proposta_df.merge(programa_proposta_df, on="ID_PROPOSTA", how="left")
     base = base.reset_index(drop=True)
     base["_row_id"] = base.index
-
-    prog_cols = [c for c in programa_df.columns if c not in base.columns]
 
     match_uf = base.merge(
         programa_df,
@@ -52,31 +57,53 @@ def enrich_proposta_com_programa(
             "violado, revisar a lógica de match antes de prosseguir."
         )
 
+    matched = pd.concat([match_uf, match_brasil], ignore_index=True)
+
+    n_uf = int((matched["programa_match_status"] == "uf_especifica").sum()) if len(matched) else 0
+    n_brasil = int((matched["programa_match_status"] == "brasil_todo").sum()) if len(matched) else 0
+
     matched_ids = set(match_uf["_row_id"]) | set(match_brasil["_row_id"])
-    unmatched = base[~base["_row_id"].isin(matched_ids)].copy()
-    for col in prog_cols:
-        unmatched[col] = pd.NA
-    unmatched["programa_match_status"] = unmatched["ID_PROGRAMA"].isna().map(
-        {True: "sem_programa", False: "sem_match"},
-    )
+    unmatched = base[~base["_row_id"].isin(matched_ids)]
+    n_sem_programa = int(unmatched["ID_PROGRAMA"].isna().sum())
+    n_sem_match = int(unmatched["ID_PROGRAMA"].notna().sum())
 
-    proposta_enriquecida = pd.concat(
-        [match_uf, match_brasil, unmatched],
-        ignore_index=True,
-    )
-    proposta_enriquecida = proposta_enriquecida.drop(columns=["_row_id"])
-
-    if len(proposta_enriquecida) != len(base):
-        raise ValueError(
-            f"Enriquecimento perdeu ou duplicou linhas: base={len(base)}, "
-            f"resultado={len(proposta_enriquecida)}",
+    if matched.empty:
+        aggregated = pd.DataFrame(
+            columns=["ID_PROPOSTA", "COD_PROGRAMA", "NOME_PROGRAMA"],
+        )
+        n_collapsed = 0
+    else:
+        n_codes = matched.groupby("ID_PROPOSTA")["COD_PROGRAMA"].nunique(dropna=True)
+        n_collapsed = int((n_codes > 1).sum())
+        aggregated = (
+            matched.groupby("ID_PROPOSTA", as_index=False)
+            .agg(
+                COD_PROGRAMA=("COD_PROGRAMA", _concat_distinct),
+                NOME_PROGRAMA=("NOME_PROGRAMA", _concat_distinct),
+            )
         )
 
+    proposta_enriquecida = proposta_df.merge(
+        aggregated,
+        on="ID_PROPOSTA",
+        how="left",
+    )
+
+    if len(proposta_enriquecida) != len(proposta_df):
+        raise ValueError(
+            f"Agregação alterou cardinalidade de proposta: "
+            f"entrada={len(proposta_df)}, saída={len(proposta_enriquecida)}",
+        )
+    if proposta_enriquecida["ID_PROPOSTA"].duplicated().any():
+        raise ValueError(
+            "Agregação não é 1:1 por ID_PROPOSTA — há IDs duplicados na saída.",
+        )
+
+    n_com_programa = int(proposta_enriquecida["COD_PROGRAMA"].notna().sum())
     log.info(
-        f"  Enriquecimento proposta x programa: {len(proposta_enriquecida)} linhas "
-        f"({(proposta_enriquecida['programa_match_status'] == 'uf_especifica').sum()} uf_especifica, "
-        f"{(proposta_enriquecida['programa_match_status'] == 'brasil_todo').sum()} brasil_todo, "
-        f"{(proposta_enriquecida['programa_match_status'] == 'sem_match').sum()} sem_match, "
-        f"{(proposta_enriquecida['programa_match_status'] == 'sem_programa').sum()} sem_programa)",
+        f"  Agregação programa por proposta: {len(proposta_enriquecida)} linhas (1:1) "
+        f"({n_com_programa} com programa, {n_collapsed} com múltiplos programas concatenados; "
+        f"pré-agregação: {n_uf} uf_especifica, {n_brasil} brasil_todo, "
+        f"{n_sem_match} sem_match, {n_sem_programa} sem_programa)",
     )
     return proposta_enriquecida

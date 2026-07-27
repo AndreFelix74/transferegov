@@ -18,7 +18,7 @@ from etl.config import (
     short_table_name_from_file,
 )
 from etl.cs_codigo import extrair_cs
-from etl.enrichment import enrich_proposta_com_programa
+from etl.enrichment import agregar_programa_por_proposta
 from etl.links import link_proposta
 from etl.plano_aplicacao import natureza_despesa_de_codigo
 from etl.proposta import padronizar_nr_proposta
@@ -174,8 +174,8 @@ def transform(log: logging.Logger):
     for table_name in sorted(VIEW_SOURCE_TABLES):
         log.info(f"  {table_name}: {len(dataframes_by_table[table_name])} registros")
 
-    log.info("  Enriquecendo proposta com dados de programa ...")
-    proposta_enriquecida = enrich_proposta_com_programa(
+    log.info("  Agregando programa por proposta (1:1) ...")
+    proposta_enriquecida = agregar_programa_por_proposta(
         dataframes_by_table["proposta"],
         dataframes_by_table["programa_proposta"],
         dataframes_by_table["programa"],
