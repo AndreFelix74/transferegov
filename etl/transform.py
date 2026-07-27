@@ -9,6 +9,7 @@ from etl.config import (
     CONFIG_FILE,
     CSV_ENCODING,
     DATE_RE,
+    EXCLUDABLE_AGREEMENT_FILES,
     EXCLUDED_AGREEMENT_NUMBERS,
     RAW_DIR,
     STAGING_DIR,
@@ -22,6 +23,7 @@ from etl.enrichment import agregar_programa_por_proposta
 from etl.links import link_proposta
 from etl.plano_aplicacao import natureza_despesa_de_codigo
 from etl.proposta import padronizar_nr_proposta
+from etl.ultima_situacao import ultima_situacao_por_convenio
 from etl.views import build_view
 
 VIEW_SOURCE_TABLES = {
@@ -136,7 +138,7 @@ def transform(log: logging.Logger):
             filter_column,
             filter_ids,
         )
-        if filename == "siconv_convenio.csv" and "NR_CONVENIO" in table_df.columns:
+        if filename in EXCLUDABLE_AGREEMENT_FILES and "NR_CONVENIO" in table_df.columns:
             table_df = table_df[~table_df["NR_CONVENIO"].isin(EXCLUDED_AGREEMENT_NUMBERS)]
 
         log.info(f"    → {len(table_df)} registros")
@@ -161,6 +163,8 @@ def transform(log: logging.Logger):
 
         if table_name in VIEW_SOURCE_TABLES:
             dataframes_by_table[table_name] = normalized_df
+        elif table_name == "historico_situacao":
+            dataframes_by_table[table_name] = normalized_df
 
         if "extract_column" in table:
             extract_set = table["extract_set"]
@@ -168,6 +172,18 @@ def transform(log: logging.Logger):
             log.info(f"  {len(id_sets[extract_set])} IDs em {extract_set}")
 
     log.info("Normalização concluída.")
+
+    log.info("=== TRANSFORM: ULTIMA SITUACAO ===")
+    ultima_situacao = ultima_situacao_por_convenio(dataframes_by_table["historico_situacao"])
+    write_staging_csv(ultima_situacao, STAGING_DIR, "ultima_situacao_por_convenio.csv")
+    log.info(
+        f"  → {len(ultima_situacao)} convênios com última situação "
+        f"(entrada: {len(dataframes_by_table['historico_situacao'])} registros)",
+    )
+    log.debug(
+        "  Distribuição de HISTORICO_SIT:\n"
+        f"{ultima_situacao['HISTORICO_SIT'].value_counts().to_string()}",
+    )
 
     log.info("=== TRANSFORM: BUILD VIEWS ===")
 

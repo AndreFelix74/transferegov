@@ -29,6 +29,7 @@ DATE_RE = r"^(\d{2})/(\d{2})/(\d{4})( \d{2}:\d{2}:\d{2})?$"
 # pertencem a outra área da Secretaria — excluídos manualmente do recorte da
 # Cozinha Solidária.
 EXCLUDED_AGREEMENT_NUMBERS = {"970193", "980185", "998038"}
+EXCLUDABLE_AGREEMENT_FILES = {"siconv_convenio.csv", "siconv_historico_situacao.csv"}
 
 
 def is_date_column(column: str) -> bool:
@@ -108,7 +109,7 @@ TABLES = [
 
 VIEWS_DIR = Path(__file__).parent / "views"
 
-ENRICHMENT_CSV_FILES = ["proposta_enriquecida.csv"]
+ENRICHMENT_CSV_FILES = ["proposta_enriquecida.csv", "ultima_situacao_por_convenio.csv"]
 
 
 def required_csv_files() -> list[str]:
