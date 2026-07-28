@@ -271,6 +271,96 @@
     font-style: italic;
   }
 
+  .calendario-rotulo {
+    margin: 0 0 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--tinta-suave);
+    font-weight: 600;
+  }
+
+  /* Heatmap compacto (referência: contribution graph do GitHub) */
+  table.doc-calendario {
+    width: auto;
+    max-width: 100%;
+    border-collapse: separate;
+    border-spacing: 3px;
+    margin: 0 0 14px;
+    table-layout: fixed;
+  }
+
+  table.doc-calendario th,
+  table.doc-calendario td {
+    border: none;
+    width: 34px;
+    padding: 0;
+    text-align: center;
+  }
+
+  table.doc-calendario th.semana-rotulo,
+  table.doc-calendario td.semana-inicio,
+  table.doc-calendario th.semana-inicio {
+    width: 22px;
+    background: transparent;
+    border-radius: 0;
+    font-family: "IBM Plex Mono";
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--tinta-suave);
+    text-align: right;
+    padding-right: 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  table.doc-calendario th {
+    height: auto;
+    background: transparent;
+    font-size: 9px;
+    letter-spacing: .02em;
+    color: var(--tinta-suave);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  table.doc-calendario td {
+    height: 34px;
+    vertical-align: middle;
+    border-radius: 3px;
+    background: #ebedf0;
+    line-height: 1.05;
+  }
+
+  table.doc-calendario td.fora-mes {
+    background: transparent;
+  }
+
+  table.doc-calendario td.nivel-0 { background: #ebedf0; }
+  table.doc-calendario td.nivel-1 { background: #c6e3d5; }
+  table.doc-calendario td.nivel-2 { background: #7fbf9e; }
+  table.doc-calendario td.nivel-3 { background: #4a9a72; color: #fff; }
+  table.doc-calendario td.nivel-4 { background: #317c5d; color: #fff; }
+
+  table.doc-calendario .dia-registros {
+    display: block;
+    font-family: "IBM Plex Mono";
+    font-size: 11px;
+    font-weight: 600;
+  }
+
   .doc-assinaturas {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -389,6 +479,17 @@
       color: #555 !important;
       font-size: 10pt;
     }
+
+    table.doc-calendario td {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    table.doc-calendario td.nivel-0 { background: #ebedf0 !important; }
+    table.doc-calendario td.nivel-1 { background: #c6e3d5 !important; }
+    table.doc-calendario td.nivel-2 { background: #7fbf9e !important; }
+    table.doc-calendario td.nivel-3 { background: #4a9a72 !important; color: #fff !important; }
+    table.doc-calendario td.nivel-4 { background: #317c5d !important; color: #fff !important; }
   }
 </style>
 </head>
@@ -488,12 +589,29 @@
           <div class="valor" id="doc-mes">—</div>
         </div>
       </div>
+      <p class="calendario-rotulo" id="calendario-rotulo">Produção diária no mês</p>
+      <table
+        class="doc-tabela doc-calendario"
+        id="doc-calendario"
+        aria-labelledby="calendario-rotulo"
+      >
+        <thead>
+          <tr>
+            <th class="semana-rotulo" scope="col"><span class="sr-only">Início da semana</span></th>
+            <th scope="col">Seg</th>
+            <th scope="col">Ter</th>
+            <th scope="col">Qua</th>
+            <th scope="col">Qui</th>
+            <th scope="col">Sex</th>
+            <th scope="col">Sáb</th>
+            <th scope="col">Dom</th>
+          </tr>
+        </thead>
+        <tbody id="doc-calendario-corpo"></tbody>
+      </table>
+
       <table class="doc-tabela">
         <tbody>
-          <tr>
-            <th scope="row">Dias da semana em que a cozinha funcionou no mês</th>
-            <td id="doc-dias-semana">—</td>
-          </tr>
           <tr>
             <th scope="row">Quantidade de dias de produção e entrega no mês</th>
             <td class="num" id="doc-qtd-dias">—</td>
@@ -587,11 +705,6 @@
 
 <script>
 (function () {
-  const WEEKDAY_LABELS = [
-    "domingo", "segunda-feira", "terça-feira", "quarta-feira",
-    "quinta-feira", "sexta-feira", "sábado",
-  ];
-
   const MEAL_TYPE_RESULT = "Contabilização de refeições servidas";
 
   /** @type {object[]} */
@@ -691,26 +804,38 @@
     });
   }
 
-  function distinctActionDates(records) {
-    const keys = new Set();
-    const dates = [];
-    for (const r of records) {
-      const parts = parseDateParts(r.data_acao);
-      if (!parts) continue;
-      const key = parts.y * 10000 + parts.mo * 100 + parts.d;
-      if (keys.has(key)) continue;
-      keys.add(key);
-      dates.push(new Date(parts.y, parts.mo - 1, parts.d));
-    }
-    dates.sort((a, b) => a - b);
-    return dates;
+  function mealQuantity(row) {
+    const qty = parseNum(row.quantidade);
+    return qty > 0 ? qty : 1;
   }
 
-  function weekdaysFromDates(dates) {
-    const present = new Set(dates.map((d) => d.getDay()));
-    return WEEKDAY_LABELS
-      .filter((_, i) => present.has(i))
-      .map((label) => label.charAt(0).toUpperCase() + label.slice(1));
+  function isMealAccountingRow(row) {
+    return String(row.tipo_resultado || "").trim() === MEAL_TYPE_RESULT;
+  }
+
+  /**
+   * Conta registros de atividade por dia do mês (chave = dia 1–31).
+   * Critério provisório — será refinado; por ora N = quantidade de registros do dia.
+   * @returns {Map<number, number>}
+   */
+  function countRecordsByDay(records) {
+    const byDay = new Map();
+    for (const row of records) {
+      const parts = parseDateParts(row.data_acao);
+      if (!parts) continue;
+      byDay.set(parts.d, (byDay.get(parts.d) || 0) + 1);
+    }
+    return byDay;
+  }
+
+  function heatLevel(count, max) {
+    if (count <= 0) return 0;
+    if (max <= 1) return 1;
+    const ratio = count / max;
+    if (ratio <= 0.25) return 1;
+    if (ratio <= 0.5) return 2;
+    if (ratio <= 0.75) return 3;
+    return 4;
   }
 
   /**
@@ -725,14 +850,11 @@
    * genérico, sem quebrar por tipo de refeição.
    */
   function aggregateMealsByType(records) {
-    const mealRows = records.filter(
-      (r) => String(r.tipo_resultado || "").trim() === MEAL_TYPE_RESULT,
-    );
+    const mealRows = records.filter(isMealAccountingRow);
 
     let total = 0;
     for (const row of mealRows) {
-      const qty = parseNum(row.quantidade);
-      total += qty > 0 ? qty : 1;
+      total += mealQuantity(row);
     }
 
     return {
@@ -744,6 +866,71 @@
       total,
       recordCount: mealRows.length,
     };
+  }
+
+  /**
+   * Monta heatmap compacto (segunda→domingo; 5 ou 6 semanas).
+   * À esquerda de cada linha: dia do mês da segunda-feira da semana
+   * (omitido se a segunda cair fora do mês).
+   * N = quantidade de registros de atividade no dia.
+   */
+  function renderCalendar(yearMonth, recordsByDay) {
+    const tbody = document.getElementById("doc-calendario-corpo");
+    tbody.innerHTML = "";
+
+    const [y, m] = yearMonth.split("-").map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const firstDow = new Date(y, m - 1, 1).getDay(); // 0=domingo
+    const offset = (firstDow + 6) % 7; // segunda=0 … domingo=6
+    const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
+    const maxCount = Math.max(0, ...recordsByDay.values());
+
+    let day = 1;
+    let tr = null;
+    for (let i = 0; i < totalCells; i++) {
+      if (i % 7 === 0) {
+        tr = document.createElement("tr");
+        tbody.appendChild(tr);
+
+        const weekStart = 1 - offset + i;
+        const label = document.createElement("th");
+        label.className = "semana-inicio";
+        label.scope = "row";
+        if (weekStart >= 1 && weekStart <= daysInMonth) {
+          label.textContent = String(weekStart);
+          label.setAttribute("aria-label", `semana a partir do dia ${weekStart}`);
+        } else {
+          label.textContent = "";
+          label.setAttribute("aria-hidden", "true");
+        }
+        tr.appendChild(label);
+      }
+
+      const td = document.createElement("td");
+      if (i < offset || day > daysInMonth) {
+        td.className = "fora-mes";
+        td.setAttribute("aria-hidden", "true");
+      } else {
+        const n = recordsByDay.get(day) || 0;
+        const level = heatLevel(n, maxCount);
+        td.className = `nivel-${level}`;
+
+        if (n > 0) {
+          const countEl = document.createElement("span");
+          countEl.className = "dia-registros";
+          countEl.textContent = formatDecimal(n);
+          td.appendChild(countEl);
+          td.setAttribute(
+            "aria-label",
+            `dia ${day}, ${formatDecimal(n)} registros`,
+          );
+        } else {
+          td.setAttribute("aria-label", `dia ${day}, sem atividade`);
+        }
+        day += 1;
+      }
+      tr.appendChild(td);
+    }
   }
 
   function deliveryPlaces(records) {
@@ -770,9 +957,9 @@
   }
 
   function renderReport({ kitchen, yearMonth, filtered }) {
-    const dates = distinctActionDates(filtered);
-    const weekdays = weekdaysFromDates(dates);
+    const recordsByDay = countRecordsByDay(filtered);
     const meals = aggregateMealsByType(filtered);
+    const productionDays = [...recordsByDay.values()].filter((n) => n > 0).length;
     const places = deliveryPlaces(filtered);
     const kitchenCode = extractKitchenCode(kitchen);
     const managingEntity = managingEntityByKitchen.get(kitchenCode) || null;
@@ -785,9 +972,9 @@
     document.getElementById("doc-cozinha").textContent =
       kitchenDisplayName(kitchen) || kitchen || "—";
     document.getElementById("doc-mes").textContent = formatMonthLabel(yearMonth);
-    document.getElementById("doc-dias-semana").textContent =
-      weekdays.length ? weekdays.join(", ") : "—";
-    document.getElementById("doc-qtd-dias").textContent = formatDecimal(dates.length);
+    renderCalendar(yearMonth, recordsByDay);
+    document.getElementById("doc-qtd-dias").textContent =
+      formatDecimal(productionDays);
 
     document.getElementById("doc-cafe").textContent = formatMealCell(meals.cafe);
     document.getElementById("doc-almoco").textContent = formatMealCell(meals.almoco);
