@@ -30,6 +30,11 @@ const CSV_URL_COZINHA =
 const CSV_URL_ATIVIDADES_COZINHAS =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("atividades_cozinhas")}`;
 
+/** Aba EG-x-CS (código/nome da Entidade Gestora ↔ Código da Cozinha). */
+const GID_EG_X_CS = "2076063492";
+const CSV_URL_EG_X_CS =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_EG_X_CS}&headers=1`;
+
 const PROPOSTA_DETAIL_URL =
   "https://discricionarias.transferegov.sistema.gov.br/voluntarias/ConsultarProposta/ResultadoDaConsultaDePropostaDetalharProposta.do?idProposta=";
 const ITEM_PAD_DETAIL_URL =

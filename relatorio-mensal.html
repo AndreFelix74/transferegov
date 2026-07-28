@@ -449,24 +449,45 @@
       <p class="anexo">Anexo XI — Edital MDS nº 01/2026</p>
     </header>
 
-    <!-- Seção 1 / Identificação -->
-    <section class="doc-secao" aria-labelledby="sec-ident">
-      <h3 id="sec-ident">1. Identificação</h3>
+    <!-- Seção 1 — Entidade Gestora (Anexo XI) -->
+    <section class="doc-secao" aria-labelledby="sec-eg">
+      <h3 id="sec-eg">1. Identificação da Entidade Gestora</h3>
       <div class="doc-grid">
         <div class="doc-campo">
-          <label>Cozinha Solidária</label>
-          <div class="valor" id="doc-cozinha">—</div>
+          <label>Código SIG-PCS</label>
+          <div class="valor mono" id="doc-eg-codigo">—</div>
         </div>
         <div class="doc-campo">
-          <label>Mês / Ano de referência</label>
-          <div class="valor" id="doc-mes">—</div>
+          <label>Nome da Entidade Gestora</label>
+          <div class="valor" id="doc-eg-nome">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seção 2 — Cozinha Solidária (Anexo XI) -->
+    <section class="doc-secao" aria-labelledby="sec-cs">
+      <h3 id="sec-cs">2. Identificação da Cozinha Solidária</h3>
+      <div class="doc-grid">
+        <div class="doc-campo">
+          <label>Código SIG-PCS</label>
+          <div class="valor mono" id="doc-cs-codigo">—</div>
+        </div>
+        <div class="doc-campo">
+          <label>Nome da Cozinha</label>
+          <div class="valor" id="doc-cozinha">—</div>
         </div>
       </div>
     </section>
 
     <!-- Seção 3 — Produção e entrega -->
     <section class="doc-secao" aria-labelledby="sec-producao">
-      <h3 id="sec-producao">3. Produção e entrega de refeições</h3>
+      <h3 id="sec-producao">3. Dados sobre as refeições produzidas</h3>
+      <div class="doc-grid" style="margin-bottom:14px">
+        <div class="doc-campo">
+          <label>Mês / Ano de referência</label>
+          <div class="valor" id="doc-mes">—</div>
+        </div>
+      </div>
       <table class="doc-tabela">
         <tbody>
           <tr>
@@ -549,11 +570,11 @@
     <div class="doc-assinaturas">
       <div class="linha-assinatura">
         <div class="espaco"></div>
-        <div class="cargo">Responsável pela Cozinha Solidária<br>(assinatura eletrônica)</div>
+        <div class="cargo">5. Representante da Cozinha Solidária<br>(assinatura gov.br)</div>
       </div>
       <div class="linha-assinatura">
         <div class="espaco"></div>
-        <div class="cargo">Local e data</div>
+        <div class="cargo">6. Representante da Entidade Gestora<br>(assinatura gov.br)</div>
       </div>
     </div>
   </article>
@@ -576,6 +597,9 @@
   /** @type {object[]} */
   let allRecords = [];
 
+  /** @type {Map<string, { code: string, name: string }>} */
+  let managingEntityByKitchen = new Map();
+
   const elStatus = "#status-atualizacao";
   const selCozinha = document.getElementById("sel-cozinha");
   const selMes = document.getElementById("sel-mes");
@@ -588,6 +612,48 @@
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, "0");
     selMes.value = `${y}-${m}`;
+  }
+
+  function extractKitchenCode(value) {
+    const match = String(value || "").toUpperCase().match(/CS\d+/);
+    return match ? match[0] : "";
+  }
+
+  function kitchenDisplayName(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return raw
+      .replace(/^\(CS\d+\)\s*/i, "")
+      .replace(/\s*\([^)]*\)\s*$/, "")
+      .trim() || raw;
+  }
+
+  function buildManagingEntityByKitchen(rows) {
+    const egDirectory = new Map();
+    for (const row of rows || []) {
+      const code = String(row["Código da Entidade"] || "").trim().toUpperCase();
+      const name = String(row.Entidade || "").trim();
+      if (code && name) egDirectory.set(code, name);
+    }
+
+    const map = new Map();
+    for (const row of rows || []) {
+      const kitchenCode = extractKitchenCode(row["Código da Cozinha"])
+        || normalizeKitchenCode(row["Código da Cozinha"]);
+      if (!kitchenCode) continue;
+
+      const primary = String(row["Código da Entidade"] || "").trim().toUpperCase();
+      const fromPlan = String(row["Código EG"] || "").trim().toUpperCase();
+      const code = primary || fromPlan;
+      if (!code) continue;
+
+      const name = String(row.Entidade || "").trim() || egDirectory.get(code) || "";
+      // Prefere vínculo explícito Código da Entidade; não sobrescreve se já houver.
+      if (!map.has(kitchenCode) || primary) {
+        map.set(kitchenCode, { code, name });
+      }
+    }
+    return map;
   }
 
   function uniqueKitchens(records) {
@@ -708,8 +774,16 @@
     const weekdays = weekdaysFromDates(dates);
     const meals = aggregateMealsByType(filtered);
     const places = deliveryPlaces(filtered);
+    const kitchenCode = extractKitchenCode(kitchen);
+    const managingEntity = managingEntityByKitchen.get(kitchenCode) || null;
 
-    document.getElementById("doc-cozinha").textContent = kitchen || "—";
+    document.getElementById("doc-eg-codigo").textContent =
+      managingEntity?.code || "—";
+    document.getElementById("doc-eg-nome").textContent =
+      managingEntity?.name || "—";
+    document.getElementById("doc-cs-codigo").textContent = kitchenCode || "—";
+    document.getElementById("doc-cozinha").textContent =
+      kitchenDisplayName(kitchen) || kitchen || "—";
     document.getElementById("doc-mes").textContent = formatMonthLabel(yearMonth);
     document.getElementById("doc-dias-semana").textContent =
       weekdays.length ? weekdays.join(", ") : "—";
@@ -759,9 +833,13 @@
 
   setDefaultMonth();
 
-  parseCsv(CSV_URL_ATIVIDADES_COZINHAS)
-    .then((rows) => {
-      allRecords = rows || [];
+  Promise.all([
+    parseCsv(CSV_URL_ATIVIDADES_COZINHAS),
+    parseCsv(CSV_URL_EG_X_CS),
+  ])
+    .then(([activityRows, egRows]) => {
+      allRecords = activityRows || [];
+      managingEntityByKitchen = buildManagingEntityByKitchen(egRows);
       const kitchens = uniqueKitchens(allRecords);
       populateKitchenSelect(kitchens);
       updateGenerateEnabled();
@@ -774,16 +852,20 @@
         );
         return;
       }
+
+      const egNote = managingEntityByKitchen.size
+        ? ` · ${formatDecimal(managingEntityByKitchen.size)} vínculos EG↔CS`
+        : " · EG-x-CS sem vínculos";
       setStatusDot(
         elStatus,
-        `${formatDecimal(allRecords.length)} registros · ${kitchens.length} cozinhas`,
-        false,
+        `${formatDecimal(allRecords.length)} registros · ${kitchens.length} cozinhas${egNote}`,
+        !managingEntityByKitchen.size,
       );
     })
     .catch((err) => {
       console.error(err);
       populateKitchenSelect([]);
-      setStatusDot(elStatus, "falha ao carregar atividades_cozinhas", true);
+      setStatusDot(elStatus, "falha ao carregar atividades_cozinhas / EG-x-CS", true);
     });
 })();
 </script>
