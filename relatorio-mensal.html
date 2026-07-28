@@ -990,8 +990,35 @@
     btnPdf.disabled = false;
   }
 
+  function clearReport() {
+    documento.classList.remove("visivel");
+    btnPdf.disabled = true;
+
+    const blankIds = [
+      "doc-eg-codigo", "doc-eg-nome",
+      "doc-cs-codigo", "doc-cozinha", "doc-mes",
+      "doc-qtd-dias",
+      "doc-cafe", "doc-almoco", "doc-lanche", "doc-jantar", "doc-ceia",
+      "doc-total-refeicoes", "doc-total-mes", "doc-locais",
+    ];
+    for (const id of blankIds) {
+      document.getElementById(id).textContent = "—";
+    }
+
+    const calBody = document.getElementById("doc-calendario-corpo");
+    if (calBody) calBody.innerHTML = "";
+
+    document.getElementById("doc-perfil").value = "";
+    document.getElementById("doc-recursos").value = "";
+  }
+
   function updateGenerateEnabled() {
     btnGerar.disabled = !(selCozinha.value && selMes.value && allRecords.length);
+  }
+
+  function onFilterChange() {
+    clearReport();
+    updateGenerateEnabled();
   }
 
   btnGerar.addEventListener("click", () => {
@@ -1015,8 +1042,8 @@
     window.print();
   });
 
-  selCozinha.addEventListener("change", updateGenerateEnabled);
-  selMes.addEventListener("change", updateGenerateEnabled);
+  selCozinha.addEventListener("change", onFilterChange);
+  selMes.addEventListener("change", onFilterChange);
 
   setDefaultMonth();
 
