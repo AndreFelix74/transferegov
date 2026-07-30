@@ -651,7 +651,75 @@ function buildConvenioListFromData(data) {
     .sort((a, b) => (+a.NR_CONVENIO) - (+b.NR_CONVENIO));
 }
 
-/* --- 7. Status UI --- */
+/* --- 7. view_pagamento · execução agregada --- */
+
+function pickFirstNonEmpty(current, incoming) {
+  const value = String(incoming ?? "").trim();
+  if (!value) return current;
+  if (current && current !== "—") return current;
+  return value;
+}
+
+function aggregateExecutionFromPagamentoView(pagamentoRows) {
+  const byConvenio = Object.create(null);
+
+  for (const raw of pagamentoRows) {
+    const nr = String(raw.NR_CONVENIO || "").trim();
+    if (!nr) continue;
+
+    if (!byConvenio[nr]) {
+      byConvenio[nr] = {
+        proposalId: "",
+        modality: "—",
+        proposalYear: "",
+        proposalNumber: "—",
+        convenioNumber: nr,
+        proponent: "—",
+        processNumber: "—",
+        state: "—",
+        paidValue: 0,
+        globalProposalValue: 0,
+      };
+    }
+
+    const row = byConvenio[nr];
+    row.paidValue += parseNum(raw.VL_PAGO);
+    row.proposalId = pickFirstNonEmpty(row.proposalId, raw.ID_PROPOSTA);
+    row.modality = pickFirstNonEmpty(row.modality, raw.MODALIDADE) || "—";
+    row.proposalYear = pickFirstNonEmpty(row.proposalYear, raw.ANO_PROP) || "";
+    row.proposalNumber = pickFirstNonEmpty(row.proposalNumber, raw.NR_PROPOSTA) || "—";
+    row.proponent = pickFirstNonEmpty(row.proponent, raw.NM_PROPONENTE) || "—";
+    row.processNumber = pickFirstNonEmpty(row.processNumber, raw.NR_PROCESSO) || "—";
+    row.state = pickFirstNonEmpty(row.state, raw.UF_PROPONENTE) || "—";
+
+    const globalValue = parseNum(raw.VL_GLOBAL_PROP);
+    if (globalValue > 0) row.globalProposalValue = globalValue;
+  }
+
+  return Object.values(byConvenio).map((row) => {
+    const executionPercent = row.globalProposalValue > 0
+      ? Math.min(100, Math.max(0, (row.paidValue / row.globalProposalValue) * 100))
+      : null;
+    const type = getInstrumentCategory({
+      MODALIDADE: row.modality === "—" ? "" : row.modality,
+      ANO_PROP: row.proposalYear,
+    });
+    return {
+      ...row,
+      type,
+      proponent: row.proponent === "—" ? "(sem nome cadastrado)" : row.proponent,
+      executionPercent,
+    };
+  });
+}
+
+function loadExecutionFromPagamentoView() {
+  return parseCsv(CSV_URL_VIEW_PAGAMENTO).then((pagamentoRows) => ({
+    rows: aggregateExecutionFromPagamentoView(pagamentoRows || []),
+  }));
+}
+
+/* --- 8. Status UI --- */
 
 function setStatusBanner(selector, message, kind) {
   const el = document.querySelector(selector);
