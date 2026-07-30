@@ -62,7 +62,7 @@
         </select>
         <div class="campo-busca">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
-          <input type="text" id="busca" placeholder="Buscar proponente, convênio…">
+          <input type="text" id="busca" placeholder="Buscar proponente, técnica, convênio…">
         </div>
       </div>
     </div>
@@ -72,6 +72,7 @@
         <thead>
           <tr>
             <th data-campo="modality">MODALIDADE <span class="seta">↕</span></th>
+            <th data-campo="technician">Técnica <span class="seta">↕</span></th>
             <th data-campo="proposalNumber">NR_PROPOSTA <span class="seta">↕</span></th>
             <th data-campo="convenioNumber">NR_CONVENIO <span class="seta">↕</span></th>
             <th data-campo="proponent">NM_PROPONENTE <span class="seta">↕</span></th>
@@ -92,6 +93,7 @@
             <th data-campo="vigencyStart">DIA_INIC_VIGENC_CONV <span class="seta">↕</span></th>
             <th data-campo="vigencyEnd">DIA_FIM_VIGENC_CONV <span class="seta">↕</span></th>
             <th data-campo="accountabilityDeadline">DIA_LIMITE_PREST_CONTAS <span class="seta">↕</span></th>
+            <th data-campo="totalVigencyMonths">Meses de Vigência <span class="seta">↕</span></th>
             <th data-campo="totalVigencyDays">Total de Dias de Vigência <span class="seta">↕</span></th>
             <th data-campo="elapsedDays">Dias Transcorridos <span class="seta">↕</span></th>
             <th data-campo="daysRemaining" class="ativo">Dias Restantes de Vigência <span class="seta">↓</span></th>
@@ -101,7 +103,7 @@
           </tr>
         </thead>
         <tbody id="corpo-tabela">
-          <tr><td colspan="27" class="carregando">Carregando dados da planilha…</td></tr>
+          <tr><td colspan="29" class="carregando">Carregando dados da planilha…</td></tr>
         </tbody>
       </table>
     </div>
@@ -114,7 +116,7 @@
 </main>
 
 <script>
-const COLSPAN = 27;
+const COLSPAN = 29;
 
 let rows = [];
 let loadDate = null;
@@ -172,7 +174,8 @@ function filteredRows() {
     row.proponent.toLowerCase().includes(term)
     || String(row.convenioNumber).toLowerCase().includes(term)
     || String(row.proposalNumber).toLowerCase().includes(term)
-    || String(row.cnpj).toLowerCase().includes(term),
+    || String(row.cnpj).toLowerCase().includes(term)
+    || String(row.technician || "").toLowerCase().includes(term),
   );
 }
 
@@ -201,6 +204,7 @@ function renderRow(row) {
 
   return `<tr>
     <td>${row.modality}</td>
+    <td>${row.technician ? escapeHtml(row.technician) : "—"}</td>
     <td class="mono">${row.proposalNumber}</td>
     <td>${convenioLink}</td>
     <td class="celula-proponente-wrap">${row.proponent}</td>
@@ -221,6 +225,7 @@ function renderRow(row) {
     <td class="mono">${formatDate(row.vigencyStart)}</td>
     <td class="mono">${formatDate(row.vigencyEnd)}</td>
     <td class="mono">${formatDate(row.accountabilityDeadline)}</td>
+    <td class="mono">${row.totalVigencyMonths === null ? "—" : row.totalVigencyMonths}</td>
     <td class="mono">${row.totalVigencyDays === null ? "—" : row.totalVigencyDays}</td>
     <td class="mono">${row.elapsedDays === null ? "—" : row.elapsedDays}</td>
     <td>${formatDeadlineStamp(row)}</td>

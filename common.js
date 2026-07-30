@@ -441,7 +441,18 @@ function getProposalIdsWithConvenio(convenios) {
   return ids;
 }
 
-function transformPartnershipInstrumentRow(rawRow, usedYieldByConvenio, executedValueByConvenio, today) {
+function monthsBetween(startDate, endDate) {
+  return (endDate.getFullYear() - startDate.getFullYear()) * 12
+    + (endDate.getMonth() - startDate.getMonth());
+}
+
+function transformPartnershipInstrumentRow(
+  rawRow,
+  usedYieldByConvenio,
+  executedValueByConvenio,
+  today,
+  { technicianByConvenio } = {},
+) {
   const nrConvenio = String(rawRow.NR_CONVENIO || "").trim();
   const startDate = parseDate(rawRow.DIA_INIC_VIGENC_CONV);
   const endDate = parseDate(rawRow.DIA_FIM_VIGENC_CONV);
@@ -458,12 +469,14 @@ function transformPartnershipInstrumentRow(rawRow, usedYieldByConvenio, executed
     : null;
 
   let totalVigencyDays = null;
+  let totalVigencyMonths = null;
   let elapsedDays = null;
   let daysRemaining = null;
   let elapsedTimePercent = null;
 
   if (startDate && endDate) {
     totalVigencyDays = daysBetween(endDate, startDate);
+    totalVigencyMonths = monthsBetween(startDate, endDate);
     if (totalVigencyDays >= 0) {
       const rawElapsed = daysBetween(today, startDate);
       elapsedDays = Math.min(totalVigencyDays, Math.max(0, rawElapsed));
@@ -477,6 +490,9 @@ function transformPartnershipInstrumentRow(rawRow, usedYieldByConvenio, executed
   return {
     proposalId: rawRow.ID_PROPOSTA || "",
     modality: rawRow.MODALIDADE || "—",
+    technician: (technicianByConvenio && nrConvenio)
+      ? (technicianByConvenio[nrConvenio] || null)
+      : null,
     proposalNumber: rawRow.NR_PROPOSTA || "—",
     convenioNumber: nrConvenio || "—",
     proponent: rawRow.NM_PROPONENTE || "(sem nome cadastrado)",
@@ -497,6 +513,7 @@ function transformPartnershipInstrumentRow(rawRow, usedYieldByConvenio, executed
     vigencyStart: startDate,
     vigencyEnd: endDate,
     accountabilityDeadline,
+    totalVigencyMonths,
     totalVigencyDays,
     elapsedDays,
     daysRemaining,
@@ -545,14 +562,17 @@ function loadPartnershipInstruments() {
     parseCsv(CSV_URL),
     parseCsv(CSV_URL_SOLICITACAO_RENDIMENTO),
     loadValorExecutadoMap(),
-  ]).then(([convenios, requests, executedValueByConvenio]) => {
+    parseCsv(CSV_URL_SIG_PCS, { header: false }),
+  ]).then(([convenios, requests, executedValueByConvenio, assignments]) => {
     const loadDate = new Date();
     loadDate.setHours(0, 0, 0, 0);
     const usedYieldByConvenio = buildUsedYieldMap(requests);
+    const { byConvenio: technicianByConvenio } = buildTechnicianAssignment(assignments);
     const rows = convenios
       .filter((r) => String(r.NR_CONVENIO || "").trim() !== "")
       .map((r) => transformPartnershipInstrumentRow(
         r, usedYieldByConvenio, executedValueByConvenio, loadDate,
+        { technicianByConvenio },
       ));
     return { rows, loadDate, executedValueByConvenio };
   });
