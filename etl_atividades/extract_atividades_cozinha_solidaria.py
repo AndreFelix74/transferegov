@@ -3,16 +3,16 @@ Extractor for the Cozinha Solidária admin panel (fundacentro.gov.br).
 
 Authenticates against the panel's login form, downloads the
 "RelatorioGeral" activity report via its CSV export endpoint, saves the
-CSV locally, and appends the rows to the Google Sheet aba
-"atividades_cozinhas".
+raw download and an enriched CSV (codigo_cozinha / acao / refeicao), and
+appends the enriched rows to the Google Sheet aba "atividades_cozinhas".
 
 This is a separate operational data source from the SICONV pipeline
 (etl/). It must not import etl.config / etl.load.
 
 Credentials:
-    COZINHA_SOLIDARIA_LOGIN
-    COZINHA_SOLIDARIA_SENHA
-    ETL_ATIVIDADES_GOOGLE_CREDENTIALS_FILE  (path to service-account JSON)
+    COZINHA_SOLIDARIA_SENHA  (o painel só pede senha; não há login)
+    Google Sheets: mesmo JSON da service account do ETL SICONV
+    (scraper-whatsappweb-….json na raiz do repo).
 
 Checkpoint (etl_atividades/.ultima_data_extraida):
     Normal cron run (no --data-inicio): requires a valid checkpoint;
@@ -24,9 +24,7 @@ Checkpoint (etl_atividades/.ultima_data_extraida):
     Checkpoint is written only after a successful Sheets append.
 
 Usage (cron, after bootstrap):
-    export COZINHA_SOLIDARIA_LOGIN="..."
     export COZINHA_SOLIDARIA_SENHA="..."
-    export ETL_ATIVIDADES_GOOGLE_CREDENTIALS_FILE="/path/to/sa.json"
     python -m etl_atividades.extract_atividades_cozinha_solidaria \\
         --output-dir ./data
 
@@ -46,20 +44,25 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 import requests
-from google.oauth2.service_account import Credentials
-from gspread import Worksheet, authorize
-from gspread.exceptions import WorksheetNotFound
+import urllib3
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from urllib3.exceptions import InsecureRequestWarning
 
 from etl_atividades.config import (
     CHECKPOINT_FILE,
-    CREDENTIALS_ENV_VAR,
     DATE_FMT,
+    GOOGLE_CREDENTIALS_FILE,
     SHEET_ATIVIDADES,
     SHEETS_SCOPES,
     SPREADSHEET_ID,
     google_credentials_path,
 )
+from etl_atividades.transform_atividades_cozinha_solidaria import enrich_rows
 
+# Cadeia de certificados incompleta no host Fundacentro — verify desligado
+# só nesta sessão do painel (não afeta o client Google Sheets).
+urllib3.disable_warnings(InsecureRequestWarning)
 BASE_URL = "https://cozinhasolidaria.fundacentro.gov.br/tjd3s_cozinhas_solidarias"
 LOGIN_URL = f"{BASE_URL}/cadastro_pessoas.php"
 EXPORT_URL = f"{BASE_URL}/cozinha_solidaria/index_adm.php"
@@ -72,27 +75,31 @@ FILENAME_PREFIX = "atividades_cozinha_solidaria"
 
 @dataclass
 class PanelCredentials:
-    login: str
     senha: str
 
     @classmethod
     def from_env(cls) -> "PanelCredentials":
-        login = os.environ.get("COZINHA_SOLIDARIA_LOGIN")
         senha = os.environ.get("COZINHA_SOLIDARIA_SENHA")
-        if not login or not senha:
+        if not senha:
             raise SystemExit(
-                "Defina as variáveis de ambiente COZINHA_SOLIDARIA_LOGIN e "
-                "COZINHA_SOLIDARIA_SENHA antes de rodar o script."
+                "Defina a variável de ambiente COZINHA_SOLIDARIA_SENHA "
+                "antes de rodar o script."
             )
-        return cls(login=login, senha=senha)
+        return cls(senha=senha)
 
 
 def build_session(creds: PanelCredentials) -> requests.Session:
     """Authenticate and return a session carrying the resulting cookie."""
     session = requests.Session()
+    # Host apresenta cadeia SSL incompleta (issuer local ausente).
+    session.verify = False
+    # Estabelece PHPSESSID como o browser faria ao abrir a página.
+    session.get(LOGIN_URL, timeout=30)
+    # O botão submit tem name="login" (não é campo de usuário); o PHP
+    # só processa o POST quando esse campo vem junto com "senha".
     response = session.post(
         LOGIN_URL,
-        data={"login": creds.login, "senha": creds.senha},
+        data={"senha": creds.senha, "login": "Entrar"},
         allow_redirects=False,
         timeout=30,
     )
@@ -101,7 +108,7 @@ def build_session(creds: PanelCredentials) -> requests.Session:
     if response.status_code not in (302, 303) or not session.cookies:
         raise RuntimeError(
             f"Falha no login (status {response.status_code}). "
-            "Verifique as credenciais ou se o formulário mudou."
+            "Verifique a senha ou se o formulário mudou."
         )
     return session
 
@@ -110,10 +117,9 @@ def download_csv(
     session: requests.Session,
     data_inicio: str,
     data_fim: str,
-    output_path: str,
     tipo_filtro: str = TIPO_FILTRO_TODOS,
 ) -> bytes:
-    """Download the export, write it to disk, and return the raw bytes."""
+    """Download the export and return the raw bytes (does not write to disk)."""
     params = {
         "exportar_csv": "1",
         "tipo_filtro": tipo_filtro,
@@ -130,10 +136,16 @@ def download_csv(
             "Sessão pode ter expirado ou a URL de exportação mudou."
         )
 
-    with open(output_path, "wb") as f:
-        f.write(response.content)
-
     return response.content
+
+
+def write_csv(path: str, headers: list[str], data_rows: list[list[str]]) -> None:
+    """Persist headers + rows as UTF-8 CSV (comma-separated)."""
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        if headers:
+            writer.writerow(headers)
+        writer.writerows(data_rows)
 
 
 def parse_iso_date(value: str | None) -> date | None:
@@ -166,64 +178,119 @@ def write_checkpoint(data_fim: date) -> None:
 
 
 def parse_csv_bytes(content: bytes) -> tuple[list[str], list[list[str]]]:
-    """Preserve Portuguese API headers (data_upload, cozinha, tipo_resultado, …)."""
+    """Parse export CSV (delimitador real do painel: '|')."""
     text = content.decode("utf-8-sig")
     if not text.strip():
-        return [], []
+        raise RuntimeError("CSV da exportação veio vazio.")
 
-    sample = text[:4096]
-    try:
-        dialect = csv.Sniffer().sniff(sample, delimiters=";,\t")
-    except csv.Error:
-        dialect = csv.excel
+    # Ignora linhas em branco no início — senão rows[0] vira [] e o enrich
+    # descarta todas as colunas originais, ficando só as derivadas vazias.
+    lines = text.splitlines()
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    if not lines:
+        raise RuntimeError("CSV da exportação veio sem linhas úteis.")
 
-    reader = csv.reader(io.StringIO(text), dialect)
-    rows = list(reader)
+    first = lines[0]
+    # Painel Fundacentro exporta com '|'; também aceita ';', tab e ','.
+    counts = {
+        "|": first.count("|"),
+        ";": first.count(";"),
+        "\t": first.count("\t"),
+        ",": first.count(","),
+    }
+    delimiter = max(counts, key=counts.get)
+    if counts[delimiter] == 0:
+        delimiter = ","
+
+    reader = csv.reader(io.StringIO("\n".join(lines)), delimiter=delimiter)
+    rows = [row for row in reader if any(cell.strip() for cell in row)]
     if not rows:
-        return [], []
-    return rows[0], rows[1:]
+        raise RuntimeError("CSV da exportação não tem linhas após limpeza.")
+
+    headers = [h.strip() for h in rows[0]]
+    if not headers or not any(headers):
+        raise RuntimeError(f"CSV sem cabeçalho válido (delimitador={delimiter!r}).")
+
+    return headers, rows[1:]
 
 
-def open_atividades_worksheet() -> Worksheet:
-    """Open (or create) the atividades_cozinhas worksheet."""
-    creds = Credentials.from_service_account_file(
+def _sheet_range(sheet_name: str, cell: str) -> str:
+    return f"'{sheet_name}'!{cell}"
+
+
+def create_sheets_service():
+    """Google Sheets API client (mesmo padrão de etl/load.py; sem gspread)."""
+    credentials = service_account.Credentials.from_service_account_file(
         str(google_credentials_path()),
         scopes=SHEETS_SCOPES,
     )
-    client = authorize(creds)
-    spreadsheet = client.open_by_key(SPREADSHEET_ID)
-    try:
-        return spreadsheet.worksheet(SHEET_ATIVIDADES)
-    except WorksheetNotFound:
-        return spreadsheet.add_worksheet(
-            title=SHEET_ATIVIDADES,
-            rows=1000,
-            cols=26,
-        )
+    return build("sheets", "v4", credentials=credentials)
+
+
+def _list_sheet_titles(service) -> set[str]:
+    spreadsheet = (
+        service.spreadsheets().get(spreadsheetId=SPREADSHEET_ID).execute()
+    )
+    return {
+        sheet["properties"]["title"] for sheet in spreadsheet.get("sheets", [])
+    }
+
+
+def _ensure_sheet(service, sheet_name: str) -> None:
+    if sheet_name in _list_sheet_titles(service):
+        return
+    service.spreadsheets().batchUpdate(
+        spreadsheetId=SPREADSHEET_ID,
+        body={"requests": [{"addSheet": {"properties": {"title": sheet_name}}}]},
+    ).execute()
 
 
 def append_rows_to_sheet(
-    worksheet: Worksheet,
+    service,
     headers: list[str],
     data_rows: list[list[str]],
 ) -> int:
     """Append rows with RAW input; fail loudly if header diverges."""
-    existing = worksheet.get_all_values()
-    if not existing:
+    _ensure_sheet(service, SHEET_ATIVIDADES)
+
+    result = (
+        service.spreadsheets()
+        .values()
+        .get(
+            spreadsheetId=SPREADSHEET_ID,
+            range=_sheet_range(SHEET_ATIVIDADES, "1:1"),
+        )
+        .execute()
+    )
+    existing_header = (result.get("values") or [None])[0]
+
+    if not existing_header:
         if headers:
-            worksheet.append_row(headers, value_input_option="RAW")
-    elif existing[0] != headers:
+            service.spreadsheets().values().update(
+                spreadsheetId=SPREADSHEET_ID,
+                range=_sheet_range(SHEET_ATIVIDADES, "A1"),
+                valueInputOption="RAW",
+                body={"values": [headers]},
+            ).execute()
+    elif existing_header != headers:
         raise RuntimeError(
             f"Cabeçalho da aba '{SHEET_ATIVIDADES}' diverge do CSV recebido. "
             "Alinhar manualmente antes de continuar.\n"
-            f"  aba: {existing[0]!r}\n"
+            f"  aba: {existing_header!r}\n"
             f"  csv: {headers!r}"
         )
 
     if not data_rows:
         return 0
 
-    worksheet.append_rows(data_rows, value_input_option="RAW")
+    service.spreadsheets().values().append(
+        spreadsheetId=SPREADSHEET_ID,
+        range=_sheet_range(SHEET_ATIVIDADES, "A1"),
+        valueInputOption="RAW",
+        insertDataOption="INSERT_ROWS",
+        body={"values": data_rows},
+    ).execute()
     return len(data_rows)
 
 
@@ -329,27 +396,32 @@ def main() -> None:
     session = build_session(panel_creds)
 
     print(f"Baixando exportação de {data_inicio} a {data_fim}...", file=sys.stderr)
-    output_path = os.path.join(
-        args.output_dir,
-        f"{FILENAME_PREFIX}_{data_inicio}_{data_fim}.csv",
-    )
+    stem = f"{FILENAME_PREFIX}_{data_inicio}_{data_fim}"
+    raw_path = os.path.join(args.output_dir, f"{stem}_raw.csv")
+    output_path = os.path.join(args.output_dir, f"{stem}.csv")
     content = download_csv(
         session,
         data_inicio=data_inicio,
         data_fim=data_fim,
-        output_path=output_path,
         tipo_filtro=args.tipo_filtro,
     )
-    print(f"OK: {len(content)} bytes salvos em {output_path}", file=sys.stderr)
+    with open(raw_path, "wb") as f:
+        f.write(content)
+    print(f"OK: {len(content)} bytes brutos salvos em {raw_path}", file=sys.stderr)
 
     headers, data_rows = parse_csv_bytes(content)
+    headers, data_rows = enrich_rows(headers, data_rows)
+
+    write_csv(output_path, headers, data_rows)
+    print(f"OK: CSV enriquecido salvo em {output_path}", file=sys.stderr)
+
     print(
         f"Gravando {len(data_rows)} linhas em '{SHEET_ATIVIDADES}' "
-        f"(credenciais via {CREDENTIALS_ENV_VAR})...",
+        f"(credenciais: {GOOGLE_CREDENTIALS_FILE.name})...",
         file=sys.stderr,
     )
-    worksheet = open_atividades_worksheet()
-    n_appended = append_rows_to_sheet(worksheet, headers, data_rows)
+    service = create_sheets_service()
+    n_appended = append_rows_to_sheet(service, headers, data_rows)
     print(f"OK: {n_appended} linhas anexadas na planilha.", file=sys.stderr)
 
     # Checkpoint only after a confirmed successful append.

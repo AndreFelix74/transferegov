@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Execução | Cozinha Solidária</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<script src="common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  main {
+    padding: var(--main-pad-top) clamp(16px, 4vw, 40px) var(--main-pad-bottom);
+  }
+
+  table.parcerias td {
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+
+  table.parcerias td.celula-proponente-wrap {
+    white-space: normal;
+    min-width: 180px;
+  }
+
+  .barra-percentual {
+    min-width: 110px;
+  }
+
+  .btn-download {
+    font-family: "IBM Plex Sans";
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tinta);
+    background: var(--papel);
+    border: 1px solid var(--linha);
+    border-radius: 7px;
+    padding: 7px 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-download:hover {
+    border-color: var(--tinta-suave);
+  }
+
+  .btn-download:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+
+<header class="topo topo--toolbar">
+  <div class="topo-principal">
+    <a class="voltar-inicio" href="index.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Página inicial
+    </a>
+    <div class="titulo">
+      <h1>Execução</h1>
+      <span class="subtitulo">Programa Cozinha Solidária · MDS</span>
+    </div>
+  </div>
+  <div class="status-atualizacao" id="status-atualizacao">
+    <span class="ponto"></span>
+    <span>carregando dados…</span>
+  </div>
+</header>
+
+<main>
+  <section class="cartao-tabela">
+    <div class="cabecalho-tabela">
+      <h2>Execução financeira por instrumento</h2>
+      <div class="filtros-tabela">
+        <select id="filtro-tipo" class="filtro-select" aria-label="Filtrar por tipo">
+          <option value="">Todos os tipos</option>
+        </select>
+        <select id="filtro-modalidade" class="filtro-select" aria-label="Filtrar por modalidade">
+          <option value="">Todas as modalidades</option>
+        </select>
+        <div class="campo-busca">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
+          <input type="text" id="busca" placeholder="Buscar proponente, convênio, processo…">
+        </div>
+        <button type="button" id="btn-download" class="btn-download" aria-label="Baixar CSV dos dados filtrados">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Baixar CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="container-tabela">
+      <table class="parcerias" id="tabela-execucao">
+        <thead>
+          <tr>
+            <th data-campo="type">Tipo <span class="seta">↕</span></th>
+            <th data-campo="modality">MODALIDADE <span class="seta">↕</span></th>
+            <th data-campo="proposalNumber">NR_PROPOSTA <span class="seta">↕</span></th>
+            <th data-campo="convenioNumber">NR_CONVENIO <span class="seta">↕</span></th>
+            <th data-campo="proponent">NM_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="processNumber">NR_PROCESSO <span class="seta">↕</span></th>
+            <th data-campo="state">UF_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="paidValue" class="num">SUM(VL_PAGO) <span class="seta">↕</span></th>
+            <th data-campo="globalProposalValue" class="num">VL_GLOBAL_PROP <span class="seta">↕</span></th>
+            <th data-campo="executionPercent" class="ativo">% EXECUÇÃO <span class="seta">↓</span></th>
+          </tr>
+        </thead>
+        <tbody id="corpo-tabela">
+          <tr><td colspan="10" class="carregando">Carregando dados da planilha…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rodape">
+      <span id="rodape-contagem">—</span>
+      <span>fonte: view_pagamento · TransfereGov / SICONV</span>
+    </div>
+  </section>
+</main>
+
+<script>
+const COLSPAN = 10;
+const COLUNAS_CSV = [
+  { campo: "type", rotulo: "Tipo" },
+  { campo: "modality", rotulo: "MODALIDADE" },
+  { campo: "proposalNumber", rotulo: "NR_PROPOSTA" },
+  { campo: "convenioNumber", rotulo: "NR_CONVENIO" },
+  { campo: "proponent", rotulo: "NM_PROPONENTE" },
+  { campo: "processNumber", rotulo: "NR_PROCESSO" },
+  { campo: "state", rotulo: "UF_PROPONENTE" },
+  { campo: "paidValue", rotulo: "SUM(VL_PAGO)", numerico: true },
+  { campo: "globalProposalValue", rotulo: "VL_GLOBAL_PROP", numerico: true },
+  { campo: "executionPercent", rotulo: "% EXECUÇÃO", numerico: true },
+];
+
+let rows = [];
+const sortState = { field: "executionPercent", direction: "desc" };
+
+function loadData() {
+  loadExecutionFromPagamentoView()
+    .then(({ rows: loadedRows }) => {
+      if (!loadedRows.length) {
+        setStatusDot("#status-atualizacao", "planilha retornou sem linhas", true);
+        return;
+      }
+      rows = loadedRows;
+      setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
+      populateTypeFilter();
+      populateModalityFilter();
+      renderTable();
+    })
+    .catch((err) => {
+      console.error(err);
+      setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
+      document.getElementById("corpo-tabela").innerHTML =
+        `<tr><td colspan="${COLSPAN}" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
+    });
+}
+
+function populateSelectFilter(selectId, values, allLabel) {
+  const select = document.getElementById(selectId);
+  const current = select.value;
+  select.replaceChildren();
+  const allOpt = document.createElement("option");
+  allOpt.value = "";
+  allOpt.textContent = allLabel;
+  select.appendChild(allOpt);
+  values.forEach((value) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = value;
+    select.appendChild(opt);
+  });
+  if (values.includes(current)) select.value = current;
+}
+
+function populateTypeFilter() {
+  const types = sortInstrumentCategories([...new Set(
+    rows.map((row) => row.type).filter(Boolean),
+  )]);
+  populateSelectFilter("filtro-tipo", types, "Todos os tipos");
+}
+
+function populateModalityFilter() {
+  const modalities = [...new Set(
+    rows.map((row) => row.modality).filter((m) => m && m !== "—"),
+  )].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  populateSelectFilter("filtro-modalidade", modalities, "Todas as modalidades");
+}
+
+function csvDelimiterForLocale() {
+  const locale = navigator.language || "pt-BR";
+  const decimal = (1.1).toLocaleString(locale).replace(/\d/g, "")[0];
+  return decimal === "," ? ";" : ",";
+}
+
+function formatCsvNumber(value, locale) {
+  return (value || 0).toLocaleString(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  });
+}
+
+function escapeCsvField(value, delimiter) {
+  const text = String(value ?? "");
+  if (
+    text.includes(delimiter)
+    || text.includes('"')
+    || text.includes("\n")
+    || text.includes("\r")
+  ) {
+    return `"${text.replaceAll('"', '""')}"`;
+  }
+  return text;
+}
+
+function downloadFilteredCsv() {
+  const list = sortedRows(filteredRows());
+  if (!list.length) return;
+
+  const locale = navigator.language || "pt-BR";
+  const delimiter = csvDelimiterForLocale();
+  const header = COLUNAS_CSV.map((c) => escapeCsvField(c.rotulo, delimiter)).join(delimiter);
+  const body = list.map((row) =>
+    COLUNAS_CSV.map((col) => {
+      const raw = row[col.campo];
+      const value = col.numerico ? formatCsvNumber(raw, locale) : raw;
+      return escapeCsvField(value, delimiter);
+    }).join(delimiter),
+  ).join("\r\n");
+
+  const content = `\uFEFF${header}\r\n${body}\r\n`;
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = `execucao-${stamp}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function filteredRows() {
+  const term = document.getElementById("busca").value.trim().toLowerCase();
+  const type = document.getElementById("filtro-tipo").value;
+  const modality = document.getElementById("filtro-modalidade").value;
+  let base = rows;
+  if (type) base = base.filter((row) => row.type === type);
+  if (modality) base = base.filter((row) => row.modality === modality);
+  if (!term) return base;
+  return base.filter((row) =>
+    row.proponent.toLowerCase().includes(term)
+    || String(row.convenioNumber).toLowerCase().includes(term)
+    || String(row.proposalNumber).toLowerCase().includes(term)
+    || String(row.processNumber).toLowerCase().includes(term)
+    || String(row.state).toLowerCase().includes(term)
+    || String(row.type).toLowerCase().includes(term),
+  );
+}
+
+function sortedRows(list) {
+  const { field, direction } = sortState;
+  const factor = direction === "asc" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    let va = a[field];
+    let vb = b[field];
+    if (va === null || va === undefined) va = direction === "asc" ? Infinity : -Infinity;
+    if (vb === null || vb === undefined) vb = direction === "asc" ? Infinity : -Infinity;
+    if (typeof va === "string") return va.localeCompare(vb, "pt-BR") * factor;
+    return (va - vb) * factor;
+  });
+}
+
+function renderRow(row) {
+  const convenioLink = row.proposalId
+    ? `<a class="link-transferegov" href="${PROPOSTA_DETAIL_URL}${row.proposalId}" target="_blank" rel="noopener">
+        ${escapeHtml(row.convenioNumber)}
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>`
+    : `<span class="mono">${escapeHtml(row.convenioNumber)}</span>`;
+
+  return `<tr>
+    <td>${escapeHtml(row.type)}</td>
+    <td>${escapeHtml(row.modality)}</td>
+    <td class="mono">${escapeHtml(row.proposalNumber)}</td>
+    <td>${convenioLink}</td>
+    <td class="celula-proponente-wrap">${escapeHtml(row.proponent)}</td>
+    <td class="mono">${escapeHtml(row.processNumber)}</td>
+    <td>${escapeHtml(row.state)}</td>
+    <td class="mono num">${formatDecimal(row.paidValue)}</td>
+    <td class="mono num">${formatDecimal(row.globalProposalValue)}</td>
+    <td>${formatPercentBar(row.executionPercent, BRAND_COLORS.verde)}</td>
+  </tr>`;
+}
+
+function renderTable() {
+  const list = sortedRows(filteredRows());
+  const body = document.getElementById("corpo-tabela");
+
+  if (!list.length) {
+    body.innerHTML = `<tr><td colspan="${COLSPAN}" class="vazio">Nenhum instrumento encontrado para essa busca.</td></tr>`;
+  } else {
+    body.innerHTML = list.map(renderRow).join("");
+  }
+
+  document.getElementById("rodape-contagem").textContent =
+    `${list.length} de ${rows.length} instrumento(s) exibido(s)`;
+  document.getElementById("btn-download").disabled = list.length === 0;
+}
+
+document.getElementById("busca").addEventListener("input", renderTable);
+document.getElementById("filtro-tipo").addEventListener("change", renderTable);
+document.getElementById("filtro-modalidade").addEventListener("change", renderTable);
+document.getElementById("btn-download").addEventListener("click", downloadFilteredCsv);
+
+document.querySelectorAll("#tabela-execucao thead th").forEach((th) => {
+  th.addEventListener("click", () => {
+    const field = th.dataset.campo;
+    if (sortState.field === field) {
+      sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+    } else {
+      sortState.field = field;
+      sortState.direction = "asc";
+    }
+    document.querySelectorAll("#tabela-execucao thead th").forEach((el) => {
+      el.classList.remove("ativo");
+      el.querySelector(".seta").textContent = "↕";
+    });
+    th.classList.add("ativo");
+    th.querySelector(".seta").textContent = sortState.direction === "asc" ? "↑" : "↓";
+    renderTable();
+  });
+});
+
+loadData();
+</script>
+
+</body>
+</html>

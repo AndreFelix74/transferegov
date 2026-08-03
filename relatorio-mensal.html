@@ -727,6 +727,51 @@
     selMes.value = `${y}-${m}`;
   }
 
+  function firstFilled(row, keys) {
+    for (const key of keys) {
+      if (!(key in row)) continue;
+      const value = row[key];
+      if (value == null) continue;
+      const text = String(value).trim();
+      if (text) return text;
+    }
+    return "";
+  }
+
+  /**
+   * Normaliza a aba atividades_cozinhas para o contrato interno do relatório.
+   * Aceita cabeçalhos snake_case legados e os nomes reais do export Fundacentro
+   * (+ codigo_cozinha / acao / refeicao do ETL).
+   */
+  function normalizeActivityRow(row) {
+    const cozinha = firstFilled(row, ["cozinha", "Cozinha"]);
+    const codigo = firstFilled(row, ["codigo_cozinha"])
+      || extractKitchenCode(cozinha);
+    return {
+      cozinha,
+      codigo_cozinha: codigo,
+      data_acao: firstFilled(row, ["data_acao", "Data Atividade", "data_atividade"]),
+      quantidade: firstFilled(row, ["quantidade", "Quantidade"]),
+      tipo_resultado: firstFilled(row, [
+        "tipo_resultado",
+        "Classificacao",
+        "classificacao",
+      ]),
+      local_distribuicao: firstFilled(row, [
+        "local_distribuicao",
+        "Outros locais informados",
+        "Local",
+      ]),
+      descricao: firstFilled(row, [
+        "descricao",
+        "Cardapio completo",
+        "Onde ocorreu a distribuição",
+      ]),
+      acao: firstFilled(row, ["acao"]),
+      refeicao: firstFilled(row, ["refeicao"]),
+    };
+  }
+
   function extractKitchenCode(value) {
     const match = String(value || "").toUpperCase().match(/CS\d+/);
     return match ? match[0] : "";
@@ -840,29 +885,41 @@
 
   /**
    * Agrega refeições por tipo a partir dos registros filtrados.
-   *
-   * TODO: Mapeamento de tipo_resultado/quantidade para tipo de refeição
-   * ainda não confirmado com o domínio — não assumir correspondência,
-   * aguardar confirmação.
-   *
-   * Por ora, apenas soma o total de registros com
-   * tipo_resultado == 'Contabilização de refeições servidas' como total
-   * genérico, sem quebrar por tipo de refeição.
+   * Usa tipo_resultado == 'Contabilização de refeições servidas' e a coluna
+   * derivada `refeicao` (ETL) para o detalhamento por tipo.
    */
+  function mealTypeBucket(refeicao) {
+    const value = String(refeicao || "").trim();
+    if (value === "Café da Manhã" || value === "Café") return "cafe";
+    if (value === "Almoço") return "almoco";
+    if (value === "Lanche") return "lanche";
+    if (value === "Jantar") return "jantar";
+    if (value === "Ceia") return "ceia";
+    return null;
+  }
+
   function aggregateMealsByType(records) {
     const mealRows = records.filter(isMealAccountingRow);
-
+    const byType = { cafe: 0, almoco: 0, lanche: 0, jantar: 0, ceia: 0 };
     let total = 0;
+    let typed = 0;
+
     for (const row of mealRows) {
-      total += mealQuantity(row);
+      const qty = mealQuantity(row);
+      total += qty;
+      const bucket = mealTypeBucket(row.refeicao);
+      if (!bucket) continue;
+      byType[bucket] += qty;
+      typed += 1;
     }
 
+    const hasBreakdown = typed > 0;
     return {
-      cafe: null,
-      almoco: null,
-      lanche: null,
-      jantar: null,
-      ceia: null,
+      cafe: hasBreakdown ? byType.cafe : null,
+      almoco: hasBreakdown ? byType.almoco : null,
+      lanche: hasBreakdown ? byType.lanche : null,
+      jantar: hasBreakdown ? byType.jantar : null,
+      ceia: hasBreakdown ? byType.ceia : null,
       total,
       recordCount: mealRows.length,
     };
@@ -961,7 +1018,9 @@
     const meals = aggregateMealsByType(filtered);
     const productionDays = [...recordsByDay.values()].filter((n) => n > 0).length;
     const places = deliveryPlaces(filtered);
-    const kitchenCode = extractKitchenCode(kitchen);
+    const kitchenCode = extractKitchenCode(kitchen)
+      || (filtered[0] && filtered[0].codigo_cozinha)
+      || "";
     const managingEntity = managingEntityByKitchen.get(kitchenCode) || null;
 
     document.getElementById("doc-eg-codigo").textContent =
@@ -1052,7 +1111,7 @@
     parseCsv(CSV_URL_EG_X_CS),
   ])
     .then(([activityRows, egRows]) => {
-      allRecords = activityRows || [];
+      allRecords = (activityRows || []).map(normalizeActivityRow);
       managingEntityByKitchen = buildManagingEntityByKitchen(egRows);
       const kitchens = uniqueKitchens(allRecords);
       populateKitchenSelect(kitchens);
