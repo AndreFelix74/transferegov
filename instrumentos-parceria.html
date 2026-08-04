@@ -138,15 +138,15 @@
         <thead>
           <tr>
             <th data-campo="modality">MODALIDADE <span class="seta">↕</span></th>
-            <th data-campo="kitchenQuantity" class="num">Quantidade de Cozinhas <span class="seta">↕</span></th>
             <th data-campo="technician">Técnica <span class="seta">↕</span></th>
-            <th data-campo="legalRepresentative">Representante Legal EG <span class="seta">↕</span></th>
-            <th data-campo="focalPoint">Ponto Focal EG da Parceira <span class="seta">↕</span></th>
             <th data-campo="proposalNumber">NR_PROPOSTA <span class="seta">↕</span></th>
             <th data-campo="convenioNumber">NR_CONVENIO <span class="seta">↕</span></th>
-            <th data-campo="proponent">NM_PROPONENTE <span class="seta">↕</span></th>
-            <th data-campo="cnpj">CNPJ <span class="seta">↕</span></th>
             <th data-campo="processNumber">Processo SEI <span class="seta">↕</span></th>
+            <th data-campo="proponent">NM_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="kitchenQuantity" class="num">Quantidade de Cozinhas <span class="seta">↕</span></th>
+            <th data-campo="cnpj">CNPJ <span class="seta">↕</span></th>
+            <th data-campo="legalRepresentative">Representante Legal EG <span class="seta">↕</span></th>
+            <th data-campo="focalPoint">Ponto Focal EG da Parceira <span class="seta">↕</span></th>
             <th data-campo="state">UF_PROPONENTE <span class="seta">↕</span></th>
             <th data-campo="programCode">COD_PROGRAMA <span class="seta">↕</span></th>
             <th data-campo="globalProposalValue" class="num">VL_GLOBAL_PROP <span class="seta">↕</span></th>
@@ -188,15 +188,15 @@
 const COLSPAN = 32;
 const COLUNAS_CSV = [
   { campo: "modality", rotulo: "MODALIDADE" },
-  { campo: "kitchenQuantity", rotulo: "Quantidade de Cozinhas" },
   { campo: "technician", rotulo: "Técnica" },
-  { campo: "legalRepresentative", rotulo: "Representante Legal EG" },
-  { campo: "focalPoint", rotulo: "Ponto Focal EG da Parceira" },
   { campo: "proposalNumber", rotulo: "NR_PROPOSTA" },
   { campo: "convenioNumber", rotulo: "NR_CONVENIO" },
-  { campo: "proponent", rotulo: "NM_PROPONENTE" },
-  { campo: "cnpj", rotulo: "CNPJ", tipo: "cnpj" },
   { campo: "processNumber", rotulo: "Processo SEI" },
+  { campo: "proponent", rotulo: "NM_PROPONENTE" },
+  { campo: "kitchenQuantity", rotulo: "Quantidade de Cozinhas" },
+  { campo: "cnpj", rotulo: "CNPJ", tipo: "cnpj" },
+  { campo: "legalRepresentative", rotulo: "Representante Legal EG" },
+  { campo: "focalPoint", rotulo: "Ponto Focal EG da Parceira" },
   { campo: "state", rotulo: "UF_PROPONENTE" },
   { campo: "programCode", rotulo: "COD_PROGRAMA" },
   { campo: "globalProposalValue", rotulo: "VL_GLOBAL_PROP", numerico: true },
@@ -392,15 +392,15 @@ function renderRow(row) {
 
   return `<tr>
     <td>${row.modality}</td>
-    <td class="mono num">${row.kitchenQuantity === null ? "—" : row.kitchenQuantity}</td>
     <td>${row.technician ? escapeHtml(row.technician) : "—"}</td>
-    <td class="celula-proponente-wrap">${row.legalRepresentative ? escapeHtml(row.legalRepresentative) : "—"}</td>
-    <td class="celula-proponente-wrap">${row.focalPoint ? escapeHtml(row.focalPoint) : "—"}</td>
     <td class="mono">${row.proposalNumber}</td>
     <td>${convenioLink}</td>
-    <td class="celula-proponente-wrap">${row.proponent}</td>
-    <td class="mono">${formatCnpj(row.cnpj)}</td>
     ${processNumberCell(row)}
+    <td class="celula-proponente-wrap">${row.proponent}</td>
+    <td class="mono num">${row.kitchenQuantity === null ? "—" : row.kitchenQuantity}</td>
+    <td class="mono">${formatCnpj(row.cnpj)}</td>
+    <td class="celula-proponente-wrap">${row.legalRepresentative ? escapeHtml(row.legalRepresentative) : "—"}</td>
+    <td class="celula-proponente-wrap">${row.focalPoint ? escapeHtml(row.focalPoint) : "—"}</td>
     <td>${row.state}</td>
     <td class="mono">${row.programCode}</td>
     <td class="mono num">${formatDecimal(row.globalProposalValue)}</td>
