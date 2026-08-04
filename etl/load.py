@@ -86,10 +86,12 @@ def _clear_sheet(service, sheet_name: str):
 
 
 def _upload_values(service, sheet_name: str, cell: str, values: list[list]):
+    # RAW: evita que o Sheets interprete IDs longos (ex.: NR_PROCESSO) como
+    # número e os corrompa em notação científica / perda de precisão.
     service.spreadsheets().values().update(
         spreadsheetId=GOOGLE_SPREADSHEET_ID,
         range=_sheet_range(sheet_name, cell),
-        valueInputOption="USER_ENTERED",
+        valueInputOption="RAW",
         body={"values": values},
     ).execute()
 
