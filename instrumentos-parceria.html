@@ -31,6 +31,68 @@
   .barra-percentual {
     min-width: 110px;
   }
+
+  .celula-processo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "IBM Plex Mono";
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .btn-copiar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--linha);
+    border-radius: 4px;
+    background: var(--papel);
+    color: var(--tinta-suave);
+    cursor: pointer;
+  }
+
+  .btn-copiar:hover {
+    color: var(--roxo);
+    border-color: var(--roxo);
+    background: #fff;
+  }
+
+  .btn-copiar.copiado {
+    color: var(--roxo);
+    border-color: var(--roxo);
+  }
+
+  .btn-copiar svg {
+    pointer-events: none;
+  }
+
+  .btn-download {
+    font-family: "IBM Plex Sans";
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tinta);
+    background: var(--papel);
+    border: 1px solid var(--linha);
+    border-radius: 7px;
+    padding: 7px 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-download:hover {
+    border-color: var(--tinta-suave);
+  }
+
+  .btn-download:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 </style>
 </head>
 <body>
@@ -62,8 +124,12 @@
         </select>
         <div class="campo-busca">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
-          <input type="text" id="busca" placeholder="Buscar proponente, técnica, convênio…">
+          <input type="text" id="busca" placeholder="Buscar proponente, técnica, processo SEI, convênio…">
         </div>
+        <button type="button" id="btn-download" class="btn-download" aria-label="Baixar CSV dos dados filtrados">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Baixar CSV
+        </button>
       </div>
     </div>
 
@@ -72,12 +138,15 @@
         <thead>
           <tr>
             <th data-campo="modality">MODALIDADE <span class="seta">↕</span></th>
+            <th data-campo="kitchenQuantity" class="num">Quantidade de Cozinhas <span class="seta">↕</span></th>
             <th data-campo="technician">Técnica <span class="seta">↕</span></th>
+            <th data-campo="legalRepresentative">Representante Legal EG <span class="seta">↕</span></th>
+            <th data-campo="focalPoint">Ponto Focal EG da Parceira <span class="seta">↕</span></th>
             <th data-campo="proposalNumber">NR_PROPOSTA <span class="seta">↕</span></th>
             <th data-campo="convenioNumber">NR_CONVENIO <span class="seta">↕</span></th>
             <th data-campo="proponent">NM_PROPONENTE <span class="seta">↕</span></th>
-            <th data-campo="cnpj">IDENTIF_PROPONENTE <span class="seta">↕</span></th>
-            <th data-campo="processNumber">NR_PROCESSO <span class="seta">↕</span></th>
+            <th data-campo="cnpj">CNPJ <span class="seta">↕</span></th>
+            <th data-campo="processNumber">Processo SEI <span class="seta">↕</span></th>
             <th data-campo="state">UF_PROPONENTE <span class="seta">↕</span></th>
             <th data-campo="programCode">COD_PROGRAMA <span class="seta">↕</span></th>
             <th data-campo="globalProposalValue" class="num">VL_GLOBAL_PROP <span class="seta">↕</span></th>
@@ -103,7 +172,7 @@
           </tr>
         </thead>
         <tbody id="corpo-tabela">
-          <tr><td colspan="29" class="carregando">Carregando dados da planilha…</td></tr>
+          <tr><td colspan="32" class="carregando">Carregando dados da planilha…</td></tr>
         </tbody>
       </table>
     </div>
@@ -116,7 +185,41 @@
 </main>
 
 <script>
-const COLSPAN = 29;
+const COLSPAN = 32;
+const COLUNAS_CSV = [
+  { campo: "modality", rotulo: "MODALIDADE" },
+  { campo: "kitchenQuantity", rotulo: "Quantidade de Cozinhas" },
+  { campo: "technician", rotulo: "Técnica" },
+  { campo: "legalRepresentative", rotulo: "Representante Legal EG" },
+  { campo: "focalPoint", rotulo: "Ponto Focal EG da Parceira" },
+  { campo: "proposalNumber", rotulo: "NR_PROPOSTA" },
+  { campo: "convenioNumber", rotulo: "NR_CONVENIO" },
+  { campo: "proponent", rotulo: "NM_PROPONENTE" },
+  { campo: "cnpj", rotulo: "CNPJ", tipo: "cnpj" },
+  { campo: "processNumber", rotulo: "Processo SEI" },
+  { campo: "state", rotulo: "UF_PROPONENTE" },
+  { campo: "programCode", rotulo: "COD_PROGRAMA" },
+  { campo: "globalProposalValue", rotulo: "VL_GLOBAL_PROP", numerico: true },
+  { campo: "repasseValue", rotulo: "VL_REPASSE_PROP", numerico: true },
+  { campo: "counterpartValue", rotulo: "VL_CONTRAPARTIDA_PROP", numerico: true },
+  { campo: "availableYield", rotulo: "Rendimento Disponível", numerico: true },
+  { campo: "usedYield", rotulo: "Rendimento Utilizado", numerico: true },
+  { campo: "totalYield", rotulo: "Rendimento Total", numerico: true },
+  { campo: "accountBalance", rotulo: "VL_SALDO_CONTA", numerico: true },
+  { campo: "disbursedValue", rotulo: "VL_DESEMBOLSADO_CONV", numerico: true },
+  { campo: "executedValue", rotulo: "Valor Executado", numerico: true },
+  { campo: "executedValuePercent", rotulo: "% de Valor Executado", numerico: true },
+  { campo: "vigencyStart", rotulo: "DIA_INIC_VIGENC_CONV", tipo: "data" },
+  { campo: "vigencyEnd", rotulo: "DIA_FIM_VIGENC_CONV", tipo: "data" },
+  { campo: "accountabilityDeadline", rotulo: "DIA_LIMITE_PREST_CONTAS", tipo: "data" },
+  { campo: "totalVigencyMonths", rotulo: "Meses de Vigência" },
+  { campo: "totalVigencyDays", rotulo: "Total de Dias de Vigência" },
+  { campo: "elapsedDays", rotulo: "Dias Transcorridos" },
+  { campo: "daysRemaining", rotulo: "Dias Restantes de Vigência" },
+  { campo: "elapsedTimePercent", rotulo: "% de tempo transcorrido", numerico: true },
+  { campo: "currentDate", rotulo: "Data Atual", tipo: "data" },
+  { campo: "status", rotulo: "SIT_CONVENIO" },
+];
 
 let rows = [];
 let loadDate = null;
@@ -164,18 +267,86 @@ function populateModalityFilter() {
   if (modalities.includes(current)) select.value = current;
 }
 
+function csvDelimiterForLocale() {
+  const locale = navigator.language || "pt-BR";
+  const decimal = (1.1).toLocaleString(locale).replace(/\d/g, "")[0];
+  return decimal === "," ? ";" : ",";
+}
+
+function formatCsvNumber(value, locale) {
+  return (value || 0).toLocaleString(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: false,
+  });
+}
+
+function escapeCsvField(value, delimiter) {
+  const text = String(value ?? "");
+  if (
+    text.includes(delimiter)
+    || text.includes('"')
+    || text.includes("\n")
+    || text.includes("\r")
+  ) {
+    return `"${text.replaceAll('"', '""')}"`;
+  }
+  return text;
+}
+
+function formatCsvCell(col, row, locale) {
+  const raw = row[col.campo];
+  if (col.numerico) {
+    if (raw === null || raw === undefined || Number.isNaN(raw)) return "";
+    return formatCsvNumber(raw, locale);
+  }
+  if (col.tipo === "cnpj") return formatCnpj(raw);
+  if (col.tipo === "data") return raw ? formatDate(raw) : "";
+  if (raw === null || raw === undefined) return "";
+  return raw;
+}
+
+function downloadFilteredCsv() {
+  const list = sortedRows(filteredRows());
+  if (!list.length) return;
+
+  const locale = navigator.language || "pt-BR";
+  const delimiter = csvDelimiterForLocale();
+  const header = COLUNAS_CSV.map((c) => escapeCsvField(c.rotulo, delimiter)).join(delimiter);
+  const body = list.map((row) =>
+    COLUNAS_CSV.map((col) => escapeCsvField(formatCsvCell(col, row, locale), delimiter)).join(delimiter),
+  ).join("\r\n");
+
+  const content = `\uFEFF${header}\r\n${body}\r\n`;
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = `instrumentos-parceria-${stamp}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function filteredRows() {
   const term = document.getElementById("busca").value.trim().toLowerCase();
   const modality = document.getElementById("filtro-modalidade").value;
   let base = rows;
   if (modality) base = base.filter((row) => row.modality === modality);
   if (!term) return base;
+  const termDigits = term.replace(/\D/g, "");
   return base.filter((row) =>
     row.proponent.toLowerCase().includes(term)
     || String(row.convenioNumber).toLowerCase().includes(term)
     || String(row.proposalNumber).toLowerCase().includes(term)
+    || String(row.processNumber).toLowerCase().includes(term)
     || String(row.cnpj).toLowerCase().includes(term)
-    || String(row.technician || "").toLowerCase().includes(term),
+    || (termDigits.length >= 3 && String(row.cnpj).replace(/\D/g, "").includes(termDigits))
+    || String(row.technician || "").toLowerCase().includes(term)
+    || String(row.legalRepresentative || "").toLowerCase().includes(term)
+    || String(row.focalPoint || "").toLowerCase().includes(term),
   );
 }
 
@@ -194,6 +365,23 @@ function sortedRows(list) {
   });
 }
 
+function processNumberCell(row) {
+  const num = row.processNumber;
+  if (!num || num === "—") return `<td class="mono">—</td>`;
+  const safe = escapeHtml(num);
+  return `<td>
+    <div class="celula-processo">
+      <span>${safe}</span>
+      <button type="button" class="btn-copiar" data-copiar="${safe}" title="Copiar Processo SEI" aria-label="Copiar ${safe}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      </button>
+    </div>
+  </td>`;
+}
+
 function renderRow(row) {
   const convenioLink = row.proposalId
     ? `<a class="link-transferegov" href="${PROPOSTA_DETAIL_URL}${row.proposalId}" target="_blank" rel="noopener">
@@ -204,12 +392,15 @@ function renderRow(row) {
 
   return `<tr>
     <td>${row.modality}</td>
+    <td class="mono num">${row.kitchenQuantity === null ? "—" : row.kitchenQuantity}</td>
     <td>${row.technician ? escapeHtml(row.technician) : "—"}</td>
+    <td class="celula-proponente-wrap">${row.legalRepresentative ? escapeHtml(row.legalRepresentative) : "—"}</td>
+    <td class="celula-proponente-wrap">${row.focalPoint ? escapeHtml(row.focalPoint) : "—"}</td>
     <td class="mono">${row.proposalNumber}</td>
     <td>${convenioLink}</td>
     <td class="celula-proponente-wrap">${row.proponent}</td>
-    <td class="mono">${row.cnpj}</td>
-    <td class="mono">${row.processNumber}</td>
+    <td class="mono">${formatCnpj(row.cnpj)}</td>
+    ${processNumberCell(row)}
     <td>${row.state}</td>
     <td class="mono">${row.programCode}</td>
     <td class="mono num">${formatDecimal(row.globalProposalValue)}</td>
@@ -247,10 +438,43 @@ function renderTable() {
 
   document.getElementById("rodape-contagem").textContent =
     `${list.length} de ${rows.length} instrumento(s) exibido(s)`;
+  document.getElementById("btn-download").disabled = list.length === 0;
 }
 
 document.getElementById("busca").addEventListener("input", renderTable);
 document.getElementById("filtro-modalidade").addEventListener("change", renderTable);
+document.getElementById("btn-download").addEventListener("click", downloadFilteredCsv);
+
+document.getElementById("tabela-instrumentos").addEventListener("click", async (event) => {
+  const btn = event.target.closest(".btn-copiar");
+  if (!btn) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const value = btn.dataset.copiar;
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const input = document.createElement("textarea");
+    input.value = value;
+    input.setAttribute("readonly", "");
+    input.style.position = "fixed";
+    input.style.left = "-9999px";
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    document.body.removeChild(input);
+  }
+  btn.classList.add("copiado");
+  btn.title = "Copiado!";
+  const original = btn.innerHTML;
+  btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
+  setTimeout(() => {
+    btn.classList.remove("copiado");
+    btn.title = "Copiar Processo SEI";
+    btn.innerHTML = original;
+  }, 1500);
+});
 
 document.querySelectorAll("#tabela-instrumentos thead th").forEach((th) => {
   th.addEventListener("click", () => {

@@ -61,10 +61,13 @@ const CONVENIO_COLUMNS = {
   disbursedValue: "VL_DESEMBOLSADO_CONV",
 };
 
-/** Índices 0-based da aba SIG_PCS: A = convênio, F = técnico. */
+/** Índices 0-based da aba SIG_PCS: A = convênio, D = qtd cozinhas, F = técnico, G = representante, H = ponto focal. */
 const SIG_PCS_COLUMNS = {
   convenio: 0,
+  kitchenQuantity: 3,
   technician: 5,
+  legalRepresentative: 6,
+  focalPoint: 7,
 };
 
 const BRAND_COLORS = {
@@ -185,6 +188,35 @@ function parseNum(value) {
   return Number.isNaN(n) ? 0 : n;
 }
 
+/**
+ * NR_PROCESSO (Processo SEI) é texto. Planilhas às vezes exportam como
+ * notação científica (ex.: 7.10001E+16); reexpande para dígitos sem usar Number.
+ */
+function normalizeProcessNumber(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw === "—") return "—";
+  if (/^\d+$/.test(raw)) return raw;
+
+  const sci = raw.match(/^([+-]?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/);
+  if (!sci) return raw;
+
+  const sign = sci[1] === "-" ? "-" : "";
+  const digits = `${sci[2]}${sci[3] || ""}`.replace(/^0+(?=\d)/, "");
+  const exp = Number(sci[4]);
+  const pointIndex = sci[2].length;
+  const newPoint = pointIndex + exp;
+
+  let expanded;
+  if (newPoint <= 0) {
+    expanded = `0.${"0".repeat(-newPoint)}${digits}`;
+  } else if (newPoint >= digits.length) {
+    expanded = `${digits}${"0".repeat(newPoint - digits.length)}`;
+  } else {
+    expanded = `${digits.slice(0, newPoint)}.${digits.slice(newPoint)}`;
+  }
+  return `${sign}${expanded}`;
+}
+
 function parseDate(value) {
   if (!value) return null;
   const text = String(value).trim();
@@ -237,6 +269,14 @@ function formatDecimal(value, { decimals = 0 } = {}) {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
+}
+
+/** Formata dígitos como CNPJ: 00.000.000/0000-00 (preenche zeros à esquerda se faltar). */
+function formatCnpj(value) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (!digits) return "—";
+  const padded = digits.padStart(14, "0").slice(-14);
+  return `${padded.slice(0, 2)}.${padded.slice(2, 5)}.${padded.slice(5, 8)}/${padded.slice(8, 12)}-${padded.slice(12)}`;
 }
 
 function escapeHtml(text) {
@@ -360,7 +400,7 @@ function transformConvenioRow(rawRow, executedValueByConvenio, { technicianByCon
     proponent: rawRow[cols.proponent] || "(sem nome cadastrado)",
     modality: rawRow[cols.modality] || "—",
     convenioNumber: nr || "—",
-    processNumber: (rawRow[cols.processNumber] || "").trim() || "—",
+    processNumber: normalizeProcessNumber(rawRow[cols.processNumber]),
     status,
     vigencyPercent,
     executionPercent,
@@ -394,15 +434,39 @@ function buildUsedYieldMap(requests) {
 function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
   const byTechnician = {};
   const byConvenio = {};
+  const legalRepresentativeByConvenio = {};
+  const focalPointByConvenio = {};
+  const kitchenQuantityByConvenio = {};
   for (const row of rows.slice(1)) {
     const nr = String(row[sigColumns.convenio] || "").trim();
+    if (!nr) continue;
+
     const technician = String(row[sigColumns.technician] || "").trim();
-    if (!nr || !technician) continue;
-    byConvenio[nr] = technician;
-    if (!byTechnician[technician]) byTechnician[technician] = [];
-    byTechnician[technician].push(nr);
+    if (technician) {
+      byConvenio[nr] = technician;
+      if (!byTechnician[technician]) byTechnician[technician] = [];
+      byTechnician[technician].push(nr);
+    }
+
+    const legalRepresentative = String(row[sigColumns.legalRepresentative] || "").trim();
+    if (legalRepresentative) legalRepresentativeByConvenio[nr] = legalRepresentative;
+
+    const focalPoint = String(row[sigColumns.focalPoint] || "").trim();
+    if (focalPoint) focalPointByConvenio[nr] = focalPoint;
+
+    const kitchenQuantityRaw = String(row[sigColumns.kitchenQuantity] || "").trim();
+    if (kitchenQuantityRaw) {
+      const qty = Number(kitchenQuantityRaw.replace(",", "."));
+      if (Number.isFinite(qty)) kitchenQuantityByConvenio[nr] = qty;
+    }
   }
-  return { byTechnician, byConvenio };
+  return {
+    byTechnician,
+    byConvenio,
+    legalRepresentativeByConvenio,
+    focalPointByConvenio,
+    kitchenQuantityByConvenio,
+  };
 }
 
 function normalizeKitchenCode(value) {
@@ -451,7 +515,12 @@ function transformPartnershipInstrumentRow(
   usedYieldByConvenio,
   executedValueByConvenio,
   today,
-  { technicianByConvenio } = {},
+  {
+    technicianByConvenio,
+    legalRepresentativeByConvenio,
+    focalPointByConvenio,
+    kitchenQuantityByConvenio,
+  } = {},
 ) {
   const nrConvenio = String(rawRow.NR_CONVENIO || "").trim();
   const startDate = parseDate(rawRow.DIA_INIC_VIGENC_CONV);
@@ -490,14 +559,24 @@ function transformPartnershipInstrumentRow(
   return {
     proposalId: rawRow.ID_PROPOSTA || "",
     modality: rawRow.MODALIDADE || "—",
+    kitchenQuantity: (kitchenQuantityByConvenio && nrConvenio
+      && kitchenQuantityByConvenio[nrConvenio] !== undefined)
+      ? kitchenQuantityByConvenio[nrConvenio]
+      : null,
     technician: (technicianByConvenio && nrConvenio)
       ? (technicianByConvenio[nrConvenio] || null)
+      : null,
+    legalRepresentative: (legalRepresentativeByConvenio && nrConvenio)
+      ? (legalRepresentativeByConvenio[nrConvenio] || null)
+      : null,
+    focalPoint: (focalPointByConvenio && nrConvenio)
+      ? (focalPointByConvenio[nrConvenio] || null)
       : null,
     proposalNumber: rawRow.NR_PROPOSTA || "—",
     convenioNumber: nrConvenio || "—",
     proponent: rawRow.NM_PROPONENTE || "(sem nome cadastrado)",
     cnpj: rawRow.IDENTIF_PROPONENTE || "—",
-    processNumber: rawRow.NR_PROCESSO || "—",
+    processNumber: normalizeProcessNumber(rawRow.NR_PROCESSO),
     state: rawRow.UF_PROPONENTE || "—",
     programCode: rawRow.COD_PROGRAMA || "—",
     globalProposalValue,
@@ -567,12 +646,22 @@ function loadPartnershipInstruments() {
     const loadDate = new Date();
     loadDate.setHours(0, 0, 0, 0);
     const usedYieldByConvenio = buildUsedYieldMap(requests);
-    const { byConvenio: technicianByConvenio } = buildTechnicianAssignment(assignments);
+    const {
+      byConvenio: technicianByConvenio,
+      legalRepresentativeByConvenio,
+      focalPointByConvenio,
+      kitchenQuantityByConvenio,
+    } = buildTechnicianAssignment(assignments);
     const rows = convenios
       .filter((r) => String(r.NR_CONVENIO || "").trim() !== "")
       .map((r) => transformPartnershipInstrumentRow(
         r, usedYieldByConvenio, executedValueByConvenio, loadDate,
-        { technicianByConvenio },
+        {
+          technicianByConvenio,
+          legalRepresentativeByConvenio,
+          focalPointByConvenio,
+          kitchenQuantityByConvenio,
+        },
       ));
     return { rows, loadDate, executedValueByConvenio };
   });
@@ -689,7 +778,9 @@ function aggregateExecutionFromPagamentoView(pagamentoRows) {
     row.proposalYear = pickFirstNonEmpty(row.proposalYear, raw.ANO_PROP) || "";
     row.proposalNumber = pickFirstNonEmpty(row.proposalNumber, raw.NR_PROPOSTA) || "—";
     row.proponent = pickFirstNonEmpty(row.proponent, raw.NM_PROPONENTE) || "—";
-    row.processNumber = pickFirstNonEmpty(row.processNumber, raw.NR_PROCESSO) || "—";
+    row.processNumber = normalizeProcessNumber(
+      pickFirstNonEmpty(row.processNumber, raw.NR_PROCESSO),
+    );
     row.state = pickFirstNonEmpty(row.state, raw.UF_PROPONENTE) || "—";
 
     const globalValue = parseNum(raw.VL_GLOBAL_PROP);
