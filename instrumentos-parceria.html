@@ -179,7 +179,7 @@
 
     <div class="rodape">
       <span id="rodape-contagem">—</span>
-      <span>fonte: view_convenio + solicitacao_rendimento_aplicacao · TransfereGov / SICONV</span>
+      <span>fonte: view_convenio + solicitacao_rendimento_aplicacao · <a id="link-sig-pcs" class="link-transferegov" href="#" target="_blank" rel="noopener">SIG_PCS</a> · TransfereGov / SICONV</span>
     </div>
   </section>
 </main>
@@ -494,6 +494,8 @@ document.querySelectorAll("#tabela-instrumentos thead th").forEach((th) => {
     renderTable();
   });
 });
+
+document.getElementById("link-sig-pcs").href = SHEET_URL_SIG_PCS;
 
 loadData();
 </script>

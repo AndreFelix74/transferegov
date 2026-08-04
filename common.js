@@ -16,6 +16,8 @@ const CSV_URL_SOLICITACAO_RENDIMENTO =
 const GID_SIG_PCS = "1768843796"; // aba SIG_PCS (atribuição técnico ↔ convênio)
 const CSV_URL_SIG_PCS =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${GID_SIG_PCS}&headers=1`;
+const SHEET_URL_SIG_PCS =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${GID_SIG_PCS}`;
 
 const CSV_URL_PAGAMENTO =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("pagamento")}`;
