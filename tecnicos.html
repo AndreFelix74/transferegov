@@ -158,6 +158,7 @@
           <thead>
             <tr>
               <th data-campo="proponent">Proponente <span class="seta">↕</span></th>
+              <th data-campo="egCode">Código da EG <span class="seta">↕</span></th>
               <th data-campo="technician">Técnico <span class="seta">↕</span></th>
               <th data-campo="processNumber">Processo SEI <span class="seta">↕</span></th>
               <th data-campo="convenioNumber">Nº TransfereGov <span class="seta">↕</span></th>
@@ -165,10 +166,17 @@
               <th data-campo="executionPercent">% Execução <span class="seta">↕</span></th>
               <th data-campo="disbursementPercent">% Desembolso <span class="seta">↕</span></th>
               <th data-campo="daysRemaining" class="ativo">Dias restantes <span class="seta">↓</span></th>
+              <th data-campo="legalRepresentative">Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="legalRepresentativePhone">Telefone - Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="legalRepresentativeEmail">E-mail - Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="focalPoint">Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="focalPointPhone">Telefone - Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="focalPointEmail">E-mail - Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="egAddress">Endereço da EG <span class="seta">↕</span></th>
             </tr>
           </thead>
           <tbody id="corpo-tabela-execucao">
-            <tr><td colspan="8" class="carregando">Carregando dados da planilha…</td></tr>
+            <tr><td colspan="16" class="carregando">Carregando dados da planilha…</td></tr>
           </tbody>
         </table>
       </div>
@@ -198,15 +206,23 @@
           <thead>
             <tr>
               <th data-campo="proponent">Proponente <span class="seta">↕</span></th>
+              <th data-campo="egCode">Código da EG <span class="seta">↕</span></th>
               <th data-campo="technician">Técnico <span class="seta">↕</span></th>
               <th data-campo="processNumber">Processo SEI <span class="seta">↕</span></th>
               <th data-campo="convenioNumber">Nº TransfereGov <span class="seta">↕</span></th>
               <th data-campo="status">Situação <span class="seta">↕</span></th>
               <th data-campo="daysRemaining" class="ativo">Dias em prestação de contas <span class="seta">↓</span></th>
+              <th data-campo="legalRepresentative">Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="legalRepresentativePhone">Telefone - Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="legalRepresentativeEmail">E-mail - Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="focalPoint">Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="focalPointPhone">Telefone - Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="focalPointEmail">E-mail - Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="egAddress">Endereço da EG <span class="seta">↕</span></th>
             </tr>
           </thead>
           <tbody id="corpo-tabela-prestacao">
-            <tr><td colspan="6" class="carregando">Carregando dados da planilha…</td></tr>
+            <tr><td colspan="14" class="carregando">Carregando dados da planilha…</td></tr>
           </tbody>
         </table>
       </div>
@@ -257,10 +273,21 @@ function loadData() {
         setStatusDot("#status-atualizacao", "aba SIG_PCS retornou sem linhas", true);
         return;
       }
-      ({ byTechnician: conveniosByTechnician, byConvenio: technicianByConvenio } =
-        buildTechnicianAssignment(assignments));
+      const assignment = buildTechnicianAssignment(assignments);
+      conveniosByTechnician = assignment.byTechnician;
+      technicianByConvenio = assignment.byConvenio;
       rows = convenios.map((r) => transformConvenioRow(
-        r, executedValueByConvenio, { technicianByConvenio },
+        r, executedValueByConvenio, {
+          technicianByConvenio: assignment.byConvenio,
+          egCodeByConvenio: assignment.egCodeByConvenio,
+          legalRepresentativeByConvenio: assignment.legalRepresentativeByConvenio,
+          legalRepresentativePhoneByConvenio: assignment.legalRepresentativePhoneByConvenio,
+          legalRepresentativeEmailByConvenio: assignment.legalRepresentativeEmailByConvenio,
+          focalPointByConvenio: assignment.focalPointByConvenio,
+          focalPointPhoneByConvenio: assignment.focalPointPhoneByConvenio,
+          focalPointEmailByConvenio: assignment.focalPointEmailByConvenio,
+          egAddressByConvenio: assignment.egAddressByConvenio,
+        },
       ));
       setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
       renderAll();
@@ -269,9 +296,9 @@ function loadData() {
       console.error(err);
       setStatusDot("#status-atualizacao", "falha ao carregar a planilha", true);
       document.getElementById("corpo-tabela-execucao").innerHTML =
-        `<tr><td colspan="8" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
+        `<tr><td colspan="16" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
       document.getElementById("corpo-tabela-prestacao").innerHTML =
-        `<tr><td colspan="6" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
+        `<tr><td colspan="14" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
     });
 }
 
@@ -340,9 +367,13 @@ function filteredRows(tab) {
   if (!term) return base;
   return base.filter((row) =>
     row.proponent.toLowerCase().includes(term)
+    || String(row.egCode || "").toLowerCase().includes(term)
     || String(row.technician || "").toLowerCase().includes(term)
     || String(row.processNumber).toLowerCase().includes(term)
-    || String(row.convenioNumber).toLowerCase().includes(term),
+    || String(row.convenioNumber).toLowerCase().includes(term)
+    || String(row.legalRepresentative || "").toLowerCase().includes(term)
+    || String(row.focalPoint || "").toLowerCase().includes(term)
+    || String(row.egAddress || "").toLowerCase().includes(term),
   );
 }
 
@@ -377,7 +408,15 @@ function processNumberCell(row) {
 }
 
 function renderTableRow(row, tab) {
-  const technician = row.technician ? escapeHtml(row.technician) : "—";
+  const text = (value) => (value ? escapeHtml(value) : "—");
+  const sigContactCells = `
+    <td>${text(row.legalRepresentative)}</td>
+    <td class="mono">${text(row.legalRepresentativePhone)}</td>
+    <td>${text(row.legalRepresentativeEmail)}</td>
+    <td>${text(row.focalPoint)}</td>
+    <td class="mono">${text(row.focalPointPhone)}</td>
+    <td>${text(row.focalPointEmail)}</td>
+    <td>${text(row.egAddress)}</td>`;
   const commonCells = `
     <td>
       <div class="celula-proponente">
@@ -385,7 +424,8 @@ function renderTableRow(row, tab) {
         <span class="modalidade">${row.modality}</span>
       </div>
     </td>
-    <td>${technician}</td>
+    <td class="mono">${text(row.egCode)}</td>
+    <td>${text(row.technician)}</td>
     ${processNumberCell(row)}
     <td>
       <a class="link-transferegov" href="${PROPOSTA_DETAIL_URL}${row.proposalId}" target="_blank" rel="noopener">
@@ -398,6 +438,7 @@ function renderTableRow(row, tab) {
     return `<tr>${commonCells}
       <td><span class="badge-situacao">${row.status}</span></td>
       <td>${formatDeadlineStamp(row)}</td>
+      ${sigContactCells}
     </tr>`;
   }
 
@@ -406,6 +447,7 @@ function renderTableRow(row, tab) {
     <td>${formatPercentBar(row.executionPercent, BRAND_COLORS.verde)}</td>
     <td>${formatPercentBar(row.disbursementPercent, "#355e7a")}</td>
     <td>${formatDeadlineStamp(row)}</td>
+    ${sigContactCells}
   </tr>`;
 }
 
@@ -413,7 +455,7 @@ function renderTable(tab) {
   const { tableBody, footerCount } = tabIds(tab);
   const list = sortedRows(filteredRows(tab), tab);
   const body = document.getElementById(tableBody);
-  const colspan = tab === "prestacao" ? 6 : 8;
+  const colspan = tab === "prestacao" ? 14 : 16;
 
   if (!list.length) {
     const msg = selectedTechnician

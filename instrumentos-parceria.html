@@ -143,10 +143,9 @@
             <th data-campo="convenioNumber">NR_CONVENIO <span class="seta">↕</span></th>
             <th data-campo="processNumber">Processo SEI <span class="seta">↕</span></th>
             <th data-campo="proponent">NM_PROPONENTE <span class="seta">↕</span></th>
+            <th data-campo="egCode">Código da EG <span class="seta">↕</span></th>
             <th data-campo="kitchenQuantity" class="num">Quantidade de Cozinhas <span class="seta">↕</span></th>
             <th data-campo="cnpj">CNPJ <span class="seta">↕</span></th>
-            <th data-campo="legalRepresentative">Representante Legal EG <span class="seta">↕</span></th>
-            <th data-campo="focalPoint">Ponto Focal EG da Parceira <span class="seta">↕</span></th>
             <th data-campo="state">UF_PROPONENTE <span class="seta">↕</span></th>
             <th data-campo="programCode">COD_PROGRAMA <span class="seta">↕</span></th>
             <th data-campo="globalProposalValue" class="num">VL_GLOBAL_PROP <span class="seta">↕</span></th>
@@ -169,10 +168,17 @@
             <th data-campo="elapsedTimePercent">% de tempo transcorrido <span class="seta">↕</span></th>
             <th data-campo="currentDate">Data Atual <span class="seta">↕</span></th>
             <th data-campo="status">SIT_CONVENIO <span class="seta">↕</span></th>
+            <th data-campo="legalRepresentative">Representante Legal da EG <span class="seta">↕</span></th>
+            <th data-campo="legalRepresentativePhone">Telefone - Representante Legal da EG <span class="seta">↕</span></th>
+            <th data-campo="legalRepresentativeEmail">E-mail - Representante Legal da EG <span class="seta">↕</span></th>
+            <th data-campo="focalPoint">Ponto focal na parceria <span class="seta">↕</span></th>
+            <th data-campo="focalPointPhone">Telefone - Ponto focal na parceria <span class="seta">↕</span></th>
+            <th data-campo="focalPointEmail">E-mail - Ponto focal na parceria <span class="seta">↕</span></th>
+            <th data-campo="egAddress">Endereço da EG <span class="seta">↕</span></th>
           </tr>
         </thead>
         <tbody id="corpo-tabela">
-          <tr><td colspan="32" class="carregando">Carregando dados da planilha…</td></tr>
+          <tr><td colspan="38" class="carregando">Carregando dados da planilha…</td></tr>
         </tbody>
       </table>
     </div>
@@ -185,7 +191,7 @@
 </main>
 
 <script>
-const COLSPAN = 32;
+const COLSPAN = 38;
 const COLUNAS_CSV = [
   { campo: "modality", rotulo: "MODALIDADE" },
   { campo: "technician", rotulo: "Técnica" },
@@ -193,10 +199,9 @@ const COLUNAS_CSV = [
   { campo: "convenioNumber", rotulo: "NR_CONVENIO" },
   { campo: "processNumber", rotulo: "Processo SEI" },
   { campo: "proponent", rotulo: "NM_PROPONENTE" },
+  { campo: "egCode", rotulo: "Código da EG" },
   { campo: "kitchenQuantity", rotulo: "Quantidade de Cozinhas" },
   { campo: "cnpj", rotulo: "CNPJ", tipo: "cnpj" },
-  { campo: "legalRepresentative", rotulo: "Representante Legal EG" },
-  { campo: "focalPoint", rotulo: "Ponto Focal EG da Parceira" },
   { campo: "state", rotulo: "UF_PROPONENTE" },
   { campo: "programCode", rotulo: "COD_PROGRAMA" },
   { campo: "globalProposalValue", rotulo: "VL_GLOBAL_PROP", numerico: true },
@@ -219,6 +224,13 @@ const COLUNAS_CSV = [
   { campo: "elapsedTimePercent", rotulo: "% de tempo transcorrido", numerico: true },
   { campo: "currentDate", rotulo: "Data Atual", tipo: "data" },
   { campo: "status", rotulo: "SIT_CONVENIO" },
+  { campo: "legalRepresentative", rotulo: "Representante Legal da EG" },
+  { campo: "legalRepresentativePhone", rotulo: "Telefone - Representante Legal da EG" },
+  { campo: "legalRepresentativeEmail", rotulo: "E-mail - Representante Legal da EG" },
+  { campo: "focalPoint", rotulo: "Ponto focal na parceria" },
+  { campo: "focalPointPhone", rotulo: "Telefone - Ponto focal na parceria" },
+  { campo: "focalPointEmail", rotulo: "E-mail - Ponto focal na parceria" },
+  { campo: "egAddress", rotulo: "Endereço da EG" },
 ];
 
 let rows = [];
@@ -339,6 +351,7 @@ function filteredRows() {
   const termDigits = term.replace(/\D/g, "");
   return base.filter((row) =>
     row.proponent.toLowerCase().includes(term)
+    || String(row.egCode || "").toLowerCase().includes(term)
     || String(row.convenioNumber).toLowerCase().includes(term)
     || String(row.proposalNumber).toLowerCase().includes(term)
     || String(row.processNumber).toLowerCase().includes(term)
@@ -346,7 +359,8 @@ function filteredRows() {
     || (termDigits.length >= 3 && String(row.cnpj).replace(/\D/g, "").includes(termDigits))
     || String(row.technician || "").toLowerCase().includes(term)
     || String(row.legalRepresentative || "").toLowerCase().includes(term)
-    || String(row.focalPoint || "").toLowerCase().includes(term),
+    || String(row.focalPoint || "").toLowerCase().includes(term)
+    || String(row.egAddress || "").toLowerCase().includes(term),
   );
 }
 
@@ -390,17 +404,18 @@ function renderRow(row) {
       </a>`
     : `<span class="mono">${row.convenioNumber}</span>`;
 
+  const text = (value) => (value ? escapeHtml(value) : "—");
+
   return `<tr>
     <td>${row.modality}</td>
-    <td>${row.technician ? escapeHtml(row.technician) : "—"}</td>
+    <td>${text(row.technician)}</td>
     <td class="mono">${row.proposalNumber}</td>
     <td>${convenioLink}</td>
     ${processNumberCell(row)}
     <td class="celula-proponente-wrap">${row.proponent}</td>
+    <td class="mono">${text(row.egCode)}</td>
     <td class="mono num">${row.kitchenQuantity === null ? "—" : row.kitchenQuantity}</td>
     <td class="mono">${formatCnpj(row.cnpj)}</td>
-    <td class="celula-proponente-wrap">${row.legalRepresentative ? escapeHtml(row.legalRepresentative) : "—"}</td>
-    <td class="celula-proponente-wrap">${row.focalPoint ? escapeHtml(row.focalPoint) : "—"}</td>
     <td>${row.state}</td>
     <td class="mono">${row.programCode}</td>
     <td class="mono num">${formatDecimal(row.globalProposalValue)}</td>
@@ -423,6 +438,13 @@ function renderRow(row) {
     <td>${formatPercentBar(row.elapsedTimePercent, BRAND_COLORS.roxo)}</td>
     <td class="mono">${formatDate(row.currentDate)}</td>
     <td><span class="badge-situacao">${row.status}</span></td>
+    <td class="celula-proponente-wrap">${text(row.legalRepresentative)}</td>
+    <td class="mono">${text(row.legalRepresentativePhone)}</td>
+    <td class="celula-proponente-wrap">${text(row.legalRepresentativeEmail)}</td>
+    <td class="celula-proponente-wrap">${text(row.focalPoint)}</td>
+    <td class="mono">${text(row.focalPointPhone)}</td>
+    <td class="celula-proponente-wrap">${text(row.focalPointEmail)}</td>
+    <td class="celula-proponente-wrap">${text(row.egAddress)}</td>
   </tr>`;
 }
 

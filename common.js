@@ -63,13 +63,23 @@ const CONVENIO_COLUMNS = {
   disbursedValue: "VL_DESEMBOLSADO_CONV",
 };
 
-/** Índices 0-based da aba SIG_PCS: A = convênio, D = qtd cozinhas, F = técnico, G = representante, H = ponto focal. */
+/**
+ * Índices 0-based da aba SIG_PCS (reordenada + coluna Código da EG):
+ * A = convênio, B = técnico, D = código EG, F = qtd cozinhas,
+ * H–N = representante, telefones/e-mails, ponto focal, endereço EG.
+ */
 const SIG_PCS_COLUMNS = {
   convenio: 0,
-  kitchenQuantity: 3,
-  technician: 5,
-  legalRepresentative: 6,
-  focalPoint: 7,
+  technician: 1,
+  egCode: 3,
+  kitchenQuantity: 5,
+  legalRepresentative: 7,
+  legalRepresentativePhone: 8,
+  legalRepresentativeEmail: 9,
+  focalPoint: 10,
+  focalPointPhone: 11,
+  focalPointEmail: 12,
+  egAddress: 13,
 };
 
 const BRAND_COLORS = {
@@ -281,6 +291,11 @@ function formatCnpj(value) {
   return `${padded.slice(0, 2)}.${padded.slice(2, 5)}.${padded.slice(5, 8)}/${padded.slice(8, 12)}-${padded.slice(12)}`;
 }
 
+/** Normaliza e-mail para minúsculas. */
+function formatEmail(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
 function escapeHtml(text) {
   return String(text ?? "")
     .replaceAll("&", "&amp;")
@@ -356,7 +371,24 @@ function hasConvenio(row) {
   return nr && nr !== "—";
 }
 
-function transformConvenioRow(rawRow, executedValueByConvenio, { technicianByConvenio } = {}) {
+function lookupByConvenio(map, nr) {
+  return (map && nr) ? (map[nr] || null) : null;
+}
+
+function attachSigPcsFields(target, nr, sigMaps = {}) {
+  target.technician = lookupByConvenio(sigMaps.technicianByConvenio, nr);
+  target.egCode = lookupByConvenio(sigMaps.egCodeByConvenio, nr);
+  target.legalRepresentative = lookupByConvenio(sigMaps.legalRepresentativeByConvenio, nr);
+  target.legalRepresentativePhone = lookupByConvenio(sigMaps.legalRepresentativePhoneByConvenio, nr);
+  target.legalRepresentativeEmail = lookupByConvenio(sigMaps.legalRepresentativeEmailByConvenio, nr);
+  target.focalPoint = lookupByConvenio(sigMaps.focalPointByConvenio, nr);
+  target.focalPointPhone = lookupByConvenio(sigMaps.focalPointPhoneByConvenio, nr);
+  target.focalPointEmail = lookupByConvenio(sigMaps.focalPointEmailByConvenio, nr);
+  target.egAddress = lookupByConvenio(sigMaps.egAddressByConvenio, nr);
+  return target;
+}
+
+function transformConvenioRow(rawRow, executedValueByConvenio, sigMaps = {}) {
   const cols = CONVENIO_COLUMNS;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -411,9 +443,9 @@ function transformConvenioRow(rawRow, executedValueByConvenio, { technicianByCon
     band,
   };
 
-  if (technicianByConvenio) {
+  if (sigMaps.technicianByConvenio || sigMaps.egCodeByConvenio) {
     row.vigencyEndDate = endDate;
-    row.technician = technicianByConvenio[nr] || null;
+    attachSigPcsFields(row, nr, sigMaps);
   }
 
   return row;
@@ -433,11 +465,22 @@ function buildUsedYieldMap(requests) {
   return map;
 }
 
+function setConvenioField(map, nr, value) {
+  const text = String(value || "").trim();
+  if (text) map[nr] = text;
+}
+
 function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
   const byTechnician = {};
   const byConvenio = {};
+  const egCodeByConvenio = {};
   const legalRepresentativeByConvenio = {};
+  const legalRepresentativePhoneByConvenio = {};
+  const legalRepresentativeEmailByConvenio = {};
   const focalPointByConvenio = {};
+  const focalPointPhoneByConvenio = {};
+  const focalPointEmailByConvenio = {};
+  const egAddressByConvenio = {};
   const kitchenQuantityByConvenio = {};
   for (const row of rows.slice(1)) {
     const nr = String(row[sigColumns.convenio] || "").trim();
@@ -450,11 +493,14 @@ function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
       byTechnician[technician].push(nr);
     }
 
-    const legalRepresentative = String(row[sigColumns.legalRepresentative] || "").trim();
-    if (legalRepresentative) legalRepresentativeByConvenio[nr] = legalRepresentative;
-
-    const focalPoint = String(row[sigColumns.focalPoint] || "").trim();
-    if (focalPoint) focalPointByConvenio[nr] = focalPoint;
+    setConvenioField(egCodeByConvenio, nr, row[sigColumns.egCode]);
+    setConvenioField(legalRepresentativeByConvenio, nr, row[sigColumns.legalRepresentative]);
+    setConvenioField(legalRepresentativePhoneByConvenio, nr, row[sigColumns.legalRepresentativePhone]);
+    setConvenioField(legalRepresentativeEmailByConvenio, nr, formatEmail(row[sigColumns.legalRepresentativeEmail]));
+    setConvenioField(focalPointByConvenio, nr, row[sigColumns.focalPoint]);
+    setConvenioField(focalPointPhoneByConvenio, nr, row[sigColumns.focalPointPhone]);
+    setConvenioField(focalPointEmailByConvenio, nr, formatEmail(row[sigColumns.focalPointEmail]));
+    setConvenioField(egAddressByConvenio, nr, row[sigColumns.egAddress]);
 
     const kitchenQuantityRaw = String(row[sigColumns.kitchenQuantity] || "").trim();
     if (kitchenQuantityRaw) {
@@ -465,8 +511,14 @@ function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
   return {
     byTechnician,
     byConvenio,
+    egCodeByConvenio,
     legalRepresentativeByConvenio,
+    legalRepresentativePhoneByConvenio,
+    legalRepresentativeEmailByConvenio,
     focalPointByConvenio,
+    focalPointPhoneByConvenio,
+    focalPointEmailByConvenio,
+    egAddressByConvenio,
     kitchenQuantityByConvenio,
   };
 }
@@ -519,8 +571,14 @@ function transformPartnershipInstrumentRow(
   today,
   {
     technicianByConvenio,
+    egCodeByConvenio,
     legalRepresentativeByConvenio,
+    legalRepresentativePhoneByConvenio,
+    legalRepresentativeEmailByConvenio,
     focalPointByConvenio,
+    focalPointPhoneByConvenio,
+    focalPointEmailByConvenio,
+    egAddressByConvenio,
     kitchenQuantityByConvenio,
   } = {},
 ) {
@@ -558,21 +616,12 @@ function transformPartnershipInstrumentRow(
     }
   }
 
-  return {
+  return attachSigPcsFields({
     proposalId: rawRow.ID_PROPOSTA || "",
     modality: rawRow.MODALIDADE || "—",
     kitchenQuantity: (kitchenQuantityByConvenio && nrConvenio
       && kitchenQuantityByConvenio[nrConvenio] !== undefined)
       ? kitchenQuantityByConvenio[nrConvenio]
-      : null,
-    technician: (technicianByConvenio && nrConvenio)
-      ? (technicianByConvenio[nrConvenio] || null)
-      : null,
-    legalRepresentative: (legalRepresentativeByConvenio && nrConvenio)
-      ? (legalRepresentativeByConvenio[nrConvenio] || null)
-      : null,
-    focalPoint: (focalPointByConvenio && nrConvenio)
-      ? (focalPointByConvenio[nrConvenio] || null)
       : null,
     proposalNumber: rawRow.NR_PROPOSTA || "—",
     convenioNumber: nrConvenio || "—",
@@ -602,7 +651,17 @@ function transformPartnershipInstrumentRow(
     currentDate: today,
     status: rawRow.SIT_CONVENIO || "—",
     band: executionUrgencyBand(daysRemaining),
-  };
+  }, nrConvenio, {
+    technicianByConvenio,
+    egCodeByConvenio,
+    legalRepresentativeByConvenio,
+    legalRepresentativePhoneByConvenio,
+    legalRepresentativeEmailByConvenio,
+    focalPointByConvenio,
+    focalPointPhoneByConvenio,
+    focalPointEmailByConvenio,
+    egAddressByConvenio,
+  });
 }
 
 function transformApplicationPlanRow(rawRow, stateByKitchen) {
@@ -650,8 +709,14 @@ function loadPartnershipInstruments() {
     const usedYieldByConvenio = buildUsedYieldMap(requests);
     const {
       byConvenio: technicianByConvenio,
+      egCodeByConvenio,
       legalRepresentativeByConvenio,
+      legalRepresentativePhoneByConvenio,
+      legalRepresentativeEmailByConvenio,
       focalPointByConvenio,
+      focalPointPhoneByConvenio,
+      focalPointEmailByConvenio,
+      egAddressByConvenio,
       kitchenQuantityByConvenio,
     } = buildTechnicianAssignment(assignments);
     const rows = convenios
@@ -660,8 +725,14 @@ function loadPartnershipInstruments() {
         r, usedYieldByConvenio, executedValueByConvenio, loadDate,
         {
           technicianByConvenio,
+          egCodeByConvenio,
           legalRepresentativeByConvenio,
+          legalRepresentativePhoneByConvenio,
+          legalRepresentativeEmailByConvenio,
           focalPointByConvenio,
+          focalPointPhoneByConvenio,
+          focalPointEmailByConvenio,
+          egAddressByConvenio,
           kitchenQuantityByConvenio,
         },
       ));
