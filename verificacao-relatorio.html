@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificação de Relatório | Cozinha Solidária</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<script src="common.js"></script>
+
+<style>
+  header.topo {
+    border-bottom-color: var(--verde);
+  }
+
+  main {
+    padding: var(--main-pad-top) clamp(16px, 4vw, 40px) var(--main-pad-bottom);
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .painel-controles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 18px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    background: var(--papel-carta);
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
+  }
+
+  .campo-controle {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 200px;
+    flex: 1;
+  }
+
+  .campo-controle label {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--tinta-suave);
+  }
+
+  .campo-controle input[type="text"] {
+    font-family: "IBM Plex Sans";
+    font-size: 14px;
+    color: var(--tinta);
+    background: var(--papel);
+    border: 1px solid var(--linha);
+    border-radius: 7px;
+    padding: 8px 12px;
+    min-width: 220px;
+  }
+
+  .acoes-controle {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+
+  .btn {
+    font-family: "IBM Plex Sans";
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+
+  .btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  .btn-primario {
+    background: var(--verde);
+    color: var(--branco);
+  }
+
+  .btn-primario:hover:not(:disabled) {
+    background: #0c6642;
+  }
+
+  .aviso-placeholder {
+    font-size: 12px;
+    color: var(--tinta-suave);
+    margin: -8px 0 18px;
+    padding: 10px 14px;
+    background: #f0f7f3;
+    border: 1px solid #c5ddd1;
+    border-radius: 8px;
+  }
+
+  .aviso-placeholder.erro {
+    background: #fdf3f1;
+    border-color: #f0c4bc;
+    color: var(--tinta);
+  }
+
+  .aviso-placeholder[hidden] {
+    display: none;
+  }
+
+  /* ---------- documento ---------- */
+  .documento {
+    display: none;
+    background: var(--papel-carta);
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
+    padding: 28px 32px 36px;
+  }
+
+  .documento.visivel { display: block; }
+
+  .doc-cabecalho {
+    text-align: center;
+    margin-bottom: 28px;
+    padding-bottom: 18px;
+    border-bottom: 2px solid var(--verde);
+  }
+
+  .doc-cabecalho .orgao {
+    font-family: "IBM Plex Mono";
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--tinta-suave);
+    margin: 0 0 8px;
+  }
+
+  .doc-cabecalho h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--tinta);
+  }
+
+  .doc-cabecalho .hash-relatorio {
+    margin: 0;
+    font-size: 13px;
+    color: var(--verde);
+    font-weight: 600;
+    font-family: "IBM Plex Mono";
+  }
+
+  .doc-secao {
+    margin-bottom: 26px;
+  }
+
+  .doc-secao h3 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--verde);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .doc-secao h3::before {
+    content: "";
+    width: 3px;
+    height: 14px;
+    background: var(--verde);
+    border-radius: 2px;
+  }
+
+  .doc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+  }
+
+  .doc-grid--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 880px) {
+    .doc-grid--3 { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 640px) {
+    .doc-grid { grid-template-columns: 1fr; }
+  }
+
+  .doc-campo label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--tinta-suave);
+    margin-bottom: 4px;
+  }
+
+  .doc-campo .valor {
+    font-family: "IBM Plex Sans";
+    font-size: 14px;
+    color: var(--tinta);
+    width: 100%;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--linha);
+    min-height: 1.4em;
+  }
+
+  .doc-campo .valor.sub {
+    font-size: 13px;
+    color: var(--tinta-suave);
+    border-bottom: none;
+    padding-top: 0;
+  }
+
+  .tabela-registros-wrap {
+    overflow-x: auto;
+    margin: 0 -4px;
+    padding: 0 4px;
+  }
+
+  table.doc-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 960px;
+  }
+
+  table.doc-tabela th,
+  table.doc-tabela td {
+    border: 1px solid var(--linha);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  table.doc-tabela th {
+    background: var(--papel);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--tinta-suave);
+    font-weight: 600;
+  }
+
+  table.doc-tabela th.grupo-app {
+    background: #e4f3ec;
+    color: #1f5c44;
+  }
+
+  table.doc-tabela th.grupo-alt {
+    background: #e3eef8;
+    color: #2a5580;
+  }
+
+  table.doc-tabela th.grupo-outros {
+    background: #d6e8f7;
+    color: #1a4a72;
+    border-left: 3px solid #4a8fc9;
+  }
+
+  table.doc-tabela td.col-fixa {
+    white-space: nowrap;
+    font-family: "IBM Plex Mono";
+    font-size: 12px;
+    background: var(--papel-carta);
+  }
+
+  table.doc-tabela td.celula-grupo-app {
+    background: #f4faf7;
+    min-width: 140px;
+  }
+
+  table.doc-tabela td.celula-grupo-alt {
+    background: #f3f8fc;
+    min-width: 140px;
+  }
+
+  table.doc-tabela td.celula-outros {
+    background: #edf5fb;
+    border-left: 3px solid #4a8fc9;
+    min-width: 150px;
+  }
+
+  .lista-registros {
+    margin: 0;
+    padding: 0 0 0 16px;
+    list-style: disc;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--tinta);
+  }
+
+  .lista-registros li + li {
+    margin-top: 4px;
+  }
+
+  .lista-registros--vazia {
+    list-style: none;
+    padding: 0;
+    color: var(--tinta-suave);
+    font-style: italic;
+  }
+
+  .no-print { /* marcado para @media print */ }
+
+  @media (max-width: 640px) {
+    .documento {
+      padding: 20px 16px 28px;
+    }
+
+    .acoes-controle {
+      margin-left: 0;
+      width: 100%;
+    }
+
+    .acoes-controle .btn {
+      flex: 1;
+    }
+  }
+
+  /* ---------- impressão / PDF via window.print ---------- */
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 12mm 10mm;
+    }
+
+    html, body {
+      background: #fff !important;
+      color: #000 !important;
+    }
+
+    header.topo,
+    .painel-controles,
+    .aviso-placeholder,
+    footer.rodape-pagina,
+    .no-print {
+      display: none !important;
+    }
+
+    main {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .documento {
+      display: block !important;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    .doc-cabecalho {
+      border-bottom-color: #000;
+    }
+
+    .doc-cabecalho .hash-relatorio,
+    .doc-secao h3 {
+      color: #000;
+    }
+
+    .doc-secao h3::before {
+      background: #000;
+    }
+
+    table.doc-tabela th,
+    table.doc-tabela td {
+      border-color: #333;
+    }
+
+    table.doc-tabela th {
+      background: #eee !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    table.doc-tabela th.grupo-app {
+      background: #e4f3ec !important;
+    }
+
+    table.doc-tabela th.grupo-alt {
+      background: #e3eef8 !important;
+    }
+
+    table.doc-tabela th.grupo-outros,
+    table.doc-tabela td.celula-outros {
+      background: #d6e8f7 !important;
+      border-left-color: #4a8fc9 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    table.doc-tabela td.celula-grupo-app {
+      background: #f4faf7 !important;
+    }
+
+    table.doc-tabela td.celula-grupo-alt {
+      background: #f3f8fc !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="topo topo--toolbar">
+  <div class="topo-principal">
+    <a class="voltar-inicio" href="index.html">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Página inicial
+    </a>
+    <div class="titulo">
+      <h1>Verificação de Relatório</h1>
+      <span class="subtitulo">Painel de Acompanhamento · Prestação de Contas</span>
+    </div>
+  </div>
+  <div class="status-atualizacao" id="status-atualizacao">
+    <span class="ponto"></span>
+    <span>protótipo · dados fictícios</span>
+  </div>
+</header>
+
+<main>
+  <p class="aviso-placeholder no-print">
+    Informe o hash do relatório enviado pela cozinha/EG e clique em <strong>Verificar</strong>.
+    Hashes de exemplo: <code class="mono">CS0042-2026-08</code>, <code class="mono">CS0107-2026-08</code>, <code class="mono">CS0023-2026-08</code>.
+  </p>
+
+  <p class="aviso-placeholder erro no-print" id="aviso-erro" hidden role="alert"></p>
+
+  <section class="painel-controles no-print" aria-label="Busca por hash do relatório">
+    <div class="campo-controle">
+      <label for="inp-hash">Hash do relatório</label>
+      <input
+        type="text"
+        id="inp-hash"
+        placeholder="Ex.: CS0042-2026-08"
+        aria-label="Hash do relatório"
+        autocomplete="off"
+        spellcheck="false"
+      >
+    </div>
+
+    <div class="acoes-controle">
+      <button type="button" class="btn btn-primario" id="btn-verificar">Verificar</button>
+    </div>
+  </section>
+
+  <article class="documento" id="documento" aria-live="polite">
+    <header class="doc-cabecalho">
+      <p class="orgao">Ministério do Desenvolvimento e Assistência Social, Família e Combate à Fome</p>
+      <h2>Painel de Acompanhamento — Relatório Mensal</h2>
+      <p class="hash-relatorio" id="doc-hash">—</p>
+    </header>
+
+    <section class="doc-secao" aria-labelledby="sec-identificacao">
+      <h3 id="sec-identificacao">Identificação</h3>
+      <div class="doc-grid doc-grid--3">
+        <div class="doc-campo">
+          <label>Período de Referência</label>
+          <div class="valor" id="doc-periodo-rotulo">—</div>
+          <div class="valor sub mono" id="doc-periodo-intervalo">—</div>
+        </div>
+        <div class="doc-campo">
+          <label>Identificação do CS</label>
+          <div class="valor mono" id="doc-cs-codigo">—</div>
+          <div class="valor sub" id="doc-cs-nome">—</div>
+        </div>
+        <div class="doc-campo">
+          <label>Identificação do EG</label>
+          <div class="valor mono" id="doc-eg-codigo">—</div>
+          <div class="valor sub" id="doc-eg-nome">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-secao" aria-labelledby="sec-registros">
+      <h3 id="sec-registros">Registros de Refeições Produzidas e Ofertadas</h3>
+      <div class="tabela-registros-wrap">
+        <table class="doc-tabela" id="tabela-registros" aria-labelledby="sec-registros">
+          <thead>
+            <tr>
+              <th scope="col">Dia</th>
+              <th scope="col">Data</th>
+              <th scope="col">Dia da Semana</th>
+              <!-- TODO: confirmar rótulo exato da coluna com a Coordenação -->
+              <th scope="col" class="grupo-app">Aplicativo — Café da manhã — Preparo</th>
+              <!-- TODO: confirmar rótulo exato da coluna com a Coordenação -->
+              <th scope="col" class="grupo-app">Aplicativo — Café da manhã — Distribuição</th>
+              <!-- TODO: confirmar rótulo exato da coluna com a Coordenação -->
+              <th scope="col" class="grupo-alt">Alternativo — Almoço</th>
+              <!-- TODO: confirmar rótulo exato da coluna com a Coordenação -->
+              <th scope="col" class="grupo-alt">Alternativo — Janta</th>
+              <th scope="col" class="grupo-outros">Outros Registros</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-registros-corpo"></tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</main>
+
+<footer class="rodape-pagina no-print">
+  <span>Painel de conferência · protótipo</span>
+  <span>Cozinha Solidária — MDS</span>
+</footer>
+
+<script>
+(function () {
+  const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+  const GRUPOS = [
+    { id: "app-cafe-preparo", classe: "celula-grupo-app" },
+    { id: "app-cafe-distribuicao", classe: "celula-grupo-app" },
+    { id: "alt-almoco", classe: "celula-grupo-alt" },
+    { id: "alt-janta", classe: "celula-grupo-alt" },
+    { id: "outros", classe: "celula-outros" },
+  ];
+
+  /**
+   * Dados fictícios para validação de layout — substituir por API/planilha na etapa 2.
+   * @type {Record<string, object>}
+   */
+  const RELATORIOS_MOCK = {
+    "CS0042-2026-08": {
+      hash: "CS0042-2026-08",
+      periodo: {
+        rotulo: "1º Período",
+        inicio: "2026-08-06",
+        fim: "2026-09-05",
+      },
+      cs: {
+        codigo: "CS0042",
+        nome: "Cozinha Solidária Comunitária Vila Esperança",
+      },
+      eg: {
+        codigo: "EG0012",
+        nome: "Instituto Alimentar do Nordeste",
+      },
+      dias: [
+        {
+          data: "2026-08-06",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #1042 — 120 porções", "Foto validada 08:14"],
+            "app-cafe-distribuicao": ["Distribuição #1043 — 118 entregas"],
+            "alt-almoco": [],
+            "alt-janta": [],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-07",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #1051 — 115 porções"],
+            "app-cafe-distribuicao": ["Distribuição #1052 — 112 entregas", "Ajuste de rota registrado"],
+            "alt-almoco": ["Alternativo #210 — 85 refeições"],
+            "alt-janta": [],
+            outros: ["Visita técnica — registro fotográfico"],
+          },
+        },
+        {
+          data: "2026-08-08",
+          grupos: {
+            "app-cafe-preparo": [],
+            "app-cafe-distribuicao": [],
+            "alt-almoco": ["Alternativo #218 — 92 refeições"],
+            "alt-janta": ["Alternativo #219 — 88 refeições"],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-09",
+          grupos: {
+            "app-cafe-preparo": [],
+            "app-cafe-distribuicao": [],
+            "alt-almoco": [],
+            "alt-janta": [],
+            outros: ["Domingo — operação suspensa"],
+          },
+        },
+        {
+          data: "2026-08-10",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #1060 — 125 porções"],
+            "app-cafe-distribuicao": ["Distribuição #1061 — 123 entregas"],
+            "alt-almoco": ["Alternativo #225 — 90 refeições"],
+            "alt-janta": ["Alternativo #226 — 87 refeições"],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-11",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #1068 — 118 porções", "Checklist de higiene OK"],
+            "app-cafe-distribuicao": ["Distribuição #1069 — 116 entregas"],
+            "alt-almoco": ["Alternativo #231 — 94 refeições"],
+            "alt-janta": [],
+            outros: ["Registro de doação excedente — 12 marmitas"],
+          },
+        },
+        {
+          data: "2026-08-12",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #1075 — 122 porções"],
+            "app-cafe-distribuicao": ["Distribuição #1076 — 120 entregas"],
+            "alt-almoco": [],
+            "alt-janta": ["Alternativo #233 — 91 refeições"],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-13",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #1082 — 119 porções"],
+            "app-cafe-distribuicao": [],
+            "alt-almoco": ["Alternativo #240 — 88 refeições"],
+            "alt-janta": ["Alternativo #241 — 86 refeições"],
+            outros: ["Observação: falta temporária de entregador"],
+          },
+        },
+      ],
+    },
+
+    "CS0107-2026-08": {
+      hash: "CS0107-2026-08",
+      periodo: {
+        rotulo: "2º Período",
+        inicio: "2026-08-01",
+        fim: "2026-08-30",
+      },
+      cs: {
+        codigo: "CS0107",
+        nome: "Cozinha Solidária Centro Histórico",
+      },
+      eg: {
+        codigo: "EG0034",
+        nome: "Associação Cidadania e Alimentação",
+      },
+      dias: [
+        {
+          data: "2026-08-01",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #880 — 200 porções"],
+            "app-cafe-distribuicao": ["Distribuição #881 — 198 entregas"],
+            "alt-almoco": ["Alternativo #401 — 150 refeições"],
+            "alt-janta": [],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-02",
+          grupos: {
+            "app-cafe-preparo": [],
+            "app-cafe-distribuicao": [],
+            "alt-almoco": ["Alternativo #405 — 142 refeições"],
+            "alt-janta": ["Alternativo #406 — 138 refeições"],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-04",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #892 — 195 porções"],
+            "app-cafe-distribuicao": ["Distribuição #893 — 192 entregas"],
+            "alt-almoco": [],
+            "alt-janta": [],
+            outros: ["Feriado local — operação reduzida"],
+          },
+        },
+        {
+          data: "2026-08-05",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #898 — 198 porções"],
+            "app-cafe-distribuicao": ["Distribuição #899 — 196 entregas", "Rota B adicionada"],
+            "alt-almoco": ["Alternativo #412 — 148 refeições"],
+            "alt-janta": ["Alternativo #413 — 145 refeições"],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-06",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #905 — 202 porções"],
+            "app-cafe-distribuicao": ["Distribuição #906 — 200 entregas"],
+            "alt-almoco": ["Alternativo #418 — 152 refeições"],
+            "alt-janta": [],
+            outros: ["Reunião com EG — ata anexada"],
+          },
+        },
+        {
+          data: "2026-08-07",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #911 — 199 porções"],
+            "app-cafe-distribuicao": ["Distribuição #912 — 197 entregas"],
+            "alt-almoco": [],
+            "alt-janta": ["Alternativo #420 — 141 refeições"],
+            outros: [],
+          },
+        },
+      ],
+    },
+
+    "CS0023-2026-08": {
+      hash: "CS0023-2026-08",
+      periodo: {
+        rotulo: "1º Período",
+        inicio: "2026-08-15",
+        fim: "2026-09-13",
+      },
+      cs: {
+        codigo: "CS0023",
+        nome: "Cozinha Solidária Bairro Novo",
+      },
+      eg: {
+        codigo: "EG0008",
+        nome: "Fundação Mesa Compartilhada",
+      },
+      dias: [
+        {
+          data: "2026-08-15",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #501 — 80 porções"],
+            "app-cafe-distribuicao": ["Distribuição #502 — 78 entregas"],
+            "alt-almoco": [],
+            "alt-janta": [],
+            outros: ["Início do período de referência"],
+          },
+        },
+        {
+          data: "2026-08-16",
+          grupos: {
+            "app-cafe-preparo": [],
+            "app-cafe-distribuicao": [],
+            "alt-almoco": ["Alternativo #120 — 65 refeições"],
+            "alt-janta": ["Alternativo #121 — 62 refeições"],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-18",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #510 — 82 porções"],
+            "app-cafe-distribuicao": ["Distribuição #511 — 80 entregas"],
+            "alt-almoco": ["Alternativo #125 — 68 refeições"],
+            "alt-janta": [],
+            outros: [],
+          },
+        },
+        {
+          data: "2026-08-19",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #515 — 84 porções"],
+            "app-cafe-distribuicao": [],
+            "alt-almoco": [],
+            "alt-janta": ["Alternativo #128 — 64 refeições"],
+            outros: ["Manutenção do veículo — registro"],
+          },
+        },
+        {
+          data: "2026-08-20",
+          grupos: {
+            "app-cafe-preparo": ["Preparo #520 — 81 porções"],
+            "app-cafe-distribuicao": ["Distribuição #521 — 79 entregas"],
+            "alt-almoco": ["Alternativo #130 — 70 refeições"],
+            "alt-janta": ["Alternativo #131 — 66 refeições"],
+            outros: [],
+          },
+        },
+      ],
+    },
+  };
+
+  const elStatus = "#status-atualizacao";
+  const inpHash = document.getElementById("inp-hash");
+  const btnVerificar = document.getElementById("btn-verificar");
+  const documento = document.getElementById("documento");
+  const avisoErro = document.getElementById("aviso-erro");
+  const tbodyRegistros = document.getElementById("tabela-registros-corpo");
+
+  function ordinal(n) {
+    return `${n}º`;
+  }
+
+  function formatDateShort(iso) {
+    const [, m, d] = iso.split("-");
+    return `${d}/${m}`;
+  }
+
+  function formatPeriodRange(inicio, fim) {
+    const fmt = (iso) => {
+      const [y, m, d] = iso.split("-");
+      return `${d}/${m}/${y.slice(2)}`;
+    };
+    return `${fmt(inicio)} a ${fmt(fim)}`;
+  }
+
+  function weekdayAbbr(iso) {
+    const [y, m, d] = iso.split("-").map(Number);
+    return DIAS_SEMANA[new Date(y, m - 1, d).getDay()];
+  }
+
+  function renderListaRegistros(itens) {
+    if (!itens || !itens.length) {
+      return '<ul class="lista-registros lista-registros--vazia"><li>—</li></ul>';
+    }
+    const lis = itens.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+    return `<ul class="lista-registros">${lis}</ul>`;
+  }
+
+  function esconderErro() {
+    avisoErro.hidden = true;
+    avisoErro.textContent = "";
+  }
+
+  function mostrarErro(mensagem) {
+    avisoErro.hidden = false;
+    avisoErro.textContent = mensagem;
+    documento.classList.remove("visivel");
+  }
+
+  function renderRelatorio(relatorio) {
+    document.getElementById("doc-hash").textContent = relatorio.hash;
+    document.getElementById("doc-periodo-rotulo").textContent = relatorio.periodo.rotulo;
+    document.getElementById("doc-periodo-intervalo").textContent = formatPeriodRange(
+      relatorio.periodo.inicio,
+      relatorio.periodo.fim,
+    );
+    document.getElementById("doc-cs-codigo").textContent = relatorio.cs.codigo;
+    document.getElementById("doc-cs-nome").textContent = relatorio.cs.nome;
+    document.getElementById("doc-eg-codigo").textContent = relatorio.eg.codigo;
+    document.getElementById("doc-eg-nome").textContent = relatorio.eg.nome;
+
+    tbodyRegistros.innerHTML = relatorio.dias
+      .map((dia, index) => {
+        const celulasGrupo = GRUPOS.map((grupo) => {
+          const itens = dia.grupos[grupo.id] || [];
+          return `<td class="${grupo.classe}">${renderListaRegistros(itens)}</td>`;
+        }).join("");
+
+        return `<tr>
+          <th scope="row" class="col-fixa">${ordinal(index + 1)}</th>
+          <td class="col-fixa">${formatDateShort(dia.data)}</td>
+          <td class="col-fixa">${weekdayAbbr(dia.data)}</td>
+          ${celulasGrupo}
+        </tr>`;
+      })
+      .join("");
+
+    documento.classList.add("visivel");
+    setStatusDot(elStatus, `${relatorio.cs.codigo} · ${relatorio.periodo.rotulo}`, false);
+  }
+
+  function verificarHash() {
+    const hash = inpHash.value.trim();
+    esconderErro();
+
+    if (!hash) {
+      mostrarErro("Informe o hash do relatório para continuar.");
+      setStatusDot(elStatus, "hash não informado", true);
+      return;
+    }
+
+    const relatorio = RELATORIOS_MOCK[hash];
+    if (!relatorio) {
+      mostrarErro(`Relatório não encontrado para o hash “${hash}”. Verifique o código e tente novamente.`);
+      setStatusDot(elStatus, "relatório não encontrado", true);
+      return;
+    }
+
+    renderRelatorio(relatorio);
+  }
+
+  btnVerificar.addEventListener("click", verificarHash);
+
+  inpHash.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      verificarHash();
+    }
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const hashUrl = params.get("hash");
+  if (hashUrl) {
+    inpHash.value = hashUrl;
+    verificarHash();
+  }
+})();
+</script>
+
+</body>
+</html>
