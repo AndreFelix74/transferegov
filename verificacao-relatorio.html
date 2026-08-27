@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="common.js"></script>
 
 <style>
@@ -52,7 +53,8 @@
     color: var(--tinta-suave);
   }
 
-  .campo-controle input[type="text"] {
+  .campo-controle input[type="month"],
+  .campo-controle select {
     font-family: "IBM Plex Sans";
     font-size: 14px;
     color: var(--tinta);
@@ -61,6 +63,11 @@
     border-radius: 7px;
     padding: 8px 12px;
     min-width: 220px;
+  }
+
+  .campo-controle select {
+    font-family: "IBM Plex Mono";
+    font-size: 13px;
   }
 
   .acoes-controle {
@@ -236,7 +243,7 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
-    min-width: 960px;
+    min-width: 560px;
   }
 
   table.doc-tabela th,
@@ -256,43 +263,47 @@
     font-weight: 600;
   }
 
-  table.doc-tabela th.grupo-app {
+  table.doc-tabela th.grupo-preparo {
     background: #e4f3ec;
     color: #1f5c44;
   }
 
-  table.doc-tabela th.grupo-alt {
+  table.doc-tabela th.grupo-distribuicao {
     background: #e3eef8;
     color: #2a5580;
   }
 
-  table.doc-tabela th.grupo-outros {
-    background: #d6e8f7;
-    color: #1a4a72;
-    border-left: 3px solid #4a8fc9;
-  }
-
-  table.doc-tabela td.col-fixa {
+  table.doc-tabela th.col-data,
+  table.doc-tabela td.col-data {
     white-space: nowrap;
     font-family: "IBM Plex Mono";
     font-size: 12px;
     background: var(--papel-carta);
+    width: 1%;
   }
 
-  table.doc-tabela td.celula-grupo-app {
+  table.doc-tabela td.col-data .dia-ordinal,
+  table.doc-tabela th.col-data .dia-ordinal {
+    display: block;
+    font-weight: 600;
+    color: var(--tinta);
+  }
+
+  table.doc-tabela td.col-data .dia-detalhe,
+  table.doc-tabela th.col-data .dia-detalhe {
+    display: block;
+    margin-top: 2px;
+    color: var(--tinta-suave);
+  }
+
+  table.doc-tabela td.celula-preparo {
     background: #f4faf7;
-    min-width: 140px;
+    min-width: 180px;
   }
 
-  table.doc-tabela td.celula-grupo-alt {
+  table.doc-tabela td.celula-distribuicao {
     background: #f3f8fc;
-    min-width: 140px;
-  }
-
-  table.doc-tabela td.celula-outros {
-    background: #edf5fb;
-    border-left: 3px solid #4a8fc9;
-    min-width: 150px;
+    min-width: 180px;
   }
 
   .lista-registros {
@@ -390,27 +401,19 @@
       print-color-adjust: exact;
     }
 
-    table.doc-tabela th.grupo-app {
+    table.doc-tabela th.grupo-preparo {
       background: #e4f3ec !important;
     }
 
-    table.doc-tabela th.grupo-alt {
+    table.doc-tabela th.grupo-distribuicao {
       background: #e3eef8 !important;
     }
 
-    table.doc-tabela th.grupo-outros,
-    table.doc-tabela td.celula-outros {
-      background: #d6e8f7 !important;
-      border-left-color: #4a8fc9 !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-
-    table.doc-tabela td.celula-grupo-app {
+    table.doc-tabela td.celula-preparo {
       background: #f4faf7 !important;
     }
 
-    table.doc-tabela td.celula-grupo-alt {
+    table.doc-tabela td.celula-distribuicao {
       background: #f3f8fc !important;
     }
   }
@@ -431,33 +434,29 @@
   </div>
   <div class="status-atualizacao" id="status-atualizacao">
     <span class="ponto"></span>
-    <span>protótipo · dados fictícios</span>
+    <span>carregando planilhas…</span>
   </div>
 </header>
 
 <main>
   <p class="aviso-placeholder no-print">
-    Informe o hash do relatório enviado pela cozinha/EG e clique em <strong>Verificar</strong>.
-    Hashes de exemplo: <code class="mono">CS0042-2026-08</code>, <code class="mono">CS0107-2026-08</code>, <code class="mono">CS0023-2026-08</code>.
+    Selecione o mês de referência e o hash <span class="mono">códigoCS-aaaa-mm</span>
+    (cozinhas com atividade em <span class="mono">atividades_cozinhas</span>).
   </p>
 
   <p class="aviso-placeholder erro no-print" id="aviso-erro" hidden role="alert"></p>
 
   <section class="painel-controles no-print" aria-label="Busca por hash do relatório">
     <div class="campo-controle">
-      <label for="inp-hash">Hash do relatório</label>
-      <input
-        type="text"
-        id="inp-hash"
-        placeholder="Ex.: CS0042-2026-08"
-        aria-label="Hash do relatório"
-        autocomplete="off"
-        spellcheck="false"
-      >
+      <label for="sel-mes">Mês de referência</label>
+      <input type="month" id="sel-mes" aria-label="Mês de referência no formato aaaa-mm">
     </div>
 
-    <div class="acoes-controle">
-      <button type="button" class="btn btn-primario" id="btn-verificar">Verificar</button>
+    <div class="campo-controle">
+      <label for="sel-hash">Hash do relatório</label>
+      <select id="sel-hash" aria-label="Hash do relatório (código da cozinha e mês)" disabled>
+        <option value="">Carregando cozinhas…</option>
+      </select>
     </div>
   </section>
 
@@ -495,18 +494,9 @@
         <table class="doc-tabela" id="tabela-registros" aria-labelledby="sec-registros">
           <thead>
             <tr>
-              <th scope="col">Dia</th>
-              <th scope="col">Data</th>
-              <th scope="col">Dia da Semana</th>
-              <!-- TODO: confirmar rótulo exato da coluna com a Coordenação -->
-              <th scope="col" class="grupo-app">Aplicativo — Café da manhã — Preparo</th>
-              <!-- TODO: confirmar rótulo exato da coluna com a Coordenação -->
-              <th scope="col" class="grupo-app">Aplicativo — Café da manhã — Distribuição</th>
-              <!-- TODO: confirmar rótulo exato da coluna com a Coordenação -->
-              <th scope="col" class="grupo-alt">Alternativo — Almoço</th>
-              <!-- TODO: confirmar rótulo exato da coluna com a Coordenação -->
-              <th scope="col" class="grupo-alt">Alternativo — Janta</th>
-              <th scope="col" class="grupo-outros">Outros Registros</th>
+              <th scope="col" class="col-data">Data</th>
+              <th scope="col" class="grupo-preparo">Preparo</th>
+              <th scope="col" class="grupo-distribuicao">Distribuição</th>
             </tr>
           </thead>
           <tbody id="tabela-registros-corpo"></tbody>
@@ -517,278 +507,30 @@
 </main>
 
 <footer class="rodape-pagina no-print">
-  <span>Painel de conferência · protótipo</span>
+  <span>Painel de conferência · atividades_cozinhas</span>
   <span>Cozinha Solidária — MDS</span>
 </footer>
 
 <script>
 (function () {
   const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const HASH_RE = /^(CS\d+)-(\d{4})-(\d{2})$/i;
 
   const GRUPOS = [
-    { id: "app-cafe-preparo", classe: "celula-grupo-app" },
-    { id: "app-cafe-distribuicao", classe: "celula-grupo-app" },
-    { id: "alt-almoco", classe: "celula-grupo-alt" },
-    { id: "alt-janta", classe: "celula-grupo-alt" },
-    { id: "outros", classe: "celula-outros" },
+    { id: "preparo", classe: "celula-preparo" },
+    { id: "distribuicao", classe: "celula-distribuicao" },
   ];
 
-  /**
-   * Dados fictícios para validação de layout — substituir por API/planilha na etapa 2.
-   * @type {Record<string, object>}
-   */
-  const RELATORIOS_MOCK = {
-    "CS0042-2026-08": {
-      hash: "CS0042-2026-08",
-      periodo: {
-        rotulo: "1º Período",
-        inicio: "2026-08-06",
-        fim: "2026-09-05",
-      },
-      cs: {
-        codigo: "CS0042",
-        nome: "Cozinha Solidária Comunitária Vila Esperança",
-      },
-      eg: {
-        codigo: "EG0012",
-        nome: "Instituto Alimentar do Nordeste",
-      },
-      dias: [
-        {
-          data: "2026-08-06",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #1042 — 120 porções", "Foto validada 08:14"],
-            "app-cafe-distribuicao": ["Distribuição #1043 — 118 entregas"],
-            "alt-almoco": [],
-            "alt-janta": [],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-07",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #1051 — 115 porções"],
-            "app-cafe-distribuicao": ["Distribuição #1052 — 112 entregas", "Ajuste de rota registrado"],
-            "alt-almoco": ["Alternativo #210 — 85 refeições"],
-            "alt-janta": [],
-            outros: ["Visita técnica — registro fotográfico"],
-          },
-        },
-        {
-          data: "2026-08-08",
-          grupos: {
-            "app-cafe-preparo": [],
-            "app-cafe-distribuicao": [],
-            "alt-almoco": ["Alternativo #218 — 92 refeições"],
-            "alt-janta": ["Alternativo #219 — 88 refeições"],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-09",
-          grupos: {
-            "app-cafe-preparo": [],
-            "app-cafe-distribuicao": [],
-            "alt-almoco": [],
-            "alt-janta": [],
-            outros: ["Domingo — operação suspensa"],
-          },
-        },
-        {
-          data: "2026-08-10",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #1060 — 125 porções"],
-            "app-cafe-distribuicao": ["Distribuição #1061 — 123 entregas"],
-            "alt-almoco": ["Alternativo #225 — 90 refeições"],
-            "alt-janta": ["Alternativo #226 — 87 refeições"],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-11",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #1068 — 118 porções", "Checklist de higiene OK"],
-            "app-cafe-distribuicao": ["Distribuição #1069 — 116 entregas"],
-            "alt-almoco": ["Alternativo #231 — 94 refeições"],
-            "alt-janta": [],
-            outros: ["Registro de doação excedente — 12 marmitas"],
-          },
-        },
-        {
-          data: "2026-08-12",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #1075 — 122 porções"],
-            "app-cafe-distribuicao": ["Distribuição #1076 — 120 entregas"],
-            "alt-almoco": [],
-            "alt-janta": ["Alternativo #233 — 91 refeições"],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-13",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #1082 — 119 porções"],
-            "app-cafe-distribuicao": [],
-            "alt-almoco": ["Alternativo #240 — 88 refeições"],
-            "alt-janta": ["Alternativo #241 — 86 refeições"],
-            outros: ["Observação: falta temporária de entregador"],
-          },
-        },
-      ],
-    },
-
-    "CS0107-2026-08": {
-      hash: "CS0107-2026-08",
-      periodo: {
-        rotulo: "2º Período",
-        inicio: "2026-08-01",
-        fim: "2026-08-30",
-      },
-      cs: {
-        codigo: "CS0107",
-        nome: "Cozinha Solidária Centro Histórico",
-      },
-      eg: {
-        codigo: "EG0034",
-        nome: "Associação Cidadania e Alimentação",
-      },
-      dias: [
-        {
-          data: "2026-08-01",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #880 — 200 porções"],
-            "app-cafe-distribuicao": ["Distribuição #881 — 198 entregas"],
-            "alt-almoco": ["Alternativo #401 — 150 refeições"],
-            "alt-janta": [],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-02",
-          grupos: {
-            "app-cafe-preparo": [],
-            "app-cafe-distribuicao": [],
-            "alt-almoco": ["Alternativo #405 — 142 refeições"],
-            "alt-janta": ["Alternativo #406 — 138 refeições"],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-04",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #892 — 195 porções"],
-            "app-cafe-distribuicao": ["Distribuição #893 — 192 entregas"],
-            "alt-almoco": [],
-            "alt-janta": [],
-            outros: ["Feriado local — operação reduzida"],
-          },
-        },
-        {
-          data: "2026-08-05",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #898 — 198 porções"],
-            "app-cafe-distribuicao": ["Distribuição #899 — 196 entregas", "Rota B adicionada"],
-            "alt-almoco": ["Alternativo #412 — 148 refeições"],
-            "alt-janta": ["Alternativo #413 — 145 refeições"],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-06",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #905 — 202 porções"],
-            "app-cafe-distribuicao": ["Distribuição #906 — 200 entregas"],
-            "alt-almoco": ["Alternativo #418 — 152 refeições"],
-            "alt-janta": [],
-            outros: ["Reunião com EG — ata anexada"],
-          },
-        },
-        {
-          data: "2026-08-07",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #911 — 199 porções"],
-            "app-cafe-distribuicao": ["Distribuição #912 — 197 entregas"],
-            "alt-almoco": [],
-            "alt-janta": ["Alternativo #420 — 141 refeições"],
-            outros: [],
-          },
-        },
-      ],
-    },
-
-    "CS0023-2026-08": {
-      hash: "CS0023-2026-08",
-      periodo: {
-        rotulo: "1º Período",
-        inicio: "2026-08-15",
-        fim: "2026-09-13",
-      },
-      cs: {
-        codigo: "CS0023",
-        nome: "Cozinha Solidária Bairro Novo",
-      },
-      eg: {
-        codigo: "EG0008",
-        nome: "Fundação Mesa Compartilhada",
-      },
-      dias: [
-        {
-          data: "2026-08-15",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #501 — 80 porções"],
-            "app-cafe-distribuicao": ["Distribuição #502 — 78 entregas"],
-            "alt-almoco": [],
-            "alt-janta": [],
-            outros: ["Início do período de referência"],
-          },
-        },
-        {
-          data: "2026-08-16",
-          grupos: {
-            "app-cafe-preparo": [],
-            "app-cafe-distribuicao": [],
-            "alt-almoco": ["Alternativo #120 — 65 refeições"],
-            "alt-janta": ["Alternativo #121 — 62 refeições"],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-18",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #510 — 82 porções"],
-            "app-cafe-distribuicao": ["Distribuição #511 — 80 entregas"],
-            "alt-almoco": ["Alternativo #125 — 68 refeições"],
-            "alt-janta": [],
-            outros: [],
-          },
-        },
-        {
-          data: "2026-08-19",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #515 — 84 porções"],
-            "app-cafe-distribuicao": [],
-            "alt-almoco": [],
-            "alt-janta": ["Alternativo #128 — 64 refeições"],
-            outros: ["Manutenção do veículo — registro"],
-          },
-        },
-        {
-          data: "2026-08-20",
-          grupos: {
-            "app-cafe-preparo": ["Preparo #520 — 81 porções"],
-            "app-cafe-distribuicao": ["Distribuição #521 — 79 entregas"],
-            "alt-almoco": ["Alternativo #130 — 70 refeições"],
-            "alt-janta": ["Alternativo #131 — 66 refeições"],
-            outros: [],
-          },
-        },
-      ],
-    },
-  };
+  /** @type {object[]} */
+  let allRecords = [];
+  /** @type {Map<string, { code: string, name: string }>} */
+  let managingEntityByKitchen = new Map();
+  /** @type {Map<string, string>} código CS → nome da cozinha (quando conhecido) */
+  let kitchenNameByCode = new Map();
 
   const elStatus = "#status-atualizacao";
-  const inpHash = document.getElementById("inp-hash");
-  const btnVerificar = document.getElementById("btn-verificar");
+  const selMes = document.getElementById("sel-mes");
+  const selHash = document.getElementById("sel-hash");
   const documento = document.getElementById("documento");
   const avisoErro = document.getElementById("aviso-erro");
   const tbodyRegistros = document.getElementById("tabela-registros-corpo");
@@ -813,6 +555,232 @@
   function weekdayAbbr(iso) {
     const [y, m, d] = iso.split("-").map(Number);
     return DIAS_SEMANA[new Date(y, m - 1, d).getDay()];
+  }
+
+  function monthLabel(yearMonth) {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const d = new Date(y, m - 1, 1);
+    const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+
+  function monthBounds(yearMonth) {
+    const [y, m] = yearMonth.split("-").map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const pad = (n) => String(n).padStart(2, "0");
+    return {
+      inicio: `${y}-${pad(m)}-01`,
+      fim: `${y}-${pad(m)}-${pad(lastDay)}`,
+      daysInMonth: lastDay,
+    };
+  }
+
+  function defaultYearMonth() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function firstFilled(row, keys) {
+    for (const key of keys) {
+      if (!(key in row)) continue;
+      const value = row[key];
+      if (value == null) continue;
+      const text = String(value).trim();
+      if (text) return text;
+    }
+    return "";
+  }
+
+  function extractKitchenCode(value) {
+    const match = String(value || "").toUpperCase().match(/CS\d+/);
+    return match ? match[0] : "";
+  }
+
+  function kitchenDisplayName(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return raw
+      .replace(/^\(CS\d+\)\s*/i, "")
+      .replace(/\s*\([^)]*\)\s*$/, "")
+      .trim() || raw;
+  }
+
+  function normalizeActivityRow(row) {
+    const cozinha = firstFilled(row, ["cozinha", "Cozinha"]);
+    const codigo = firstFilled(row, ["codigo_cozinha"])
+      || extractKitchenCode(cozinha);
+    return {
+      cozinha,
+      codigo_cozinha: codigo,
+      data_acao: firstFilled(row, ["data_acao", "Data Atividade", "data_atividade"]),
+      quantidade: firstFilled(row, ["quantidade", "Quantidade"]),
+      contribuicao: firstFilled(row, ["Contribuicao", "contribuicao", "frase_acao"]),
+      acao: firstFilled(row, ["acao"]),
+      refeicao: firstFilled(row, ["refeicao"]),
+    };
+  }
+
+  function buildManagingEntityByKitchen(rows) {
+    const egDirectory = new Map();
+    for (const row of rows || []) {
+      const code = String(row["Código da Entidade"] || "").trim().toUpperCase();
+      const name = String(row.Entidade || "").trim();
+      if (code && name) egDirectory.set(code, name);
+    }
+
+    const map = new Map();
+    for (const row of rows || []) {
+      const kitchenCode = extractKitchenCode(row["Código da Cozinha"])
+        || normalizeKitchenCode(row["Código da Cozinha"]);
+      if (!kitchenCode || !/^CS\d+$/i.test(kitchenCode)) continue;
+      const normalized = kitchenCode.toUpperCase();
+
+      const primary = String(row["Código da Entidade"] || "").trim().toUpperCase();
+      const fromPlan = String(row["Código EG"] || "").trim().toUpperCase();
+      const code = primary || fromPlan;
+      if (!code) continue;
+
+      const name = String(row.Entidade || "").trim() || egDirectory.get(code) || "";
+      if (!map.has(normalized) || primary) {
+        map.set(normalized, { code, name });
+      }
+    }
+    return map;
+  }
+
+  /** Códigos CS com ao menos um registro em atividades_cozinhas no mês. */
+  function kitchenCodesForMonth(yearMonth) {
+    const codes = new Set();
+    for (const row of allRecords) {
+      const code = String(row.codigo_cozinha || "").toUpperCase();
+      if (!code || !/^CS\d+$/.test(code)) continue;
+      if (recordYearMonth(row) !== yearMonth) continue;
+      codes.add(code);
+    }
+    return [...codes].sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  }
+
+  function recordYearMonth(record) {
+    const parts = parseDateParts(record.data_acao);
+    if (!parts) return null;
+    return `${parts.y}-${String(parts.mo).padStart(2, "0")}`;
+  }
+
+  function recordIsoDate(record) {
+    const parts = parseDateParts(record.data_acao);
+    if (!parts) return null;
+    return `${parts.y}-${String(parts.mo).padStart(2, "0")}-${String(parts.d).padStart(2, "0")}`;
+  }
+
+  function bucketAcao(acao) {
+    const value = String(acao || "").trim().toLowerCase();
+    if (value === "preparo") return "preparo";
+    if (value === "distribuição" || value === "distribuicao") return "distribuicao";
+    return null;
+  }
+
+  function formatRegistro(row) {
+    const qty = parseNum(row.quantidade);
+    const label = row.refeicao
+      || row.contribuicao
+      || row.acao
+      || "Registro";
+    if (qty > 0) return `${label} — ${formatDecimal(qty)}`;
+    return label;
+  }
+
+  function parseHash(hash) {
+    const match = String(hash || "").trim().toUpperCase().match(HASH_RE);
+    if (!match) return null;
+    return { codigo: match[1], yearMonth: `${match[2]}-${match[3]}` };
+  }
+
+  function rebuildHashSelect(preferredHash) {
+    const yearMonth = selMes.value || defaultYearMonth();
+    if (!selMes.value) selMes.value = yearMonth;
+
+    const kitchenCodes = kitchenCodesForMonth(yearMonth);
+    const previous = preferredHash || selHash.value;
+    selHash.innerHTML = "";
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = kitchenCodes.length
+      ? "Selecione o hash…"
+      : "Nenhuma cozinha com atividade neste mês";
+    selHash.appendChild(placeholder);
+
+    for (const code of kitchenCodes) {
+      const hash = `${code}-${yearMonth}`;
+      const opt = document.createElement("option");
+      opt.value = hash;
+      opt.textContent = hash;
+      selHash.appendChild(opt);
+    }
+
+    if (previous && [...selHash.options].some((o) => o.value === previous)) {
+      selHash.value = previous;
+    }
+
+    selHash.disabled = !kitchenCodes.length;
+  }
+
+  function buildRelatorioFromSheet(hash) {
+    const parsed = parseHash(hash);
+    if (!parsed) return null;
+
+    const { codigo, yearMonth } = parsed;
+    const bounds = monthBounds(yearMonth);
+    const filtered = allRecords.filter((row) => {
+      if (String(row.codigo_cozinha || "").toUpperCase() !== codigo) return false;
+      return recordYearMonth(row) === yearMonth;
+    });
+
+    const byDay = new Map();
+    for (let day = 1; day <= bounds.daysInMonth; day += 1) {
+      const iso = `${yearMonth}-${String(day).padStart(2, "0")}`;
+      byDay.set(iso, { data: iso, grupos: { preparo: [], distribuicao: [] } });
+    }
+
+    for (const row of filtered) {
+      const iso = recordIsoDate(row);
+      if (!iso || !byDay.has(iso)) continue;
+      const bucket = bucketAcao(row.acao);
+      if (!bucket) continue;
+      byDay.get(iso).grupos[bucket].push(formatRegistro(row));
+    }
+
+    // Mantém só dias com ao menos um registro nas colunas exibidas,
+    // e inclui dias vazios entre o primeiro e o último com atividade.
+    const diasComDados = [...byDay.values()].filter(
+      (d) => d.grupos.preparo.length || d.grupos.distribuicao.length,
+    );
+    let dias;
+    if (!diasComDados.length) {
+      dias = [...byDay.values()];
+    } else {
+      const first = diasComDados[0].data;
+      const last = diasComDados[diasComDados.length - 1].data;
+      dias = [...byDay.values()].filter((d) => d.data >= first && d.data <= last);
+    }
+
+    const eg = managingEntityByKitchen.get(codigo) || { code: "", name: "" };
+    const csNome = kitchenNameByCode.get(codigo)
+      || (filtered[0] && kitchenDisplayName(filtered[0].cozinha))
+      || "";
+
+    return {
+      hash: `${codigo}-${yearMonth}`,
+      periodo: {
+        rotulo: monthLabel(yearMonth),
+        inicio: bounds.inicio,
+        fim: bounds.fim,
+      },
+      cs: { codigo, nome: csNome || "—" },
+      eg: { codigo: eg.code || "—", nome: eg.name || "—" },
+      dias,
+      _filteredCount: filtered.length,
+    };
   }
 
   function renderListaRegistros(itens) {
@@ -854,53 +822,104 @@
         }).join("");
 
         return `<tr>
-          <th scope="row" class="col-fixa">${ordinal(index + 1)}</th>
-          <td class="col-fixa">${formatDateShort(dia.data)}</td>
-          <td class="col-fixa">${weekdayAbbr(dia.data)}</td>
+          <th scope="row" class="col-data">
+            <span class="dia-ordinal">${ordinal(index + 1)}</span>
+            <span class="dia-detalhe">${formatDateShort(dia.data)} · ${weekdayAbbr(dia.data)}</span>
+          </th>
           ${celulasGrupo}
         </tr>`;
       })
       .join("");
 
     documento.classList.add("visivel");
-    setStatusDot(elStatus, `${relatorio.cs.codigo} · ${relatorio.periodo.rotulo}`, false);
+    const extra = relatorio._filteredCount
+      ? `${relatorio._filteredCount} registros`
+      : "sem registros no mês";
+    setStatusDot(elStatus, `${relatorio.cs.codigo} · ${relatorio.periodo.rotulo} · ${extra}`, false);
   }
 
   function verificarHash() {
-    const hash = inpHash.value.trim();
+    const hash = selHash.value.trim();
     esconderErro();
 
     if (!hash) {
-      mostrarErro("Informe o hash do relatório para continuar.");
-      setStatusDot(elStatus, "hash não informado", true);
+      documento.classList.remove("visivel");
       return;
     }
 
-    const relatorio = RELATORIOS_MOCK[hash];
+    const relatorio = buildRelatorioFromSheet(hash);
     if (!relatorio) {
-      mostrarErro(`Relatório não encontrado para o hash “${hash}”. Verifique o código e tente novamente.`);
-      setStatusDot(elStatus, "relatório não encontrado", true);
+      mostrarErro(`Hash inválido: “${hash}”. Use o formato CS000000-aaaa-mm.`);
+      setStatusDot(elStatus, "hash inválido", true);
       return;
     }
 
     renderRelatorio(relatorio);
   }
 
-  btnVerificar.addEventListener("click", verificarHash);
-
-  inpHash.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      verificarHash();
-    }
-  });
-
-  const params = new URLSearchParams(window.location.search);
-  const hashUrl = params.get("hash");
-  if (hashUrl) {
-    inpHash.value = hashUrl;
+  function onMesChange() {
+    const current = selHash.value;
+    const parsed = parseHash(current);
+    const preferred = parsed
+      ? `${parsed.codigo}-${selMes.value}`
+      : "";
+    rebuildHashSelect(preferred);
+    esconderErro();
+    const codesNoMes = kitchenCodesForMonth(selMes.value);
+    setStatusDot(
+      elStatus,
+      `${formatDecimal(codesNoMes.length)} cozinhas no mês · ${formatDecimal(allRecords.length)} atividades`,
+      !allRecords.length,
+    );
     verificarHash();
   }
+
+  selMes.addEventListener("change", onMesChange);
+  selHash.addEventListener("change", verificarHash);
+
+  selMes.value = defaultYearMonth();
+
+  setStatusDot(elStatus, "carregando EG-x-CS e atividades_cozinhas…", false);
+
+  Promise.all([
+    parseCsv(CSV_URL_ATIVIDADES_COZINHAS),
+    parseCsv(CSV_URL_EG_X_CS),
+  ])
+    .then(([activityRows, egRows]) => {
+      allRecords = (activityRows || []).map(normalizeActivityRow);
+      for (const row of allRecords) {
+        const code = String(row.codigo_cozinha || "").toUpperCase();
+        if (!code || kitchenNameByCode.has(code)) continue;
+        const nome = kitchenDisplayName(row.cozinha);
+        if (nome) kitchenNameByCode.set(code, nome);
+      }
+
+      managingEntityByKitchen = buildManagingEntityByKitchen(egRows);
+      rebuildHashSelect();
+
+      const params = new URLSearchParams(window.location.search);
+      const hashUrl = (params.get("hash") || "").trim().toUpperCase();
+      const parsedUrl = parseHash(hashUrl);
+      if (parsedUrl) {
+        selMes.value = parsedUrl.yearMonth;
+        rebuildHashSelect(hashUrl);
+        if (selHash.value === hashUrl) verificarHash();
+      }
+
+      const codesNoMes = kitchenCodesForMonth(selMes.value);
+      setStatusDot(
+        elStatus,
+        `${formatDecimal(codesNoMes.length)} cozinhas no mês · ${formatDecimal(allRecords.length)} atividades`,
+        !allRecords.length,
+      );
+    })
+    .catch((err) => {
+      console.error(err);
+      selHash.innerHTML = '<option value="">Falha ao carregar</option>';
+      selHash.disabled = true;
+      setStatusDot(elStatus, "falha ao carregar EG-x-CS / atividades_cozinhas", true);
+      mostrarErro("Não foi possível carregar as planilhas. Tente recarregar a página.");
+    });
 })();
 </script>
 
