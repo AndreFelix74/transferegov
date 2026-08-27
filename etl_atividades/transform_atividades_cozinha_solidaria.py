@@ -20,9 +20,19 @@ REFEICOES = [
     "Ceia",
 ]
 
+# Ações sem refeição no texto (ex.: "Recebimento PAA Laranja").
+# Mais longo primeiro se houver prefixos ambíguos no futuro.
+ACOES_SEM_REFEICAO = [
+    "Recebimento PAA",
+]
+
 _REFEICAO_PATTERN = "|".join(re.escape(r) for r in REFEICOES)
 _ACAO_REFEICAO_RE = re.compile(
     rf"^(?P<acao>.*?)\s+(?P<refeicao>{_REFEICAO_PATTERN})(?:\s|$)",
+)
+_ACAO_SEM_REFEICAO_PATTERN = "|".join(re.escape(a) for a in ACOES_SEM_REFEICAO)
+_ACAO_SEM_REFEICAO_RE = re.compile(
+    rf"^(?P<acao>{_ACAO_SEM_REFEICAO_PATTERN})(?:\s|$)",
 )
 
 _CODIGO_COZINHA_RE = re.compile(r"\((CS\d+)\)")
@@ -45,7 +55,11 @@ def extract_codigo_cozinha(cozinha: str) -> str:
 def extract_acao_refeicao(frase_acao: str) -> tuple[str, str]:
     """Extrai (acao, refeicao) de ``frase_acao`` contra vocabulário fixo.
 
-    Formato esperado: ``<Ação> <Refeição> <resto>``.
+    Formatos aceitos:
+    - ``<Ação> <Refeição> <resto>`` (refeição em ``REFEICOES``)
+    - ``<Ação> <resto>`` quando a ação está em ``ACOES_SEM_REFEICAO``
+      (ex.: ``Recebimento PAA Laranja`` → acao=Recebimento PAA, refeicao vazia)
+
     Vazio → ambos vazios, sem warning.
     Preenchido fora do vocabulário → ambos vazios + warning em stderr.
     """
@@ -54,14 +68,18 @@ def extract_acao_refeicao(frase_acao: str) -> tuple[str, str]:
         return "", ""
 
     match = _ACAO_REFEICAO_RE.match(text)
-    if not match:
-        print(
-            f"aviso: frase_acao fora do vocabulário conhecido: {text!r}",
-            file=sys.stderr,
-        )
-        return "", ""
+    if match:
+        return match.group("acao").strip(), match.group("refeicao")
 
-    return match.group("acao").strip(), match.group("refeicao")
+    match_sem = _ACAO_SEM_REFEICAO_RE.match(text)
+    if match_sem:
+        return match_sem.group("acao"), ""
+
+    print(
+        f"aviso: frase_acao fora do vocabulário conhecido: {text!r}",
+        file=sys.stderr,
+    )
+    return "", ""
 
 
 def _header_index_ci(headers: list[str]) -> dict[str, int]:

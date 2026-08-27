@@ -37,6 +37,21 @@ def test_extract_acao_refeicao_distribuicao_jantar():
     assert refeicao == "Jantar"
 
 
+def test_extract_acao_refeicao_recebimento_paa():
+    buf = io.StringIO()
+    with redirect_stderr(buf):
+        acao, refeicao = extract_acao_refeicao("Recebimento PAA Laranja")
+    assert acao == "Recebimento PAA"
+    assert refeicao == ""
+    assert buf.getvalue() == ""
+
+
+def test_extract_acao_refeicao_recebimento_paa_sozinho():
+    acao, refeicao = extract_acao_refeicao("Recebimento PAA")
+    assert acao == "Recebimento PAA"
+    assert refeicao == ""
+
+
 def test_extract_acao_refeicao_vazio_sem_warning():
     buf = io.StringIO()
     with redirect_stderr(buf):
@@ -62,6 +77,8 @@ if __name__ == "__main__":
     test_extract_codigo_cozinha_formato_normal()
     test_extract_acao_refeicao_preparo_almoco()
     test_extract_acao_refeicao_distribuicao_jantar()
+    test_extract_acao_refeicao_recebimento_paa()
+    test_extract_acao_refeicao_recebimento_paa_sozinho()
     test_extract_acao_refeicao_vazio_sem_warning()
     test_extract_acao_refeicao_fora_do_vocabulario_com_warning()
     print("OK: todos os testes passaram.")
