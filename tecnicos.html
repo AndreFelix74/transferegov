@@ -232,6 +232,56 @@
         <span>Ordenado por dias em prestação de contas · fonte: TransfereGov / SICONV</span>
       </div>
     </section>
+
+    <section class="cartao-tabela">
+      <div class="cabecalho-tabela">
+        <h2>Em formalização</h2>
+        <div class="filtros-tabela">
+          <select id="filtro-modalidade-formalizacao" class="filtro-select" aria-label="Filtrar por modalidade">
+            <option value="">Todas as modalidades</option>
+          </select>
+          <div class="campo-busca">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
+            <input type="text" id="busca-formalizacao" placeholder="Buscar proponente, proposta, situação…">
+          </div>
+        </div>
+      </div>
+
+      <div class="container-tabela">
+        <table class="parcerias" data-aba="formalizacao">
+          <thead>
+            <tr>
+              <th data-campo="proponent">Proponente <span class="seta">↕</span></th>
+              <th data-campo="egCode">Código da EG <span class="seta">↕</span></th>
+              <th data-campo="technician">Técnico <span class="seta">↕</span></th>
+              <th data-campo="processNumber">Processo SEI <span class="seta">↕</span></th>
+              <th data-campo="proposalSortKey" class="ativo">Nº da proposta <span class="seta">↓</span></th>
+              <th data-campo="proposalStatus">Situação da proposta <span class="seta">↕</span></th>
+              <th data-campo="proposalYear">Ano <span class="seta">↕</span></th>
+              <th data-campo="vigencyPercent">% Vigência <span class="seta">↕</span></th>
+              <th data-campo="executionPercent">% Execução <span class="seta">↕</span></th>
+              <th data-campo="disbursementPercent">% Desembolso <span class="seta">↕</span></th>
+              <th data-campo="daysRemaining">Dias restantes <span class="seta">↕</span></th>
+              <th data-campo="legalRepresentative">Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="legalRepresentativePhone">Telefone - Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="legalRepresentativeEmail">E-mail - Representante Legal da EG <span class="seta">↕</span></th>
+              <th data-campo="focalPoint">Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="focalPointPhone">Telefone - Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="focalPointEmail">E-mail - Ponto focal na parceria <span class="seta">↕</span></th>
+              <th data-campo="egAddress">Endereço da EG <span class="seta">↕</span></th>
+            </tr>
+          </thead>
+          <tbody id="corpo-tabela-formalizacao">
+            <tr><td colspan="18" class="carregando">Carregando dados da planilha…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rodape">
+        <span id="rodape-contagem-formalizacao">—</span>
+        <span>Propostas sem convênio em complementação ou aprovadas · fonte: TransfereGov / SICONV</span>
+      </div>
+    </section>
   </section>
 </main>
 
@@ -256,7 +306,9 @@ let selectedTechnician = null;
 const sortState = {
   execucao: { field: "daysRemaining", direction: "asc" },
   prestacao: { field: "daysRemaining", direction: "asc" },
+  formalizacao: { field: "proposalSortKey", direction: "desc" },
 };
+const DESC_FIRST_SORT_FIELDS = new Set(["proposalSortKey"]);
 
 function loadData() {
   Promise.all([
@@ -299,6 +351,8 @@ function loadData() {
         `<tr><td colspan="16" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
       document.getElementById("corpo-tabela-prestacao").innerHTML =
         `<tr><td colspan="14" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
+      document.getElementById("corpo-tabela-formalizacao").innerHTML =
+        `<tr><td colspan="18" class="erro">Não foi possível carregar os dados. Verifique se a planilha está publicamente compartilhada.</td></tr>`;
     });
 }
 
@@ -324,6 +378,11 @@ function tabIds(tab) {
 }
 
 function tableRows(tab) {
+  if (tab === "formalizacao") {
+    const proposals = rows.filter(isProposalInFormalization);
+    if (!selectedTechnician) return proposals;
+    return proposals.filter((row) => row.technician === selectedTechnician);
+  }
   let base = rows.filter(
     (row) => hasConvenio(row) && row.status !== "Proposta/Plano de Trabalho Aprovado",
   );
@@ -365,6 +424,15 @@ function filteredRows(tab) {
   let base = tableRows(tab);
   if (modality) base = base.filter((row) => row.modality === modality);
   if (!term) return base;
+  if (tab === "formalizacao") {
+    return base.filter((row) =>
+      row.proponent.toLowerCase().includes(term)
+      || String(row.processNumber || "").toLowerCase().includes(term)
+      || row.proposalNumber.toLowerCase().includes(term)
+      || row.proposalStatus.toLowerCase().includes(term)
+      || row.proposalYear.toLowerCase().includes(term),
+    );
+  }
   return base.filter((row) =>
     row.proponent.toLowerCase().includes(term)
     || String(row.egCode || "").toLowerCase().includes(term)
@@ -417,6 +485,32 @@ function renderTableRow(row, tab) {
     <td class="mono">${text(row.focalPointPhone)}</td>
     <td>${text(row.focalPointEmail)}</td>
     <td>${text(row.egAddress)}</td>`;
+
+  if (tab === "formalizacao") {
+    const noConvenio = `<td class="mono">—</td>`;
+    return `<tr>
+      <td>
+        <div class="celula-proponente">
+          <span class="nome">${row.proponent}</span>
+          <span class="modalidade">${row.modality}</span>
+        </div>
+      </td>
+      <td class="mono">${text(row.egCode)}</td>
+      <td>${text(row.technician)}</td>
+      ${processNumberCell(row)}
+      <td>
+        <a class="link-transferegov" href="${PROPOSTA_DETAIL_URL}${row.proposalId}" target="_blank" rel="noopener">
+          ${text(row.proposalNumber)}
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </a>
+      </td>
+      <td><span class="badge-situacao">${text(row.proposalStatus)}</span></td>
+      <td class="mono">${text(row.proposalYear)}</td>
+      ${noConvenio.repeat(4)}
+      ${sigContactCells}
+    </tr>`;
+  }
+
   const commonCells = `
     <td>
       <div class="celula-proponente">
@@ -455,19 +549,27 @@ function renderTable(tab) {
   const { tableBody, footerCount } = tabIds(tab);
   const list = sortedRows(filteredRows(tab), tab);
   const body = document.getElementById(tableBody);
-  const colspan = tab === "prestacao" ? 14 : 16;
+  const colspan = { execucao: 16, prestacao: 14, formalizacao: 18 }[tab];
 
   if (!list.length) {
-    const msg = selectedTechnician
-      ? `Nenhuma parceria encontrada para ${selectedTechnician}.`
-      : "Nenhuma parceria encontrada para essa busca.";
+    let msg;
+    if (tab === "formalizacao") {
+      msg = selectedTechnician
+        ? "Propostas ainda não têm técnico atribuído."
+        : "Nenhuma proposta encontrada para essa busca.";
+    } else {
+      msg = selectedTechnician
+        ? `Nenhuma parceria encontrada para ${selectedTechnician}.`
+        : "Nenhuma parceria encontrada para essa busca.";
+    }
     body.innerHTML = `<tr><td colspan="${colspan}" class="vazio">${msg}</td></tr>`;
   } else {
     body.innerHTML = list.map((row) => renderTableRow(row, tab)).join("");
   }
 
-  document.getElementById(footerCount).textContent =
-    `${list.length} de ${tableRows(tab).length} parceria(s) exibida(s)`;
+  document.getElementById(footerCount).textContent = tab === "formalizacao"
+    ? `${list.length} de ${tableRows(tab).length} proposta(s) exibida(s)`
+    : `${list.length} de ${tableRows(tab).length} parceria(s) exibida(s)`;
 }
 
 function renderTechnicianFilter() {
@@ -519,6 +621,7 @@ function renderSidebar(pc180List) {
 function renderTables() {
   renderTable("execucao");
   renderTable("prestacao");
+  renderTable("formalizacao");
 }
 
 function renderAll() {
@@ -526,10 +629,11 @@ function renderAll() {
   renderTechnicianFilter();
   populateModalityFilter("execucao");
   populateModalityFilter("prestacao");
+  populateModalityFilter("formalizacao");
   renderTables();
 }
 
-["execucao", "prestacao"].forEach((tab) => {
+["execucao", "prestacao", "formalizacao"].forEach((tab) => {
   document.getElementById(`busca-${tab}`).addEventListener("input", () => renderTable(tab));
   document.getElementById(`filtro-modalidade-${tab}`).addEventListener("change", () => renderTable(tab));
 });
@@ -574,7 +678,7 @@ document.querySelectorAll("table.parcerias thead th").forEach((th) => {
     if (sortState[tab].field === field) {
       sortState[tab].direction = sortState[tab].direction === "asc" ? "desc" : "asc";
     } else {
-      sortState[tab] = { field, direction: "asc" };
+      sortState[tab] = { field, direction: DESC_FIRST_SORT_FIELDS.has(field) ? "desc" : "asc" };
     }
     th.closest("table.parcerias").querySelectorAll("thead th").forEach((el) => {
       el.classList.remove("ativo");

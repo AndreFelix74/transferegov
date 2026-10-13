@@ -45,6 +45,12 @@ const ITEM_PAD_DETAIL_URL =
 const APPROVED_YIELD_STATUS = "PT Ajustado e Aprovado";
 const VALID_UF = /^[A-Z]{2}$/;
 
+/** Regra de negócio: SIT_PROPOSTA de propostas sem convênio exibidas como "em formalização". */
+const PROPOSAL_STATUSES_IN_FORMALIZATION = [
+  "Proposta/Plano de Trabalho em Complementação",
+  "Proposta/Plano de Trabalho Aprovados",
+];
+
 /** Mapeamento lógico → cabeçalho SICONV na view_convenio. */
 const CONVENIO_COLUMNS = {
   proposalId: "ID_PROPOSTA",
@@ -371,6 +377,10 @@ function hasConvenio(row) {
   return nr && nr !== "—";
 }
 
+function isProposalInFormalization(row) {
+  return !hasConvenio(row) && PROPOSAL_STATUSES_IN_FORMALIZATION.includes(row.proposalStatus);
+}
+
 function lookupByConvenio(map, nr) {
   return (map && nr) ? (map[nr] || null) : null;
 }
@@ -441,6 +451,10 @@ function transformConvenioRow(rawRow, executedValueByConvenio, sigMaps = {}) {
     disbursementPercent,
     daysRemaining,
     band,
+    proposalNumber: rawRow.NR_PROPOSTA || "",
+    proposalStatus: rawRow.SIT_PROPOSTA || "",
+    proposalYear: rawRow.ANO_PROP || "",
+    proposalSortKey: `${rawRow.ANO_PROP || ""}${String(rawRow.NR_PROPOSTA || "").replace(/\/\d{4}$/, "")}`,
   };
 
   if (sigMaps.technicianByConvenio || sigMaps.egCodeByConvenio) {
