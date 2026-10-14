@@ -378,7 +378,13 @@ function hasConvenio(row) {
 }
 
 function isProposalInFormalization(row) {
-  return !hasConvenio(row) && PROPOSAL_STATUSES_IN_FORMALIZATION.includes(row.proposalStatus);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  // Regra de negócio: só exibe proposta com vigência prevista em curso; vigência vazia mantém visível.
+  const vigencyInProgress = row.proposalVigencyEnd === null || row.proposalVigencyEnd >= today;
+  return !hasConvenio(row)
+    && PROPOSAL_STATUSES_IN_FORMALIZATION.includes(row.proposalStatus)
+    && vigencyInProgress;
 }
 
 function lookupByConvenio(map, nr) {
@@ -455,6 +461,7 @@ function transformConvenioRow(rawRow, executedValueByConvenio, sigMaps = {}) {
     proposalStatus: rawRow.SIT_PROPOSTA || "",
     proposalYear: rawRow.ANO_PROP || "",
     proposalSortKey: `${rawRow.ANO_PROP || ""}${String(rawRow.NR_PROPOSTA || "").replace(/\/\d{4}$/, "")}`,
+    proposalVigencyEnd: parseDate(rawRow.DIA_FIM_VIGENCIA_PROPOSTA),
   };
 
   if (sigMaps.technicianByConvenio || sigMaps.egCodeByConvenio) {
