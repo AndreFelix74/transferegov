@@ -69,27 +69,22 @@ const CONVENIO_COLUMNS = {
   disbursedValue: "VL_DESEMBOLSADO_CONV",
 };
 
-/**
- * Índices 0-based da aba SIG_PCS (reordenada + coluna Código da EG):
- * A = convênio, B = técnico, D = código EG, F = qtd cozinhas,
- * H–N = representante, telefones/e-mails, ponto focal, endereço EG.
- */
+/** Mapeamento lógico → cabeçalho da aba SIG_PCS (comparado sem espaços nas extremidades). */
 const SIG_PCS_COLUMNS = {
-  convenio: 0,
-  technician: 1,
-  egCode: 3,
-  kitchenQuantity: 5,
-  legalRepresentative: 7,
-  legalRepresentativePhone: 8,
-  legalRepresentativeEmail: 9,
-  focalPoint: 10,
-  focalPointPhone: 11,
-  focalPointEmail: 12,
-  egAddress: 13,
+  convenio: "Nº TransfereGov",
+  technician: "Técnico Responsável",
+  egCode: "Código da EG",
+  kitchenQuantity: "Quantidade de cozinhas",
+  legalRepresentative: "Representante Legal da EG",
+  legalRepresentativePhone: "Telefone - Representante Legal da EG",
+  legalRepresentativeEmail: "E-mail - Representante Legal da EG",
+  focalPoint: "Ponto focal na parceria",
+  focalPointPhone: "Telefone - Ponto focal na parceria",
+  focalPointEmail: "E-mail - Ponto focal na parceria",
+  egAddress: "Endereço da EG",
+  proposal: "Proposta",
+  sei: "SEI",
 };
-
-/** Coluna da SIG_PCS localizada pelo cabeçalho (comparado sem espaços nas extremidades), não por índice. */
-const SIG_PCS_PROPOSAL_HEADER = "Proposta";
 
 const BRAND_COLORS = {
   laranja: "#e45946",
@@ -212,11 +207,13 @@ function parseNum(value) {
 /**
  * NR_PROCESSO (Processo SEI) é texto. Planilhas às vezes exportam como
  * notação científica (ex.: 7.10001E+16); reexpande para dígitos sem usar Number.
+ * A máscara do SEI (71000.033500/2026-13) também vira só dígitos.
  */
 function normalizeProcessNumber(value) {
   const raw = String(value ?? "").trim();
   if (!raw || raw === "—") return "—";
   if (/^\d+$/.test(raw)) return raw;
+  if (/^\d{5}\.\d{6}\/\d{4}-\d{2}$/.test(raw)) return raw.replace(/\D/g, "");
 
   const sci = raw.match(/^([+-]?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/);
   if (!sci) return raw;
@@ -412,6 +409,7 @@ function attachSigPcsFieldsByProposal(target, sigMaps) {
   target.focalPointPhone = lookupByConvenio(sigMaps.focalPointPhoneByProposal, proposal);
   target.focalPointEmail = lookupByConvenio(sigMaps.focalPointEmailByProposal, proposal);
   target.egAddress = lookupByConvenio(sigMaps.egAddressByProposal, proposal);
+  target.sei = lookupByConvenio(sigMaps.seiByProposal, proposal);
   return target;
 }
 
@@ -517,7 +515,27 @@ function setConvenioField(map, nr, value) {
   if (text) map[nr] = text;
 }
 
-function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
+/**
+ * Resolve campo lógico → índice a partir da linha de cabeçalho.
+ * Cabeçalho ausente resolve para -1: o campo fica vazio em todas as linhas.
+ */
+function resolveColumnIndexes(headerRow, columns, sheetName) {
+  const headers = (headerRow || []).map((header) => String(header ?? "").trim());
+  const indexes = {};
+  for (const [field, name] of Object.entries(columns)) {
+    const index = headers.indexOf(name);
+    if (index < 0) {
+      console.warn(`${sheetName}: cabeçalho "${name}" não encontrado; campo ${field} ficará vazio.`);
+    } else if (headers.indexOf(name, index + 1) >= 0) {
+      console.warn(`${sheetName}: cabeçalho "${name}" duplicado; usada a primeira ocorrência (coluna ${index + 1}).`);
+    }
+    indexes[field] = index;
+  }
+  return indexes;
+}
+
+function buildTechnicianAssignment(rows, sigHeaders = SIG_PCS_COLUMNS) {
+  const sigColumns = resolveColumnIndexes(rows[0], sigHeaders, "SIG_PCS");
   const byTechnician = {};
   const byConvenio = {};
   const egCodeByConvenio = {};
@@ -539,17 +557,14 @@ function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
   const focalPointPhoneByProposal = {};
   const focalPointEmailByProposal = {};
   const egAddressByProposal = {};
+  const seiByProposal = {};
   const seenProposals = new Set();
-  const proposalColumn = (rows[0] || []).findIndex(
-    (header) => String(header ?? "").trim() === SIG_PCS_PROPOSAL_HEADER,
-  );
-  if (proposalColumn < 0) console.warn(`SIG_PCS: coluna "${SIG_PCS_PROPOSAL_HEADER}" não encontrada no cabeçalho.`);
 
   for (const [index, row] of rows.slice(1).entries()) {
     const nr = String(row[sigColumns.convenio] || "").trim();
     if (!nr) {
       const sheetLine = index + 2;
-      const rawProposal = proposalColumn < 0 ? "" : row[proposalColumn];
+      const rawProposal = row[sigColumns.proposal];
       const proposal = normalizeProposalNumber(rawProposal);
       if (!proposal) {
         console.warn(`SIG_PCS linha ${sheetLine}: sem Nº TransfereGov e com proposta inválida ou vazia ("${rawProposal ?? ""}"); linha ignorada.`);
@@ -575,6 +590,8 @@ function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
       setConvenioField(focalPointPhoneByProposal, proposal, row[sigColumns.focalPointPhone]);
       setConvenioField(focalPointEmailByProposal, proposal, formatEmail(row[sigColumns.focalPointEmail]));
       setConvenioField(egAddressByProposal, proposal, row[sigColumns.egAddress]);
+      const sei = String(row[sigColumns.sei] || "").trim();
+      if (sei) seiByProposal[proposal] = normalizeProcessNumber(sei);
       continue;
     }
 
@@ -622,6 +639,7 @@ function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
     focalPointPhoneByProposal,
     focalPointEmailByProposal,
     egAddressByProposal,
+    seiByProposal,
   };
 }
 

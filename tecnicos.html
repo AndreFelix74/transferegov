@@ -353,6 +353,7 @@ function loadData() {
           focalPointPhoneByProposal: assignment.focalPointPhoneByProposal,
           focalPointEmailByProposal: assignment.focalPointEmailByProposal,
           egAddressByProposal: assignment.egAddressByProposal,
+          seiByProposal: assignment.seiByProposal,
         },
       ));
       setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
@@ -397,7 +398,10 @@ function isPartnershipRow(row) {
 
 function tableRows(tab) {
   if (tab === "formalizacao") {
-    const proposals = rows.filter(isProposalInFormalization);
+    // Regra de negócio: na formalização, o Processo SEI vem da SIG_PCS (pela proposta); vazio mantém o da view.
+    const proposals = rows
+      .filter(isProposalInFormalization)
+      .map((row) => ({ ...row, processNumber: row.sei || row.processNumber }));
     if (!selectedTechnician) return proposals;
     return proposals.filter((row) => row.technician === selectedTechnician);
   }
