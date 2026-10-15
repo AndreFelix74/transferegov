@@ -103,9 +103,14 @@
       <h2>Parcerias por técnico</h2>
       <table class="tabela-tecnicos">
         <thead>
-          <tr><th>Nome</th><th style="text-align:right">Execução</th><th style="text-align:right">PC</th></tr>
+          <tr>
+            <th>Nome</th>
+            <th style="text-align:right" title="Em execução">Exec.</th>
+            <th style="text-align:right" title="Em prestação de contas">PC</th>
+            <th style="text-align:right" title="Em formalização">Form.</th>
+          </tr>
         </thead>
-        <tbody id="corpo-tecnicos"><tr><td colspan="3" class="carregando">Carregando…</td></tr></tbody>
+        <tbody id="corpo-tecnicos"><tr><td colspan="4" class="carregando">Carregando…</td></tr></tbody>
       </table>
     </section>
 
@@ -129,7 +134,7 @@
       <div class="kpi-linha">
         <div class="kpi">
           <div class="valor mono" id="kpi-nao-localizados">—</div>
-          <div class="rotulo">convênios da SIG_PCS não encontrados em view_convenio</div>
+          <div class="rotulo">cadastros da SIG_PCS sem correspondência no painel</div>
         </div>
       </div>
     </section>
@@ -242,7 +247,7 @@
           </select>
           <div class="campo-busca">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/></svg>
-            <input type="text" id="busca-formalizacao" placeholder="Buscar proponente, proposta, situação…">
+            <input type="text" id="busca-formalizacao" placeholder="Buscar proponente, técnico, proposta…">
           </div>
         </div>
       </div>
@@ -300,7 +305,7 @@ const MOCK_ALERTS = [
 ];
 
 let conveniosByTechnician = {};
-let technicianByConvenio = {};
+let proposalsByTechnician = {};
 let rows = [];
 let selectedTechnician = null;
 const sortState = {
@@ -327,7 +332,7 @@ function loadData() {
       }
       const assignment = buildTechnicianAssignment(assignments);
       conveniosByTechnician = assignment.byTechnician;
-      technicianByConvenio = assignment.byConvenio;
+      proposalsByTechnician = assignment.proposalsByTechnician;
       rows = convenios.map((r) => transformConvenioRow(
         r, executedValueByConvenio, {
           technicianByConvenio: assignment.byConvenio,
@@ -339,6 +344,15 @@ function loadData() {
           focalPointPhoneByConvenio: assignment.focalPointPhoneByConvenio,
           focalPointEmailByConvenio: assignment.focalPointEmailByConvenio,
           egAddressByConvenio: assignment.egAddressByConvenio,
+          technicianByProposal: assignment.technicianByProposal,
+          egCodeByProposal: assignment.egCodeByProposal,
+          legalRepresentativeByProposal: assignment.legalRepresentativeByProposal,
+          legalRepresentativePhoneByProposal: assignment.legalRepresentativePhoneByProposal,
+          legalRepresentativeEmailByProposal: assignment.legalRepresentativeEmailByProposal,
+          focalPointByProposal: assignment.focalPointByProposal,
+          focalPointPhoneByProposal: assignment.focalPointPhoneByProposal,
+          focalPointEmailByProposal: assignment.focalPointEmailByProposal,
+          egAddressByProposal: assignment.egAddressByProposal,
         },
       ));
       setStatusDot("#status-atualizacao", `atualizado às ${new Date().toLocaleString("pt-BR")}`, false);
@@ -377,15 +391,17 @@ function tabIds(tab) {
   };
 }
 
+function isPartnershipRow(row) {
+  return hasConvenio(row) && row.status !== "Proposta/Plano de Trabalho Aprovado";
+}
+
 function tableRows(tab) {
   if (tab === "formalizacao") {
     const proposals = rows.filter(isProposalInFormalization);
     if (!selectedTechnician) return proposals;
     return proposals.filter((row) => row.technician === selectedTechnician);
   }
-  let base = rows.filter(
-    (row) => hasConvenio(row) && row.status !== "Proposta/Plano de Trabalho Aprovado",
-  );
+  let base = rows.filter(isPartnershipRow);
   if (selectedTechnician) {
     base = base.filter((row) => row.technician === selectedTechnician);
   }
@@ -427,6 +443,8 @@ function filteredRows(tab) {
   if (tab === "formalizacao") {
     return base.filter((row) =>
       row.proponent.toLowerCase().includes(term)
+      || String(row.egCode || "").toLowerCase().includes(term)
+      || String(row.technician || "").toLowerCase().includes(term)
       || String(row.processNumber || "").toLowerCase().includes(term)
       || row.proposalNumber.toLowerCase().includes(term)
       || row.proposalStatus.toLowerCase().includes(term)
@@ -555,7 +573,7 @@ function renderTable(tab) {
     let msg;
     if (tab === "formalizacao") {
       msg = selectedTechnician
-        ? "Propostas ainda não têm técnico atribuído."
+        ? `Nenhuma proposta encontrada para ${selectedTechnician}.`
         : "Nenhuma proposta encontrada para essa busca.";
     } else {
       msg = selectedTechnician
@@ -587,16 +605,22 @@ function renderTechnicianFilter() {
 }
 
 function renderSidebar(pc180List) {
-  const names = Object.keys(conveniosByTechnician).sort();
+  const names = [...new Set([
+    ...Object.keys(conveniosByTechnician),
+    ...Object.keys(proposalsByTechnician),
+  ])].sort();
+  const proposals = rows.filter(isProposalInFormalization);
   document.getElementById("corpo-tecnicos").innerHTML = names.map((technician) => {
     const forTechnician = rows.filter((row) => row.technician === technician);
     const inExecutionCount = forTechnician.filter((row) => isInExecution(row.status)).length;
     const inAccountabilityCount = forTechnician.filter((row) => isInAccountability(row.status)).length;
+    const inFormalizationCount = proposals.filter((row) => row.technician === technician).length;
     const selected = technician === selectedTechnician ? " selecionada" : "";
     return `<tr data-tecnico="${technician}" class="${selected.trim()}">
       <td>${technician}</td>
       <td class="num${inExecutionCount ? "" : " zero"}">${inExecutionCount}</td>
       <td class="num${inAccountabilityCount ? "" : " zero"}">${inAccountabilityCount}</td>
+      <td class="num${inFormalizationCount ? "" : " zero"}">${inFormalizationCount}</td>
     </tr>`;
   }).join("");
 
@@ -611,11 +635,15 @@ function renderSidebar(pc180List) {
   document.getElementById("kpi-movimentacoes").textContent = MOCK_ALERTS.length;
   document.getElementById("kpi-pc180-total").textContent = pc180List.length;
 
-  const totalSigConvenios = Object.values(conveniosByTechnician).flat().length;
-  const matched = Object.keys(technicianByConvenio).filter((nr) =>
-    rows.some((row) => row.convenioNumber === nr),
-  ).length;
-  document.getElementById("kpi-nao-localizados").textContent = totalSigConvenios - matched;
+  const sectionRows = rows.filter((row) => isPartnershipRow(row) || isProposalInFormalization(row));
+  const shownConvenios = new Set(sectionRows.filter(hasConvenio).map((row) => row.convenioNumber));
+  const shownProposals = new Set(sectionRows
+    .filter((row) => !hasConvenio(row))
+    .map((row) => normalizeProposalNumber(row.proposalNumber)));
+  const notFoundCount =
+    Object.values(conveniosByTechnician).flat().filter((nr) => !shownConvenios.has(nr)).length
+    + Object.values(proposalsByTechnician).flat().filter((proposal) => !shownProposals.has(proposal)).length;
+  document.getElementById("kpi-nao-localizados").textContent = notFoundCount;
 }
 
 function renderTables() {
