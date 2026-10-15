@@ -88,6 +88,9 @@ const SIG_PCS_COLUMNS = {
   egAddress: 13,
 };
 
+/** Coluna da SIG_PCS localizada pelo cabeçalho (comparado sem espaços nas extremidades), não por índice. */
+const SIG_PCS_PROPOSAL_HEADER = "Proposta";
+
 const BRAND_COLORS = {
   laranja: "#e45946",
   roxo: "#69438c",
@@ -391,7 +394,30 @@ function lookupByConvenio(map, nr) {
   return (map && nr) ? (map[nr] || null) : null;
 }
 
+/** Número da proposta no formato "xxxxxx/AAAA"; null se o valor não casar com esse padrão. */
+function normalizeProposalNumber(value) {
+  const text = String(value ?? "").replace(/\s/g, "");
+  const match = text.match(/^(\d{1,6})\/(\d{4})$/);
+  return match ? `${match[1].padStart(6, "0")}/${match[2]}` : null;
+}
+
+function attachSigPcsFieldsByProposal(target, sigMaps) {
+  const proposal = normalizeProposalNumber(target.proposalNumber);
+  target.technician = lookupByConvenio(sigMaps.technicianByProposal, proposal);
+  target.egCode = lookupByConvenio(sigMaps.egCodeByProposal, proposal);
+  target.legalRepresentative = lookupByConvenio(sigMaps.legalRepresentativeByProposal, proposal);
+  target.legalRepresentativePhone = lookupByConvenio(sigMaps.legalRepresentativePhoneByProposal, proposal);
+  target.legalRepresentativeEmail = lookupByConvenio(sigMaps.legalRepresentativeEmailByProposal, proposal);
+  target.focalPoint = lookupByConvenio(sigMaps.focalPointByProposal, proposal);
+  target.focalPointPhone = lookupByConvenio(sigMaps.focalPointPhoneByProposal, proposal);
+  target.focalPointEmail = lookupByConvenio(sigMaps.focalPointEmailByProposal, proposal);
+  target.egAddress = lookupByConvenio(sigMaps.egAddressByProposal, proposal);
+  return target;
+}
+
 function attachSigPcsFields(target, nr, sigMaps = {}) {
+  // Regra de negócio: a ligação pela proposta da SIG_PCS só vale para linhas sem NR_CONVENIO.
+  if (!nr) return attachSigPcsFieldsByProposal(target, sigMaps);
   target.technician = lookupByConvenio(sigMaps.technicianByConvenio, nr);
   target.egCode = lookupByConvenio(sigMaps.egCodeByConvenio, nr);
   target.legalRepresentative = lookupByConvenio(sigMaps.legalRepresentativeByConvenio, nr);
@@ -503,9 +529,54 @@ function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
   const focalPointEmailByConvenio = {};
   const egAddressByConvenio = {};
   const kitchenQuantityByConvenio = {};
-  for (const row of rows.slice(1)) {
+  const proposalsByTechnician = {};
+  const technicianByProposal = {};
+  const egCodeByProposal = {};
+  const legalRepresentativeByProposal = {};
+  const legalRepresentativePhoneByProposal = {};
+  const legalRepresentativeEmailByProposal = {};
+  const focalPointByProposal = {};
+  const focalPointPhoneByProposal = {};
+  const focalPointEmailByProposal = {};
+  const egAddressByProposal = {};
+  const seenProposals = new Set();
+  const proposalColumn = (rows[0] || []).findIndex(
+    (header) => String(header ?? "").trim() === SIG_PCS_PROPOSAL_HEADER,
+  );
+  if (proposalColumn < 0) console.warn(`SIG_PCS: coluna "${SIG_PCS_PROPOSAL_HEADER}" não encontrada no cabeçalho.`);
+
+  for (const [index, row] of rows.slice(1).entries()) {
     const nr = String(row[sigColumns.convenio] || "").trim();
-    if (!nr) continue;
+    if (!nr) {
+      const sheetLine = index + 2;
+      const rawProposal = proposalColumn < 0 ? "" : row[proposalColumn];
+      const proposal = normalizeProposalNumber(rawProposal);
+      if (!proposal) {
+        console.warn(`SIG_PCS linha ${sheetLine}: sem Nº TransfereGov e com proposta inválida ou vazia ("${rawProposal ?? ""}"); linha ignorada.`);
+        continue;
+      }
+      if (seenProposals.has(proposal)) {
+        console.warn(`SIG_PCS linha ${sheetLine}: proposta ${proposal} repetida; prevalece a última linha.`);
+      }
+      seenProposals.add(proposal);
+
+      const technician = String(row[sigColumns.technician] || "").trim();
+      if (technician) {
+        technicianByProposal[proposal] = technician;
+        if (!proposalsByTechnician[technician]) proposalsByTechnician[technician] = [];
+        proposalsByTechnician[technician].push(proposal);
+      }
+
+      setConvenioField(egCodeByProposal, proposal, row[sigColumns.egCode]);
+      setConvenioField(legalRepresentativeByProposal, proposal, row[sigColumns.legalRepresentative]);
+      setConvenioField(legalRepresentativePhoneByProposal, proposal, row[sigColumns.legalRepresentativePhone]);
+      setConvenioField(legalRepresentativeEmailByProposal, proposal, formatEmail(row[sigColumns.legalRepresentativeEmail]));
+      setConvenioField(focalPointByProposal, proposal, row[sigColumns.focalPoint]);
+      setConvenioField(focalPointPhoneByProposal, proposal, row[sigColumns.focalPointPhone]);
+      setConvenioField(focalPointEmailByProposal, proposal, formatEmail(row[sigColumns.focalPointEmail]));
+      setConvenioField(egAddressByProposal, proposal, row[sigColumns.egAddress]);
+      continue;
+    }
 
     const technician = String(row[sigColumns.technician] || "").trim();
     if (technician) {
@@ -541,6 +612,16 @@ function buildTechnicianAssignment(rows, sigColumns = SIG_PCS_COLUMNS) {
     focalPointEmailByConvenio,
     egAddressByConvenio,
     kitchenQuantityByConvenio,
+    proposalsByTechnician,
+    technicianByProposal,
+    egCodeByProposal,
+    legalRepresentativeByProposal,
+    legalRepresentativePhoneByProposal,
+    legalRepresentativeEmailByProposal,
+    focalPointByProposal,
+    focalPointPhoneByProposal,
+    focalPointEmailByProposal,
+    egAddressByProposal,
   };
 }
 
